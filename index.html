@@ -81,7 +81,7 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 04051146 (移植版)</h4>
+    <h4>線上缺失紀錄 04051154 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
@@ -165,9 +165,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+console.log("初始化 supabase")
 const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co'
 const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+  
+if (!window._supabase) {
+  window._supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+}
+const supabase = window._supabase
 
 // 綁定按鈕（等DOM載入完成）
 document.addEventListener("DOMContentLoaded", () => {
@@ -287,9 +292,6 @@ const dataB = {
   "內部裝修": ["泥作","石膏磚","油漆","SPC地坪","矽酸鈣天花","木門","玻璃","矽利康"],
   "外部裝修": ["泥作-丁掛磚","石材","鐵件","玻璃"],
   "開口設備": ["鋁門窗","金屬門","防火門","木門","鐵捲門","防水閘門","維修孔/檢修門","鐵件","玻璃"],
-  "浴室設備": ["鏡櫃.浴櫃","面盆","檯面","龍頭.蓮蓬頭","馬桶","淋浴拉門","暖風機","毛巾架","矽利康"],
-  "廚房陽台設備": ["廚具(及設備)","烤漆玻璃","企口天花","曬衣架"],
-  "其他設備": ["防水閘門","冷氣","電梯","停車場設備","EPOXY","樓梯扶手","刮泥墊","廣告招牌","燈光","案名字","鐵件類"],
   "地工": ["尚無開項"],
   "工務所": ["兆龍","漴楠","維哲","建男","粗工","公司"]
 };
