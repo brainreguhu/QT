@@ -173,7 +173,7 @@ async function submitData(btn) {
     var formData = new FormData(form);
 
     // 2. 替換成你 GAS 「新部署」後產生的 Web App URL (結尾須為 /exec)
-    const scriptURL = "https://script.google.com/macros/s/AKfycbwSWpX7S5AWx9FDLElbL4ZVZcWhp93dqUuVc-aTQ_C_XUZlzMKB3FKUblfev3WMUvz3/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxY_0uoiAHcoQa-iMVuAkUZJEZVlFhKR5PaPcXdSPvTf3vYL351lKU9nn8ZO5wLxcx1Gw/exec";
 
     // 3. 使用 fetch 發送資料到 Google
     const response = await fetch(scriptURL, {
