@@ -2,247 +2,155 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Supabase HTML 範例</title>
+  <title>Supabase 表單</title>
+
+  <!-- 正確 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    /* 整體背景及文字顏色 */
-    body { 
-      font-family: sans-serif; 
-      padding: 20px; 
-      background: #121212; 
-      color: #ffffff; 
+    body {
+      font-family: sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
     }
 
-    /* 卡片背景顏色 */
-    .card { 
-      display: flex !important;
-      flex-direction: column !important;/* 讓內容由上往下排 */
-      align-items: center !important; /* 關鍵：水平置中所有子元素 */
-
-      background: #1e1e1e; 
-      padding: 10px; 
-      border-radius: 20px; 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-      max-width: 400px; 
-      margin: auto; 
+    .card {
+      max-width: 400px;
+      margin: auto;
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
     }
 
-    label { display: block; margin-top: 10px; font-weight: bold; color: #bbbbbb; }
-
-    h4 {
-      display: block;        /* 確保是區塊元素 */
-      text-align: center;    /* 文字水平置中 */
-      font-size: 20px;       /* 加大字體 */
-      font-weight: bold;     /* 加粗 */
-      color: gray;           /* 深灰色 */
-      margin-top: 0px;      /* 上方間距 */
-      margin-bottom: 0px;   /* 與下方元件的間距 */
-    }
-
-    /* 輸入框改顏色 */
-    select, textarea, input { 
+    input, select, textarea {
       width: 100%;
-      display: block;
-      margin: 20px auto;
-      resize: none;
-      padding: 10px; 
-      margin-top: 5px; 
-      border: 1px solid #333; 
-      border-radius: 4px; 
-      box-sizing: border-box; 
-      background: #2c2c2c; 
-      color: #ffffff; 
-      font-size: 18px
+      margin-top: 10px;
+      padding: 10px;
+      background: #2c2c2c;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
     }
 
-    /* 按鈕文字顏色 */
-    input[type="file"] { color: #888; }
-
-    /* 按鈕顏色 */
-    button { 
-      display: block;
-      width: 50%; 
-      padding: 15px; 
-      background: #2e7d32; 
-      color: white; 
-      border: none; 
-      border-radius: 10px; 
-      margin: 20px auto 0; 
-      cursor: pointer; 
-      font-size: 16px; 
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
-    
-    button:hover { background: #388e3c; }
 
-    /* 訊息文字顏色改為亮綠色，在黑底更顯眼 */
-    #msg { color: #81c784; text-align: center; margin-top: 10px; }
+    #msg {
+      margin-top: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
-  <div class="card">
 
-    <h4>線上缺失紀錄 04051154 (移植版)</h4>
-    <form id="recordForm">
-      <!-- 分棟選單 -->
+<div class="card">
 
-      <!-- 樓層選單 -->
-      <label>樓層</label>
-      <select name="樓層">
-        <option value="" disabled selected hidden>請選擇樓層</option>
-        <option>B5F</option>
-        <option>B4F</option>
-        <option>B3F</option>
-        <option>B2F</option>
-        <option>B1F</option>
-        <option>1F</option>
-        <option>1MF</option>
-        <option>2F</option>
-        <option>3F</option>
-        <option>4F</option>
-        <option>5F</option>
-        <option>6F</option>
-        <option>7F</option>
-        <option>8F</option>
-        <option>9F</option>
-        <option>10F</option>
-        <option>11F</option>
-        <option>12F</option>
-        <option>13F</option>
-        <option>14F</option>
-        <option>15F</option>
-        <option>16F</option>
-        <option>17F</option>
-        <option>R1F</option>
-        <option>R2F</option>
-        <option>R3F</option>
-        <option>PRF</option>
-      </select>
+  <h3>資料填寫1207</h3>
 
-  <!-- 連動選單A(三層)開始 -->
-  <div class="form-group">
-    <label>位置</label>
-    <select id="位置1" name="位置1" onchange="updateA()"></select>
-    <select id="位置2" name="位置2" onchange="updateA()"></select>
-    <select id="位置3" name="位置3"></select>
-  </div>
-  <!-- 連動選單A結束 -->
+  <form id="recordForm">
 
-  <label>撰寫說明</label>
-  <textarea name="說明" rows="2" placeholder="請輸入說明..."></textarea>
+    <label>樓層</label>
+    <select name="樓層">
+      <option value="">請選擇</option>
+      <option>1F</option>
+      <option>2F</option>
+    </select>
 
-  <!-- 類別選單(二層) -->
-  <div class="form-group">
-    <label>廠商類別</label>
-    <select id="廠商1" name="廠商1" onchange="updateB()"></select>
-    <select id="廠商2" name="廠商2"></select>
-  </div>
-  <!-- 連動選單B結束 -->
+    <label>說明</label>
+    <textarea name="說明"></textarea>
 
-  <label>事項分類</label>
-  <select name="分類">
-    <option value="" disabled selected hidden>請選擇分類</option>
-    <option>缺失</option>
-    <option>客變</option>
-    <option>驗屋</option>
-    <option>待辦</option>
-    <option>記錄</option>
-  </select>
-      
-      <label>插入圖片</label>
-      <input type="file" id="照片" name="照片" accept="image/*">
+    <label>分類</label>
+    <select name="分類">
+      <option value="">請選擇</option>
+      <option>缺失</option>
+      <option>記錄</option>
+    </select>
 
-      <button type="button" id="submitBtn">確認送出</button>
-         
-    </form>
-    <div id="msg"></div>
+    <label>圖片</label>
+    <input type="file" id="photoInput">
 
-  </div>
+    <button type="button" id="submitBtn">送出</button>
 
-    <hr style="width: 400px; border: none; border-top: 1px solid gray; margin: 15px auto;">
-    <div style="color: gray; font-size: 15px; line-height: 1.2; text-align: center;">
-      © Reguhu 2026
-    </div>
+  </form>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <div id="msg"></div>
+
+</div>
+
 <script>
-console.log("初始化 supabase")
-const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co'
-const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
-  
+/* ✅ 防止重複初始化 */
 if (!window._supabase) {
-  window._supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+  window._supabase = window.supabase.createClient(
+    'https://clcqnbnbbtzzuctaspfn.supabase.co',
+    'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
+  )
 }
 const supabase = window._supabase
 
-// 綁定按鈕（等DOM載入完成）
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("submitBtn").addEventListener("click", submitData)
-})
+/* ✅ 綁定事件（DOM ready） */
+document.getElementById("submitBtn").addEventListener("click", submitData)
 
+/* ✅ 主功能 */
 async function submitData() {
   const btn = document.getElementById("submitBtn")
   const msg = document.getElementById("msg")
 
-  // 🔒 鎖按鈕
   btn.disabled = true
   btn.innerText = "送出中..."
   msg.innerText = ""
 
   try {
-    // ✅ 表單驗證
     const 樓層 = document.querySelector('[name="樓層"]').value
+    const 說明 = document.querySelector('[name="說明"]').value
     const 分類 = document.querySelector('[name="分類"]').value
 
     if (!樓層 || !分類) {
       throw new Error("請填寫必要欄位")
     }
 
-    // ✅ 取得圖片
-    const fileInput = document.getElementById("photoInput")
-    const file = fileInput.files[0]
-
+    /* ✅ 圖片上傳 */
     let photoUrl = null
+    const file = document.getElementById("photoInput").files[0]
 
-    // ✅ 上傳圖片（如果有）
     if (file) {
-      const fileName = `${Date.now()}_${file.name}`
+      const fileName = Date.now() + "_" + file.name
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('photos')
+      const { error: uploadError } = await supabase.storage
+        .from("Public")   // ⚠️ bucket 名稱
         .upload(fileName, file)
 
       if (uploadError) throw uploadError
 
-      // 取得公開 URL
-      const { data: publicUrlData } = supabase.storage
-        .from('photos')
+      const { data } = supabase.storage
+        .from("Public")
         .getPublicUrl(fileName)
 
-      photoUrl = publicUrlData.publicUrl
+      photoUrl = data.publicUrl
     }
 
-    // ✅ 組資料
-    const data = {
-      樓層,
-      位置1: document.querySelector('[name="位置1"]').value,
-      位置2: document.querySelector('[name="位置2"]').value,
-      位置3: document.querySelector('[name="位置3"]').value,
-      說明: document.querySelector('[name="說明"]').value,
-      分類,
-      廠商1: document.querySelector('[name="廠商1"]').value,
-      廠商2: document.querySelector('[name="廠商2"]').value,
-      照片: photoUrl
-    }
-
-    // ✅ 寫入資料庫
+    /* ✅ 寫入資料 */
     const { error } = await supabase
-      .from('records')
-      .insert([data])
+      .from("records")   // ⚠️ table 名稱
+      .insert([{
+        樓層,
+        說明,
+        分類,
+        照片: photoUrl
+      }])
 
     if (error) throw error
 
-    // ✅ 成功
-    msg.innerText = "✅ 送出成功！"
+    msg.innerText = "✅ 成功送出"
     document.getElementById("recordForm").reset()
 
   } catch (err) {
@@ -250,101 +158,9 @@ async function submitData() {
     msg.innerText = "❌ " + err.message
   }
 
-  // 🔓 解鎖按鈕
   btn.disabled = false
-  btn.innerText = "確認送出"
+  btn.innerText = "送出"
 }
-
-/* 連動選單A開始 */
-const dataA = {
-  "戶內A": {
-    "A1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "A2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "A6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
-  },
-    "戶內B": {
-    "B1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
-  },
-    "店鋪": {
-    "A1": ["樓梯","廁所"],
-    "A11": ["樓梯","廁所"]    
-  },
-  "公設": {
-    "管委會": ["大廳","兒遊室","防災中心","健身房A","健身房B","瑜伽教室A","瑜伽教室B"],
-    "廁所": ["廁所"], "梯廳": ["梯廳"], "電梯廳": ["電梯廳"],
-    "樓梯間": ["A1梯","A2梯","B1梯","B2梯"]
-  },
-  "外牆": { 
-    "外牆A": ["全區","A1","A2","A3","A5","A6","A1梯","A2梯","電梯廳"],
-    "外牆B": ["全區","B1","B2","B3","B5","B6","B7","B1梯","B2梯","電梯廳"]
-    },
-  "地下室": {
-    "公設": ["樓梯間","電梯廳","第二門廳","車道","停車位","機機位"],
-    "機房": ["台電受電室","垃圾儲藏室","電信機房","發電機房","消防機房","泵浦室","水箱"]
-  },
-  "景觀": { "景觀中庭/花台": ["整區"], "人行道": ["整區"], "水溝": ["整區"], "騎樓": ["整區"] }
-};
-
-const dataB = {
-  "結構": ["放樣","模板","鋼筋","鷹架","壓送","防水","石膏磚","打石","土木"],
-  "機電": ["機電","給排水","強弱電","消防","監控","燈光"],
-  "內部裝修": ["泥作","石膏磚","油漆","SPC地坪","矽酸鈣天花","木門","玻璃","矽利康"],
-  "外部裝修": ["泥作-丁掛磚","石材","鐵件","玻璃"],
-  "開口設備": ["鋁門窗","金屬門","防火門","木門","鐵捲門","防水閘門","維修孔/檢修門","鐵件","玻璃"],
-  "地工": ["尚無開項"],
-  "工務所": ["兆龍","漴楠","維哲","建男","粗工","公司"]
-};
-
-/* 連動設置 */
-window.onload = function() {
-  const s1 = document.getElementById("位置1");
-  const s4 = document.getElementById("廠商1");
-
-  /* 初始化 A 第一層 */
-  s1.innerHTML = '<option value="">請選擇位置</option>';
-  for (let key in dataA) { s1.add(new Option(key, key)); }
-  
-  /* 初始化 B 第一層 */
-  s4.innerHTML = '<option value="">請選擇</option>';
-  for (let key in dataB) { s4.add(new Option(key, key)); }
-};
-
-/* 選單A連動(三層) */
-function updateA(e) {
-  const v1 = document.getElementById("位置1").value
-  const v2 = document.getElementById("位置2").value
-  const s2 = document.getElementById("位置2")
-  const s3 = document.getElementById("位置3")
-
-  if (e.target.id === "位置1") {
-    s2.innerHTML = '<option value="">請選擇位置</option>'
-    s3.innerHTML = '<option value="">請選擇空間</option>'
-
-    if (v1 && dataA[v1]) {
-      for (let key in dataA[v1]) {
-        s2.add(new Option(key, key))
-      }
-    }
-  } else if (e.target.id === "位置2") {
-    s3.innerHTML = '<option value="">請選擇空間</option>'
-
-    if (v1 && v2 && dataA[v1][v2]) {
-      dataA[v1][v2].forEach(i => s3.add(new Option(i, i)))
-    }
-  }
-}
-
-/* 選單B連動(二層) */
-function updateB() {
-  const v4 = document.getElementById("廠商1").value;
-  const s5 = document.getElementById("廠商2");
-  s5.innerHTML = '<option value="">請選擇缺失項目</option>';
-  if (v4 && dataB[v4]) {
-    dataB[v4].forEach(i => s5.add(new Option(i, i)));
-  }
-}
-  
 </script>
 
 </body>
