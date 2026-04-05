@@ -82,7 +82,7 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 04051103 (移植版)</h4>
+    <h4>線上缺失紀錄 04051119 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
@@ -153,6 +153,8 @@
       <input type="file" id="photoInput" name="照片" accept="image/*">
 
       <button type="button" onclick="submitData(this)">確認送出</button>
+      <script>document.getElementById("submitBtn").addEventListener("click", submitData)</script>
+      
     </form>
     <div id="msg"></div>
 
@@ -162,11 +164,12 @@
     <div style="color: gray; font-size: 15px; line-height: 1.2; text-align: center;">
       © Reguhu 2026
     </div>
-  
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
 // --- 1. 必須放在最頂部 (全域範圍) ---
-const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.coL'
+const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co'
 const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
