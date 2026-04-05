@@ -1,66 +1,340 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上缺失紀錄 1.2</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        form { margin: 20px; }
-        label { display: block; margin-bottom: 5px; }
-    </style>
+  <style>
+    //整體背景及文字顏色
+    body { 
+      font-family: sans-serif; 
+      padding: 20px; 
+      background: #121212; 
+      color: #ffffff; 
+    }
+
+    //卡片背景顏色
+    .card { 
+      display: flex !important;
+      flex-direction: column !important;//讓內容由上往下排
+      align-items: center !important; //關鍵：水平置中所有子元素
+
+      background: #1e1e1e; 
+      padding: 10px; 
+      border-radius: 20px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+      max-width: 400px; 
+      margin: auto; 
+    }
+
+    label { display: block; margin-top: 10px; font-weight: bold; color: #bbbbbb; }
+
+    h4 {
+      display: block;        //確保是區塊元素
+      text-align: center;    //文字水平置中
+      font-size: 20px;       //加大字體
+      font-weight: bold;     //加粗
+      color: gray;           //深灰色
+      margin-top: 0px;      //上方間距
+      margin-bottom: 0px;   //與下方元件的間距
+    }
+
+    //輸入框改顏色
+    select, textarea, input { 
+      width: 100%;
+      display: block;
+      margin: 20px auto;
+      resize: none;
+      padding: 10px; 
+      margin-top: 5px; 
+      border: 1px solid #333; 
+      border-radius: 4px; 
+      box-sizing: border-box; 
+      background: #2c2c2c; 
+      color: #ffffff; 
+      font-size: 18px
+    }
+
+    //按鈕文字顏色
+    input[type="file"] { color: #888; }
+
+    //按鈕顏色
+    button { 
+      display: block;
+      width: 50%; 
+      padding: 15px; 
+      background: #2e7d32; 
+      color: white; 
+      border: none; 
+      border-radius: 10px; 
+      margin: 20px auto 0; 
+      cursor: pointer; 
+      font-size: 16px; 
+    }
+    
+    button:hover { background: #388e3c; }
+
+    /* 訊息文字顏色改為亮綠色，在黑底更顯眼 */
+    #msg { color: #81c784; text-align: center; margin-top: 10px; }
+  </style>
 </head>
+
 <body>
-    <h1>線上缺失紀錄 1.2</h1>
-    <form id="dataForm">
-        <label for="dataA">選擇A:</label>
-        <select id="dataA" name="dataA" onchange="updateA()"> 
-            <option value="">--請選擇--</option>
-            <option value="A1">選項A1</option>
-            <option value="A2">選項A2</option>
-            <option value="A3">選項A3</option>
-        </select>
+  <div class="card">
 
-        <label for="dataB">選擇B:</label>
-        <select id="dataB" name="dataB" onchange="updateB()">
-            <option value="">--請選擇--</option>
-            <option value="B1">選項B1</option>
-            <option value="B2">選項B2</option>
-            <option value="B3">選項B3</option>
-        </select>
+    <h4>線上缺失紀錄 1.2 (開項待更新)</h4>
+    <form id="recordForm">
+      <!--❤❤❤分棟選單❤❤❤-->
 
-        <button type="button" id="submitButton" onclick="submitData()">提交</button>
+      <!--❤❤❤樓層選單❤❤❤-->
+      <label>樓層</label>
+      <select name="select1">
+        <option value="" disabled selected hidden>請選擇樓層</option>
+        <option>B5F</option>
+        <option>B4F</option>
+        <option>B3F</option>
+        <option>B2F</option>
+        <option>B1F</option>
+        <option>1F</option>
+        <option>1MF</option>
+        <option>2F</option>
+        <option>3F</option>
+        <option>4F</option>
+        <option>5F</option>
+        <option>6F</option>
+        <option>7F</option>
+        <option>8F</option>
+        <option>9F</option>
+        <option>10F</option>
+        <option>11F</option>
+        <option>12F</option>
+        <option>13F</option>
+        <option>14F</option>
+        <option>15F</option>
+        <option>16F</option>
+        <option>17F</option>
+        <option>R1F</option>
+        <option>R2F</option>
+        <option>R3F</option>
+        <option>PRF</option>
+      </select>
+
+  <!--▼▼▼連動選單A(三層)開始▼▼▼-->
+  <div class="form-group">
+    <label>位置</label>
+    <select id="lvl1" name="lvl1" onchange="updateA()"></select>
+    <select id="lvl2" name="lvl2" onchange="updateA()"></select>
+    <select id="lvl3" name="lvl3"></select>
+  </div>
+  <!--▲▲▲連動選單A開始▲▲▲-->
+
+  <label>撰寫說明</label>
+  <textarea name="desc" rows="2" placeholder="請輸入說明..."></textarea>
+
+  <!--▼▼▼類別選單(二層)▼▼▼-->
+  <div class="form-group">
+    <label>廠商類別</label>
+    <select id="lvl4" name="lvl4" onchange="updateB()"></select>
+    <select id="lvl5" name="lvl5"></select>
+  </div>
+  <!--▲▲▲連動選單B開始▲▲▲-->
+
+  <label>事項分類</label>
+  <select name="select5">
+    <option value="" disabled selected hidden>請選擇分類</option>
+    <option>缺失</option>
+    <option>客變</option>
+    <option>驗屋</option>
+    <option>待辦</option>
+    <option>記錄</option>
+  </select>
+      
+      <label>插入圖片</label>
+      <input type="file" id="photoInput" name="myFile" accept="image/*">
+
+      <button type="button" onclick="submitData(this)">確認送出</button>
     </form>
+    <div id="msg"></div>
 
-    <script>
-        var dataA = { A1: "詳細信息A1", A2: "詳細信息A2", A3: "詳細信息A3" };
-        var dataB = { B1: "詳細信息B1", B2: "詳細信息B2", B3: "詳細信息B3" };
+  </div>
 
-        function updateA() {
-            const selectA = document.getElementById('dataA');
-            const selectedA = selectA.value;
-            console.log('選擇的A選項:', dataA[selectedA]);
-            // Additional functionality can be added here
-        }
+    <hr style="width: 400px; border: none; border-top: 1px solid gray; margin: 15px auto;">
+    <div style="color: gray; font-size: 15px; line-height: 1.2; text-align: center;">
+      © Reguhu 2026
+    </div>
+ 
 
-        function updateB() {
-            const selectB = document.getElementById('dataB');
-            const selectedB = selectB.value;
-            console.log('選擇的B選項:', dataB[selectedB]);
-            // Additional functionality can be added here
-        }
+<script>
+//確認送出設定
+function submitData(btn) {
+  try {
+    btn.disabled = true;
+    btn.innerText = "上傳中...";
+    
+    var form = document.getElementById("recordForm");
 
-        function submitData() {
-            const selectedA = document.getElementById('dataA').value;
-            const selectedB = document.getElementById('dataB').value;
-            if (selectedA && selectedB) {
-                google.script.run.withSuccessHandler(function(response) {
-                    alert('提交成功: ' + response);
-                }).handleFormSubmit(selectedA, selectedB);
-            } else {
-                alert('請選擇A和B選項。');
-            }
-        }
-    </script>
+    google.script.run
+      .withSuccessHandler(function(res) {
+        // 1. 顯示成功訊息並設定 5 秒後消失
+        var msgDiv = document.getElementById("msg");
+        msgDiv.innerText = res; 
+        setTimeout(function() { msgDiv.innerText = ""; }, 5000); 
+
+        // 2. 【手動清理區】指定哪些欄位要刪除內容
+        // 清除說明欄 (使用 name 屬性定位)
+        document.getElementsByName("desc")[0].value = "";
+        
+        // 清除連動選單 B (lvl4, lvl5)
+        var s4 = document.getElementById("lvl4");
+        var s5 = document.getElementById("lvl5");
+        s4.value = ""; // 回到「請選擇類別」
+        s5.innerHTML = '<option value="" disabled selected>請先選類別</option>';
+        
+        // 清除分類選單 (select5)
+        document.getElementsByName("select5")[0].selectedIndex = 0; 
+        
+        // 清除檔案上傳 (myFile)
+        document.getElementsByName("myFile")[0].value = "";
+
+        // 3. 恢復按鈕狀態 (select1, lvl1, lvl2, lvl3 會自動保留原狀)
+        btn.disabled = false;
+        btn.innerText = "確認送出";
+      })
+      .withFailureHandler(function(err) {
+        alert("系統出錯：" + err);
+        btn.disabled = false;
+        btn.innerText = "確認送出";
+      })
+      .processForm(form);
+  } catch (e) {
+    alert("執行失敗：" + e.message);
+    btn.disabled = false;
+    btn.innerText = "確認送出";
+  }
+}
+
+
+//▼▼▼連動選單A開始▼▼▼
+const dataA = {
+  "戶內A": {
+    "A1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
+  },
+    "戶內B": {
+    "B1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B7": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
+  },
+    "店鋪": {
+    "A1": ["樓梯","廁所"],
+    "A2": ["樓梯","廁所"],
+    "A3": ["樓梯","廁所"],
+    "A5": ["樓梯","廁所"],
+    "A6": ["樓梯","廁所"],
+    "A7": ["樓梯","廁所"],
+    "A8": ["樓梯","廁所"],
+    "A9": ["樓梯","廁所"],
+    "A10": ["樓梯","廁所"],
+    "A11": ["樓梯","廁所"]    
+  },
+  "公設": {
+    "管委會": ["大廳","兒遊室","防災中心","健身房A","健身房B","瑜伽教室A","瑜伽教室B"],
+    "廁所": ["廁所"], "梯廳": ["梯廳"], "電梯廳": ["電梯廳"],
+    "樓梯間": ["A1梯","A2梯","B1梯","B2梯"]
+  },
+  "外牆": { 
+    "外牆A": ["全區","A1","A2","A3","A5","A6","A1梯","A2梯","電梯廳"],
+    "外牆B": ["全區","B1","B2","B3","B5","B6","B7","B1梯","B2梯","電梯廳"]
+    },
+  "地下室": {
+    "公設": ["樓梯間","電梯廳","第二門廳","車道","停車位","機機位"],
+    "機房": ["台電受電室","垃圾儲藏室","電信機房","發電機房","消防機房","泵浦室","水箱"]
+  },
+  "景觀": { "景觀中庭/花台": ["整區"], "人行道": ["整區"], "水溝": ["整區"], "騎樓": ["整區"] }
+};
+
+const dataB = {
+  "結構": ["放樣","模板","鋼筋","鷹架","壓送","防水","石膏磚","打石","土木"],
+  "機電": ["機電","給排水","強弱電","消防","監控","燈光"],
+  "內部裝修": ["泥作","石膏磚","油漆","SPC地坪","矽酸鈣天花","木門","玻璃","矽利康"],
+  "外部裝修": ["泥作-丁掛磚","石材","鐵件","玻璃"],
+  "開口設備": ["鋁門窗","金屬門","防火門","木門","鐵捲門","防水閘門","維修孔/檢修門","鐵件","玻璃"],
+  "浴室設備": ["鏡櫃.浴櫃","面盆","檯面","龍頭.蓮蓬頭","馬桶","淋浴拉門","暖風機","毛巾架","矽利康"],
+  "廚房陽台設備": ["廚具(及設備)","烤漆玻璃","企口天花","曬衣架"],
+  "其他設備": ["防水閘門","冷氣","電梯","停車場設備","EPOXY","樓梯扶手","刮泥墊","廣告招牌","燈光","案名字","鐵件類"],
+  "地工": ["尚無開項"],
+  "工務所": ["兆龍","漴楠","維哲","建男","粗工","公司"]
+};
+
+//★★★連動設置★★★
+window.onload = function() {
+  const s1 = document.getElementById("lvl1");
+  const s4 = document.getElementById("lvl4");
+
+  // 初始化 A 第一層
+  s1.innerHTML = '<option value="">請選擇位置</option>';
+  for (let key in dataA) { s1.add(new Option(key, key)); }
+  
+  // 初始化 B 第一層
+  s4.innerHTML = '<option value="">請選擇</option>';
+  for (let key in dataB) { s4.add(new Option(key, key)); }
+};
+
+//選單A連動(三層)
+function updateA() {
+  const v1 = document.getElementById("lvl1").value;
+  const v2 = document.getElementById("lvl2").value;
+  const s2 = document.getElementById("lvl2");
+  const s3 = document.getElementById("lvl3");
+
+  //選單A處理第二層
+  if (event.target.id === "lvl1") {
+    s2.innerHTML = '<option value="">請選擇位置</option>';
+    s3.innerHTML = '<option value="">請選擇空間</option>';
+    if (v1 && dataA[v1]) {
+      for (let key in dataA[v1]) { s2.add(new Option(key, key)); }
+    }
+  } 
+  //選單A處理第三層
+  else if (event.target.id === "lvl2") {
+    s3.innerHTML = '<option value="">請選擇空間</option>';
+    if (v1 && v2 && dataA[v1][v2]) {
+      dataA[v1][v2].forEach(i => s3.add(new Option(i, i)));
+    }
+  }
+}
+
+//選單B連動(二層)
+function updateB() {
+  const v4 = document.getElementById("lvl4").value;
+  const s5 = document.getElementById("lvl5");
+  s5.innerHTML = '<option value="">請選擇缺失項目</option>';
+  if (v4 && dataB[v4]) {
+    dataB[v4].forEach(i => s5.add(new Option(i, i)));
+  }
+}
+
+//將檔案傳送給 Google Apps Script
+function uploadImage() {
+  const file = document.getElementById('photoInput').files[0];
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+  //直接把原始結果丟給後端，不用在前端寫 split 邏輯
+    google.script.run
+      .withSuccessHandler(msg => alert(msg))
+      .processUpload({
+        base64: e.target.result, 
+        type: file.type
+      });
+  };
+  reader.readAsDataURL(file);
+}
+
+</script>
+
 </body>
 </html>
