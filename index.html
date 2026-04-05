@@ -3,75 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>完整表單</title>
+    <title>線上缺失紀錄 1.2</title>
     <style>
-        body {
-            background-color: #121212;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
-        .green-button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        select, textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+        body { font-family: Arial, sans-serif; }
+        form { margin: 20px; }
+        label { display: block; margin-bottom: 5px; }
     </style>
-    <script>
-        function populateOptions() {
-            // JavaScript code for cascading menus
-            // Example of populating options basing on user selections
-        }
-        function submitForm() {
-            // JavaScript code for form submission
-            alert('表單已提交！');
-        }
-    </script>
 </head>
 <body>
-    <h1>提交表單</h1>
-    <form onsubmit="submitForm(); return false;">
-        <label for="floor">樓層選單:</label>
-        <select id="floor" name="floor">
-            <option value="1">1樓</option>
-            <option value="2">2樓</option>
-            <option value="3">3樓</option>
+    <h1>線上缺失紀錄 1.2</h1>
+    <form id="dataForm">
+        <label for="dataA">選擇A:</label>
+        <select id="dataA" name="dataA" onchange="updateA()"> 
+            <option value="">--請選擇--</option>
+            <option value="A1">選項A1</option>
+            <option value="A2">選項A2</option>
+            <option value="A3">選項A3</option>
         </select>
 
-        <label for="location">三層級聯動選單(位置):</label>
-        <select id="location" name="location" onchange="populateOptions()">
-            <option value="loc1">位置1</option>
-            <option value="loc2">位置2</option>
+        <label for="dataB">選擇B:</label>
+        <select id="dataB" name="dataB" onchange="updateB()">
+            <option value="">--請選擇--</option>
+            <option value="B1">選項B1</option>
+            <option value="B2">選項B2</option>
+            <option value="B3">選項B3</option>
         </select>
 
-        <label for="vendor">廠商類別:</label>
-        <select id="vendor" name="vendor">
-            <option value="vendor1">廠商1</option>
-            <option value="vendor2">廠商2</option>
-        </select>
-
-        <label for="category">事項分類:</label>
-        <select id="category" name="category">
-            <option value="issue1">分類1</option>
-            <option value="issue2">分類2</option>
-        </select>
-
-        <label for="image">圖片上傳:</label>
-        <input type="file" id="image" name="image" accept="image/*">
-
-        <label for="description">撰寫說明:</label>
-        <textarea id="description" name="description" rows="4"></textarea>
-
-        <button type="submit" class="green-button">提交</button>
+        <button type="button" id="submitButton" onclick="submitData()">提交</button>
     </form>
+
+    <script>
+        var dataA = { A1: "詳細信息A1", A2: "詳細信息A2", A3: "詳細信息A3" };
+        var dataB = { B1: "詳細信息B1", B2: "詳細信息B2", B3: "詳細信息B3" };
+
+        function updateA() {
+            const selectA = document.getElementById('dataA');
+            const selectedA = selectA.value;
+            console.log('選擇的A選項:', dataA[selectedA]);
+            // Additional functionality can be added here
+        }
+
+        function updateB() {
+            const selectB = document.getElementById('dataB');
+            const selectedB = selectB.value;
+            console.log('選擇的B選項:', dataB[selectedB]);
+            // Additional functionality can be added here
+        }
+
+        function submitData() {
+            const selectedA = document.getElementById('dataA').value;
+            const selectedB = document.getElementById('dataB').value;
+            if (selectedA && selectedB) {
+                google.script.run.withSuccessHandler(function(response) {
+                    alert('提交成功: ' + response);
+                }).handleFormSubmit(selectedA, selectedB);
+            } else {
+                alert('請選擇A和B選項。');
+            }
+        }
+    </script>
 </body>
 </html>
