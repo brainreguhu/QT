@@ -55,7 +55,7 @@
 
 <div class="card">
 
-  <h3>資料填寫1207</h3>
+  <h3>資料填寫1211</h3>
 
   <form id="recordForm">
 
@@ -88,14 +88,15 @@
 </div>
 
 <script>
-/* ✅ 防止重複初始化 */
-if (!window._supabase) {
-  window._supabase = window.supabase.createClient(
-    'https://clcqnbnbbtzzuctaspfn.supabase.co',
-    'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
-  )
+const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co';
+const supabaseKey = '你的 key';
+
+// 防止重複宣告
+if (!window._supabaseClient) {
+  window._supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 }
-const supabase = window._supabase
+
+const supabase = window._supabaseClient;
 
 /* ✅ 綁定事件（DOM ready） */
 document.getElementById("submitBtn").addEventListener("click", submitData)
