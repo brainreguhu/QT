@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Supabase HTML 範例</title>
-  <script src="https://jsdelivr.net"></script>
   <style>
     /* 整體背景及文字顏色 */
     body { 
@@ -82,7 +81,7 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 04051130 (移植版)</h4>
+    <h4>線上缺失紀錄 04051146 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
@@ -122,9 +121,9 @@
   <!-- 連動選單A(三層)開始 -->
   <div class="form-group">
     <label>位置</label>
-    <select id="lvl1" name="位置1" onchange="updateA()"></select>
-    <select id="lvl2" name="位置2" onchange="updateA()"></select>
-    <select id="lvl3" name="位置3"></select>
+    <select id="位置1" name="位置1" onchange="updateA()"></select>
+    <select id="位置2" name="位置2" onchange="updateA()"></select>
+    <select id="位置3" name="位置3"></select>
   </div>
   <!-- 連動選單A結束 -->
 
@@ -134,8 +133,8 @@
   <!-- 類別選單(二層) -->
   <div class="form-group">
     <label>廠商類別</label>
-    <select id="lvl4" name="廠商1" onchange="updateB()"></select>
-    <select id="lvl5" name="廠商2"></select>
+    <select id="廠商1" name="廠商1" onchange="updateB()"></select>
+    <select id="廠商2" name="廠商2"></select>
   </div>
   <!-- 連動選單B結束 -->
 
@@ -150,14 +149,10 @@
   </select>
       
       <label>插入圖片</label>
-      <input type="file" id="photoInput" name="照片" accept="image/*">
+      <input type="file" id="照片" name="照片" accept="image/*">
 
       <button type="button" id="submitBtn">確認送出</button>
-      
-      <script>
-      document.getElementById("submitBtn").addEventListener("click", submitData)
-      </script>
-      
+         
     </form>
     <div id="msg"></div>
 
@@ -170,38 +165,90 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
-// --- 1. 必須放在最頂部 (全域範圍) ---
 const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co'
 const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-// --- 2. 之後才定義函式 ---
-async function submitData(btn) {
-  const data = {
-    樓層: document.querySelector('[name="樓層"]').value,
-    位置1: document.querySelector('[name="位置1"]').value,
-    位置2: document.querySelector('[name="位置2"]').value,
-    位置3: document.querySelector('[name="位置3"]').value,
-    說明: document.querySelector('[name="說明"]').value,
-    分類: document.querySelector('[name="分類"]').value,
-    廠商1: document.querySelector('[name="廠商1"]').value,
-    廠商2: document.querySelector('[name="廠商2"]').value,
-    照片: document.querySelector('[name="照片"]').value // 或檔案處理（下面講）
+// 綁定按鈕（等DOM載入完成）
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("submitBtn").addEventListener("click", submitData)
+})
+
+async function submitData() {
+  const btn = document.getElementById("submitBtn")
+  const msg = document.getElementById("msg")
+
+  // 🔒 鎖按鈕
+  btn.disabled = true
+  btn.innerText = "送出中..."
+  msg.innerText = ""
+
+  try {
+    // ✅ 表單驗證
+    const 樓層 = document.querySelector('[name="樓層"]').value
+    const 分類 = document.querySelector('[name="分類"]').value
+
+    if (!樓層 || !分類) {
+      throw new Error("請填寫必要欄位")
+    }
+
+    // ✅ 取得圖片
+    const fileInput = document.getElementById("photoInput")
+    const file = fileInput.files[0]
+
+    let photoUrl = null
+
+    // ✅ 上傳圖片（如果有）
+    if (file) {
+      const fileName = `${Date.now()}_${file.name}`
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      // 取得公開 URL
+      const { data: publicUrlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(fileName)
+
+      photoUrl = publicUrlData.publicUrl
+    }
+
+    // ✅ 組資料
+    const data = {
+      樓層,
+      位置1: document.querySelector('[name="位置1"]').value,
+      位置2: document.querySelector('[name="位置2"]').value,
+      位置3: document.querySelector('[name="位置3"]').value,
+      說明: document.querySelector('[name="說明"]').value,
+      分類,
+      廠商1: document.querySelector('[name="廠商1"]').value,
+      廠商2: document.querySelector('[name="廠商2"]').value,
+      照片: photoUrl
+    }
+
+    // ✅ 寫入資料庫
+    const { error } = await supabase
+      .from('records')
+      .insert([data])
+
+    if (error) throw error
+
+    // ✅ 成功
+    msg.innerText = "✅ 送出成功！"
+    document.getElementById("recordForm").reset()
+
+  } catch (err) {
+    console.error(err)
+    msg.innerText = "❌ " + err.message
   }
 
-  const { data: result, error } = await supabase
-    .from('records')
-    .insert([data])
-
-  if (error) {
-    console.error(error)
-    alert('送出失敗')
-  } else {
-    alert('成功')
-  }
+  // 🔓 解鎖按鈕
+  btn.disabled = false
+  btn.innerText = "確認送出"
 }
-
 
 /* 連動選單A開始 */
 const dataA = {
@@ -262,25 +309,26 @@ window.onload = function() {
 };
 
 /* 選單A連動(三層) */
-function updateA() {
-  const v1 = document.getElementById("位置1").value;
-  const v2 = document.getElementById("位置2").value;
-  const s2 = document.getElementById("位置2");
-  const s3 = document.getElementById("位置3");
+function updateA(e) {
+  const v1 = document.getElementById("位置1").value
+  const v2 = document.getElementById("位置2").value
+  const s2 = document.getElementById("位置2")
+  const s3 = document.getElementById("位置3")
 
-  /* 選單A處理第二層 */
-  if (event.target.id === "位置1") {
-    s2.innerHTML = '<option value="">請選擇位置</option>';
-    s3.innerHTML = '<option value="">請選擇空間</option>';
+  if (e.target.id === "位置1") {
+    s2.innerHTML = '<option value="">請選擇位置</option>'
+    s3.innerHTML = '<option value="">請選擇空間</option>'
+
     if (v1 && dataA[v1]) {
-      for (let key in dataA[v1]) { s2.add(new Option(key, key)); }
+      for (let key in dataA[v1]) {
+        s2.add(new Option(key, key))
+      }
     }
-  } 
-  /* 選單A處理第三層 */
-  else if (event.target.id === "位置2") {
-    s3.innerHTML = '<option value="">請選擇空間</option>';
+  } else if (e.target.id === "位置2") {
+    s3.innerHTML = '<option value="">請選擇空間</option>'
+
     if (v1 && v2 && dataA[v1][v2]) {
-      dataA[v1][v2].forEach(i => s3.add(new Option(i, i)));
+      dataA[v1][v2].forEach(i => s3.add(new Option(i, i)))
     }
   }
 }
