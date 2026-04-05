@@ -2,63 +2,24 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Supabase 表單</title>
-
-  <!-- 正確 CDN -->
+  <title>Supabase 表單 - 修正版</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    body {
-      font-family: sans-serif;
-      background: #121212;
-      color: #fff;
-      padding: 20px;
-    }
-
-    .card {
-      max-width: 400px;
-      margin: auto;
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 12px;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      background: #2c2c2c;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 6px;
-    }
-
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 12px;
-      background: #2e7d32;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    #msg {
-      margin-top: 10px;
-      text-align: center;
-    }
+    body { font-family: sans-serif; background:#121212; color:#fff; padding:20px; }
+    .card { max-width:400px; margin:auto; background:#1e1e1e; padding:20px; border-radius:12px; }
+    input, select, textarea { width:100%; margin-top:10px; padding:10px; background:#2c2c2c; color:#fff; border:1px solid #444; border-radius:6px; }
+    button { margin-top:20px; width:100%; padding:12px; background:#2e7d32; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    #msg { margin-top:10px; text-align:center; }
   </style>
 </head>
 
 <body>
 
 <div class="card">
-
-  <h3>資料填寫1211</h3>
+  <h3>資料填寫（修正版）</h3>
 
   <form id="recordForm">
-
     <label>樓層</label>
     <select name="樓層">
       <option value="">請選擇</option>
@@ -80,87 +41,83 @@
     <input type="file" id="photoInput">
 
     <button type="button" id="submitBtn">送出</button>
-
   </form>
 
   <div id="msg"></div>
-
 </div>
 
 <script>
+/* ================== Supabase 單例初始化 ================== */
 const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co';
-const supabaseKey = '你的 key';
+const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'; // ← 換成你的 anon public key
 
-// 防止重複宣告
-if (!window._supabaseClient) {
-  window._supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+if (!window.supabaseClient) {
+  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 }
 
-const supabase = window._supabaseClient;
+const supabase = window.supabaseClient; // 安全使用，不會重複宣告
 
-/* ✅ 綁定事件（DOM ready） */
-document.getElementById("submitBtn").addEventListener("click", submitData)
+/* ================== 綁定送出事件 ================== */
+document.getElementById("submitBtn").addEventListener("click", submitData);
 
-/* ✅ 主功能 */
+/* ================== 送出功能 ================== */
 async function submitData() {
-  const btn = document.getElementById("submitBtn")
-  const msg = document.getElementById("msg")
+  const btn = document.getElementById("submitBtn");
+  const msg = document.getElementById("msg");
 
-  btn.disabled = true
-  btn.innerText = "送出中..."
-  msg.innerText = ""
+  btn.disabled = true;
+  btn.innerText = "送出中...";
+  msg.innerText = "";
 
   try {
-    const 樓層 = document.querySelector('[name="樓層"]').value
-    const 說明 = document.querySelector('[name="說明"]').value
-    const 分類 = document.querySelector('[name="分類"]').value
+    const 樓層 = document.querySelector('[name="樓層"]').value;
+    const 說明 = document.querySelector('[name="說明"]').value;
+    const 分類 = document.querySelector('[name="分類"]').value;
 
-    if (!樓層 || !分類) {
-      throw new Error("請填寫必要欄位")
-    }
+    if (!樓層 || !分類) throw new Error("請填寫必要欄位");
 
-    /* ✅ 圖片上傳 */
-    let photoUrl = null
-    const file = document.getElementById("photoInput").files[0]
+    /* ===== 圖片上傳 ===== */
+    let photoUrl = null;
+    const file = document.getElementById("photoInput").files[0];
 
     if (file) {
-      const fileName = Date.now() + "_" + file.name
+      const fileName = Date.now() + "_" + file.name;
 
       const { error: uploadError } = await supabase.storage
-        .from("Public")   // ⚠️ bucket 名稱
-        .upload(fileName, file)
+        .from("Public")      // ← 你的 Bucket 名稱
+        .upload(fileName, file);
 
-      if (uploadError) throw uploadError
+      if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from("Public")
-        .getPublicUrl(fileName)
+        .getPublicUrl(fileName);
 
-      photoUrl = data.publicUrl
+      photoUrl = data.publicUrl;
     }
 
-    /* ✅ 寫入資料 */
+    /* ===== 寫入資料到 Table ===== */
     const { error } = await supabase
-      .from("records")   // ⚠️ table 名稱
+      .from("records")       // ← 你的 Table 名稱
       .insert([{
         樓層,
         說明,
         分類,
         照片: photoUrl
-      }])
+      }]);
 
-    if (error) throw error
+    if (error) throw error;
 
-    msg.innerText = "✅ 成功送出"
-    document.getElementById("recordForm").reset()
+    msg.innerText = "✅ 成功送出";
+    document.getElementById("recordForm").reset();
 
   } catch (err) {
-    console.error(err)
-    msg.innerText = "❌ " + err.message
+    console.error(err);
+    msg.innerText = "❌ " + err.message;
   }
 
-  btn.disabled = false
-  btn.innerText = "送出"
+  btn.disabled = false;
+  btn.innerText = "送出";
 }
 </script>
 
