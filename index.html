@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+  /* 引入Supabase SDK */
+  <script src="https://jsdelivr.net"></script>
+
   <style>
     /* 整體背景及文字顏色 */
     body { 
@@ -163,57 +166,85 @@
 
 <script>
 /* 確認送出設定 */
+// 初始化 Supabase 客戶端
+const _supabase = supabase.createClient('https://supabase.co', '你的anon-key');
+
 async function submitData(btn) {
   try {
     btn.disabled = true;
     btn.innerText = "上傳中...";
     
-    var form = document.getElementById("recordForm");
-    // 1. 建立 FormData 物件來封裝表單資料（含檔案）
-    var formData = new FormData(form);
+    const form = document.getElementById("recordForm");
+    const formData = new FormData(form);
 
-    // 2. 替換成你 GAS 「新部署」後產生的 Web App URL (結尾須為 /exec)
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxY_0uoiAHcoQa-iMVuAkUZJEZVlFhKR5PaPcXdSPvTf3vYL351lKU9nn8ZO5wLxcx1Gw/exec";
+    // --- 第一步：處理圖片上傳 ---
+    let photoUrl = "";
+    // 假設你的檔案欄位 name 是 "photoFile" 或 "myFile"
+    const fileInput = document.getElementsByName("photoFile")[0] || document.getElementsByName("myFile")[0];
+    const file = fileInput.files[0];
 
-    // 3. 使用 fetch 發送資料到 Google
-    const response = await fetch(scriptURL, {
-      method: "POST",
-      body: formData,
-      // 注意：發送到 GAS 時，通常設為 no-cors 模式
-      mode: "no-cors" 
-    });
+    if (file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
 
-    // --- 以下為成功後的處理邏輯 ---
-    
+      // 上傳至名為 "photos" 的 Bucket (請先在 Supabase 建立此 Bucket)
+      const { data: uploadData, error: uploadError } = await _supabase.storage
+        .from('photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw new Error("圖片上傳失敗: " + uploadError.message);
+
+      // 取得公開網址
+      const { data: publicUrlData } = _supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+      photoUrl = publicUrlData.publicUrl;
+    }
+
+    // --- 第二步：寫入資料庫 ---
+    // 欄位名稱請對照你 Supabase 資料表設定的英文名稱
+    const { error: dbError } = await _supabase
+      .from('你的資料表名稱') 
+      .insert([{
+        "來自": "📱",
+        "樓層": formData.get("floor"),
+        "位置1": formData.get("lvl1"),
+        "位置2": formData.get("lvl2"),
+        "位置3": formData.get("lvl3"),
+        "缺失": formData.get("desc"),
+        "分類": formData.get("classification"),
+        "廠商1": formData.get("category1"),
+        "廠商2": formData.get("category2"),
+        "照片": photoUrl,
+        "提交時間": new Date().toISOString()
+      }]);
+
+    if (dbError) throw new Error("資料庫寫入失敗: " + dbError.message);
+
+    // --- 第三步：成功後的處理邏輯 ---
     var msgDiv = document.getElementById("msg");
-    msgDiv.innerText = "✅ 資料已成功送出！"; // 因為 no-cors 無法取得 response body，我們手動設定成功訊息
+    msgDiv.innerText = "✅ 資料已成功儲存至 Supabase！"; 
     setTimeout(function() { msgDiv.innerText = ""; }, 5000); 
 
     /* 清除欄位 */
-    document.getElementsByName("desc")[0].value = "";
+    form.reset(); // 使用 reset() 一次清除所有輸入
     
-    var s4 = document.getElementById("lvl4");
     var s5 = document.getElementById("lvl5");
-    if(s4) s4.value = "";
     if(s5) s5.innerHTML = '<option value="" disabled selected>請先選類別</option>';        
-    
-    var select5 = document.getElementsByName("select5")[0];
-    if(select5) select5.selectedIndex = 0; 
-    
-    // 注意：檔案欄位名稱在你的 HTML 可能是 myFile 或 photoFile，請確認與 .gs 一致
-    var fileInput = document.getElementsByName("myFile")[0] || document.getElementsByName("photoFile")[0];
-    if(fileInput) fileInput.value = "";
 
     /* 恢復按鈕狀態 */
     btn.disabled = false;
     btn.innerText = "確認送出";
 
   } catch (e) {
+    console.error(e);
     alert("執行失敗：" + e.message);
     btn.disabled = false;
     btn.innerText = "確認送出";
   }
 }
+
 
 
 
