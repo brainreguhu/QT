@@ -82,13 +82,13 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 04051035 (移植版)</h4>
+    <h4>線上缺失紀錄 04051103 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
       <!-- 樓層選單 -->
       <label>樓層</label>
-      <select name="select1">
+      <select name="樓層">
         <option value="" disabled selected hidden>請選擇樓層</option>
         <option>B5F</option>
         <option>B4F</option>
@@ -122,25 +122,25 @@
   <!-- 連動選單A(三層)開始 -->
   <div class="form-group">
     <label>位置</label>
-    <select id="lvl1" name="lvl1" onchange="updateA()"></select>
-    <select id="lvl2" name="lvl2" onchange="updateA()"></select>
-    <select id="lvl3" name="lvl3"></select>
+    <select id="lvl1" name="位置1" onchange="updateA()"></select>
+    <select id="lvl2" name="位置2" onchange="updateA()"></select>
+    <select id="lvl3" name="位置3"></select>
   </div>
   <!-- 連動選單A結束 -->
 
   <label>撰寫說明</label>
-  <textarea name="desc" rows="2" placeholder="請輸入說明..."></textarea>
+  <textarea name="說明" rows="2" placeholder="請輸入說明..."></textarea>
 
   <!-- 類別選單(二層) -->
   <div class="form-group">
     <label>廠商類別</label>
-    <select id="lvl4" name="lvl4" onchange="updateB()"></select>
-    <select id="lvl5" name="lvl5"></select>
+    <select id="lvl4" name="廠商1" onchange="updateB()"></select>
+    <select id="lvl5" name="廠商2"></select>
   </div>
   <!-- 連動選單B結束 -->
 
   <label>事項分類</label>
-  <select name="select5">
+  <select name="分類">
     <option value="" disabled selected hidden>請選擇分類</option>
     <option>缺失</option>
     <option>客變</option>
@@ -150,7 +150,7 @@
   </select>
       
       <label>插入圖片</label>
-      <input type="file" id="photoInput" name="myFile" accept="image/*">
+      <input type="file" id="photoInput" name="照片" accept="image/*">
 
       <button type="button" onclick="submitData(this)">確認送出</button>
     </form>
@@ -166,29 +166,33 @@
 <script>
 
 // --- 1. 必須放在最頂部 (全域範圍) ---
-const SUPABASE_URL = 'https://clcqnbnbbtzzuctaspfn.supabase.co'; // 這裡換成你的網址
-const SUPABASE_ANON_KEY = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD';             // 這裡換成你的 Key
-
-// 宣告並初始化 _supabase 變數
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.coL'
+const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
 // --- 2. 之後才定義函式 ---
 async function submitData(btn) {
-  try {
-    // 這裡才能安全地抓到已經初始化好的 _supabase
-    btn.disabled = true;
-    btn.innerText = "上傳中...";
+  const data = {
+    樓層: document.querySelector('[name="樓層"]').value,
+    位置1: document.querySelector('[name="位置1"]').value,
+    位置2: document.querySelector('[name="位置2"]').value,
+    位置3: document.querySelector('[name="位置3"]').value,
+    說明: document.querySelector('[name="說明"]').value,
+    分類: document.querySelector('[name="分類"]').value,
+    廠商1: document.querySelector('[name="廠商1"]').value,
+    廠商2: document.querySelector('[name="廠商2"]').value,
+    照片: document.querySelector('[name="照片"]').value // 或檔案處理（下面講）
+  }
 
-    // 測試連線（可選，用來確認 _supabase 是否可用）
-    if (!_supabase) throw new Error("Supabase 未正確初始化");
+  const { data: result, error } = await supabase
+    .from('records')
+    .insert([data])
 
-    // ... 剩下的上傳與寫入邏輯 ...
-    
-  } catch (e) {
-    console.error(e);
-    alert("執行失敗：" + e.message);
-    btn.disabled = false;
-    btn.innerText = "確認送出";
+  if (error) {
+    console.error(error)
+    alert('送出失敗')
+  } else {
+    alert('成功')
   }
 }
 
@@ -198,28 +202,14 @@ const dataA = {
   "戶內A": {
     "A1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
     "A2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "A3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "A5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
     "A6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
   },
     "戶內B": {
     "B1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
-    "B7": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
+    "B2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
   },
     "店鋪": {
     "A1": ["樓梯","廁所"],
-    "A2": ["樓梯","廁所"],
-    "A3": ["樓梯","廁所"],
-    "A5": ["樓梯","廁所"],
-    "A6": ["樓梯","廁所"],
-    "A7": ["樓梯","廁所"],
-    "A8": ["樓梯","廁所"],
-    "A9": ["樓梯","廁所"],
-    "A10": ["樓梯","廁所"],
     "A11": ["樓梯","廁所"]    
   },
   "公設": {
@@ -253,8 +243,8 @@ const dataB = {
 
 /* 連動設置 */
 window.onload = function() {
-  const s1 = document.getElementById("lvl1");
-  const s4 = document.getElementById("lvl4");
+  const s1 = document.getElementById("位置1");
+  const s4 = document.getElementById("廠商1");
 
   /* 初始化 A 第一層 */
   s1.innerHTML = '<option value="">請選擇位置</option>';
@@ -267,13 +257,13 @@ window.onload = function() {
 
 /* 選單A連動(三層) */
 function updateA() {
-  const v1 = document.getElementById("lvl1").value;
-  const v2 = document.getElementById("lvl2").value;
-  const s2 = document.getElementById("lvl2");
-  const s3 = document.getElementById("lvl3");
+  const v1 = document.getElementById("位置1").value;
+  const v2 = document.getElementById("位置2").value;
+  const s2 = document.getElementById("位置2");
+  const s3 = document.getElementById("位置3");
 
   /* 選單A處理第二層 */
-  if (event.target.id === "lvl1") {
+  if (event.target.id === "位置1") {
     s2.innerHTML = '<option value="">請選擇位置</option>';
     s3.innerHTML = '<option value="">請選擇空間</option>';
     if (v1 && dataA[v1]) {
@@ -281,7 +271,7 @@ function updateA() {
     }
   } 
   /* 選單A處理第三層 */
-  else if (event.target.id === "lvl2") {
+  else if (event.target.id === "位置2") {
     s3.innerHTML = '<option value="">請選擇空間</option>';
     if (v1 && v2 && dataA[v1][v2]) {
       dataA[v1][v2].forEach(i => s3.add(new Option(i, i)));
@@ -291,31 +281,14 @@ function updateA() {
 
 /* 選單B連動(二層) */
 function updateB() {
-  const v4 = document.getElementById("lvl4").value;
-  const s5 = document.getElementById("lvl5");
+  const v4 = document.getElementById("廠商1").value;
+  const s5 = document.getElementById("廠商2");
   s5.innerHTML = '<option value="">請選擇缺失項目</option>';
   if (v4 && dataB[v4]) {
     dataB[v4].forEach(i => s5.add(new Option(i, i)));
   }
 }
-
-/* 將檔案傳送給 Google Apps Script */
-function uploadImage() {
-  const file = document.getElementById('photoInput').files[0];
-  const reader = new FileReader();
   
-  reader.onload = function(e) {
-  /* 直接把原始結果丟給後端，不用在前端寫 split 邏輯 */
-    google.script.run
-      .withSuccessHandler(msg => alert(msg))
-      .processUpload({
-        base64: e.target.result, 
-        type: file.type
-      });
-  };
-  reader.readAsDataURL(file);
-}
-
 </script>
 
 </body>
