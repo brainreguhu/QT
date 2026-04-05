@@ -82,7 +82,7 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 04051129 (移植版)</h4>
+    <h4>線上缺失紀錄 04051130 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
@@ -152,8 +152,11 @@
       <label>插入圖片</label>
       <input type="file" id="photoInput" name="照片" accept="image/*">
 
-      <button type="button" onclick="submitData()">確認送出</button>
-      <script>document.getElementById("submitBtn").addEventListener("click", submitData)</script>
+      <button type="button" id="submitBtn">確認送出</button>
+      
+      <script>
+      document.getElementById("submitBtn").addEventListener("click", submitData)
+      </script>
       
     </form>
     <div id="msg"></div>
