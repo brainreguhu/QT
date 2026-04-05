@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+  <script src="https://jsdelivr.net"></script>
 <head>
   <style>
     /* 整體背景及文字顏色 */
@@ -79,7 +80,7 @@
 <body>
   <div class="card">
 
-    <h4>線上缺失紀錄 1.3 (移植版)</h4>
+    <h4>線上缺失紀錄 04051013 (移植版)</h4>
     <form id="recordForm">
       <!-- 分棟選單 -->
 
@@ -162,89 +163,33 @@
  
 
 <script>
-// 1. 初始化 Supabase (請確保這段在 submitData 函式之外的最上方)
-// 注意：網址必須是完整的 https://xxxx.supabase.co
-const _supabase = supabase.createClient('https://clcqnbnbbtzzuctaspfn.supabase.co', 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD');
+// --- 1. 必須放在最頂部 (全域範圍) ---
+const SUPABASE_URL = 'https://clcqnbnbbtzzuctaspfn.supabase.co'; // 這裡換成你的網址
+const SUPABASE_ANON_KEY = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD';             // 這裡換成你的 Key
 
+// 宣告並初始化 _supabase 變數
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- 2. 之後才定義函式 ---
 async function submitData(btn) {
   try {
+    // 這裡才能安全地抓到已經初始化好的 _supabase
     btn.disabled = true;
     btn.innerText = "上傳中...";
+
+    // 測試連線（可選，用來確認 _supabase 是否可用）
+    if (!_supabase) throw new Error("Supabase 未正確初始化");
+
+    // ... 剩下的上傳與寫入邏輯 ...
     
-    const form = document.getElementById("recordForm");
-    const formData = new FormData(form);
-
-    // --- 第一步：處理圖片上傳 ---
-    let photoUrl = "";
-    
-    // 同時檢查兩種可能的 name 屬性
-    const fileInput = document.getElementsByName("photoFile")[0] || document.getElementsByName("myFile")[0];
-    
-    // 檢查是否有選取檔案
-    if (fileInput && fileInput.files && fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `uploads/${fileName}`;
-
-      // 上傳至名為 "photos" 的 Bucket
-      const { data: uploadData, error: uploadError } = await _supabase.storage
-        .from('photos')
-        .upload(filePath, file);
-
-      if (uploadError) throw new Error("圖片上傳失敗: " + uploadError.message);
-
-      // 取得公開網址
-      const { data: publicUrlData } = _supabase.storage
-        .from('photos')
-        .getPublicUrl(filePath);
-      photoUrl = publicUrlData.publicUrl;
-    }
-
-    // --- 第二步：寫入資料庫 ---
-    // 請將 '你的資料表名稱' 替換為你在 Supabase 建立的 Table Name (例如 'records')
-    const { error: dbError } = await _supabase
-      .from('你的資料表名稱') 
-      .insert([{
-        "來自": "📱",
-        "樓層": formData.get("floor"),
-        "位置1": formData.get("lvl1"),
-        "位置2": formData.get("lvl2"),
-        "位置3": formData.get("lvl3"),
-        "缺失": formData.get("desc"),
-        "分類": formData.get("classification"),
-        "廠商1": formData.get("category1"),
-        "廠商2": formData.get("category2"),
-        "照片": photoUrl,
-        "提交時間": new Date().toISOString()
-      }]);
-
-    if (dbError) throw new Error("資料庫寫入失敗: " + dbError.message);
-
-    // --- 第三步：成功後的處理邏輯 ---
-    var msgDiv = document.getElementById("msg");
-    if (msgDiv) {
-      msgDiv.innerText = "✅ 資料已成功儲存至 Supabase！"; 
-      setTimeout(function() { msgDiv.innerText = ""; }, 5000); 
-    }
-
-    /* 清除欄位 */
-    form.reset(); 
-    
-    var s5 = document.getElementById("lvl5");
-    if(s5) s5.innerHTML = '<option value="" disabled selected>請先選類別</option>';        
-
-    /* 恢復按鈕狀態 */
-    btn.disabled = false;
-    btn.innerText = "確認送出";
-
   } catch (e) {
-    console.error("提交過程發生錯誤:", e);
+    console.error(e);
     alert("執行失敗：" + e.message);
     btn.disabled = false;
     btn.innerText = "確認送出";
   }
 }
+
 
 /* 連動選單A開始 */
 const dataA = {
