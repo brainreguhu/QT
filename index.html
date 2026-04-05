@@ -163,52 +163,58 @@
 
 <script>
 /* 確認送出設定 */
-function submitData(btn) {
+async function submitData(btn) {
   try {
     btn.disabled = true;
     btn.innerText = "上傳中...";
     
     var form = document.getElementById("recordForm");
+    // 1. 建立 FormData 物件來封裝表單資料（含檔案）
+    var formData = new FormData(form);
 
-    google.script.run
-      .withSuccessHandler(function(res) {
-        /* 1. 顯示成功訊息並設定 5 秒後消失 */
-        var msgDiv = document.getElementById("msg");
-        msgDiv.innerText = res; 
-        setTimeout(function() { msgDiv.innerText = ""; }, 5000); 
+    // 2. 替換成你 GAS 「新部署」後產生的 Web App URL (結尾須為 /exec)
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwSWpX7S5AWx9FDLElbL4ZVZcWhp93dqUuVc-aTQ_C_XUZlzMKB3FKUblfev3WMUvz3/exec";
 
-        /* 2. 【手動清理區】指定哪些欄位要刪除內容 */
-        /* 清除說明欄 (使用 name 屬性定位) */
-        document.getElementsByName("desc")[0].value = "";
-        
-        /* 清除連動選單 B (lvl4, lvl5) */
-        var s4 = document.getElementById("lvl4");
-        var s5 = document.getElementById("lvl5");
-        s4.value = ""; /* 回到「請選擇類別」 */
-        s5.innerHTML = '<option value="" disabled selected>請先選類別</option>';        
-        
-        /* 清除分類選單 (select5) */
-        document.getElementsByName("select5")[0].selectedIndex = 0; 
-        
-        /* 清除檔案上傳 (myFile) */
-        document.getElementsByName("myFile")[0].value = "";
+    // 3. 使用 fetch 發送資料到 Google
+    const response = await fetch(scriptURL, {
+      method: "POST",
+      body: formData,
+      // 注意：發送到 GAS 時，通常設為 no-cors 模式
+      mode: "no-cors" 
+    });
 
-        /* 3. 恢復按鈕狀態 (select1, lvl1, lvl2, lvl3 會自動保留原狀) */
-        btn.disabled = false;
-        btn.innerText = "確認送出";
-      })
-      .withFailureHandler(function(err) {
-        alert("系統出錯：" + err);
-        btn.disabled = false;
-        btn.innerText = "確認送出";
-      })
-      .processForm(form);
+    // --- 以下為成功後的處理邏輯 ---
+    
+    var msgDiv = document.getElementById("msg");
+    msgDiv.innerText = "✅ 資料已成功送出！"; // 因為 no-cors 無法取得 response body，我們手動設定成功訊息
+    setTimeout(function() { msgDiv.innerText = ""; }, 5000); 
+
+    /* 清除欄位 */
+    document.getElementsByName("desc")[0].value = "";
+    
+    var s4 = document.getElementById("lvl4");
+    var s5 = document.getElementById("lvl5");
+    if(s4) s4.value = "";
+    if(s5) s5.innerHTML = '<option value="" disabled selected>請先選類別</option>';        
+    
+    var select5 = document.getElementsByName("select5")[0];
+    if(select5) select5.selectedIndex = 0; 
+    
+    // 注意：檔案欄位名稱在你的 HTML 可能是 myFile 或 photoFile，請確認與 .gs 一致
+    var fileInput = document.getElementsByName("myFile")[0] || document.getElementsByName("photoFile")[0];
+    if(fileInput) fileInput.value = "";
+
+    /* 恢復按鈕狀態 */
+    btn.disabled = false;
+    btn.innerText = "確認送出";
+
   } catch (e) {
     alert("執行失敗：" + e.message);
     btn.disabled = false;
     btn.innerText = "確認送出";
   }
 }
+
 
 
 /* 連動選單A開始 */
