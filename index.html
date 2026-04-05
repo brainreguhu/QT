@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Supabase 表單 - 修正版</title>
+  <title>Supabase 表單 - 安全修正版</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -51,17 +51,17 @@
 const supabaseUrl = 'https://clcqnbnbbtzzuctaspfn.supabase.co';
 const supabaseKey = 'sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD'; // ← 換成你的 anon public key
 
+// 只初始化一次
 if (!window.supabaseClient) {
   window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 }
-
-const supabase = window.supabaseClient; // 安全使用，不會重複宣告
 
 /* ================== 綁定送出事件 ================== */
 document.getElementById("submitBtn").addEventListener("click", submitData);
 
 /* ================== 送出功能 ================== */
 async function submitData() {
+  const supabase = window.supabaseClient; // 每次函式內取用，不會重複宣告
   const btn = document.getElementById("submitBtn");
   const msg = document.getElementById("msg");
 
