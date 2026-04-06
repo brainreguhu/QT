@@ -28,7 +28,7 @@
       line-height: 1.5;
     }
     main {
-      max-width: 420px;
+      max-width: 546px;
       margin: 0 auto;
       padding: 2.5rem 1.25rem 3rem;
     }
@@ -151,7 +151,7 @@
     <h1>新增記錄</h1>
     <form id="record-form" novalidate>
       <div>
-        <p class="section-title">樓層 · 分類</p>
+        <p class="section-title">樓層</p>
         <div class="row-pair">
           <div>
             <label for="serial">編號</label>
@@ -159,16 +159,10 @@
           </div>
           <div></div>
         </div>
-        <div class="row-pair">
+        <div>
           <div>
             <label for="floor">樓層</label>
             <select id="floor" name="floor" required>
-              <option value="" disabled selected>請選擇</option>
-            </select>
-          </div>
-          <div>
-            <label for="category">分類</label>
-            <select id="category" name="category" required>
               <option value="" disabled selected>請選擇</option>
             </select>
           </div>
@@ -176,19 +170,17 @@
       </div>
       <div>
         <p class="section-title">位置（關聯式下拉）</p>
-        <div class="row-pair">
-          <div>
-            <label for="loc1">位置1</label>
-            <select id="loc1" name="loc1" required>
-              <option value="" disabled selected>請選擇</option>
-            </select>
-          </div>
-          <div>
-            <label for="loc2">位置2</label>
-            <select id="loc2" name="loc2" required disabled>
-              <option value="" disabled selected>請先選擇 位置1</option>
-            </select>
-          </div>
+        <div>
+          <label for="loc1">位置1</label>
+          <select id="loc1" name="loc1" required>
+            <option value="" disabled selected>請選擇</option>
+          </select>
+        </div>
+        <div style="margin-top: 0.75rem;">
+          <label for="loc2">位置2</label>
+          <select id="loc2" name="loc2" required disabled>
+            <option value="" disabled selected>請先選擇 位置1</option>
+          </select>
         </div>
         <div style="margin-top: 0.75rem;">
           <label for="loc3">位置3</label>
@@ -217,6 +209,12 @@
       <div>
         <label for="description">說明</label>
         <textarea id="description" name="description" placeholder="請輸入說明…" required></textarea>
+      </div>
+      <div>
+        <label for="category">分類</label>
+        <select id="category" name="category" required>
+          <option value="" disabled selected>請選擇</option>
+        </select>
       </div>
       <div>
         <label for="photo">照片</label>
