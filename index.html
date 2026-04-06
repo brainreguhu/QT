@@ -167,6 +167,16 @@
     const FLOOR_OPTIONS = ["1F", "2F", "3F", "B1", "B2"];
     const CATEGORY_OPTIONS = ["設備", "清潔", "維修", "巡檢", "其他"];
 
+    /**
+     * 必須與 Supabase「Table Editor」裡 records 的欄位名完全一致。
+     * 若錯誤為找不到某欄位：在 SQL Editor 補欄位，或把此處值改成表上實際欄位名。
+     */
+    const DB_COLUMNS = {
+      floor: "樓層",
+      category: "分類",
+      description: "說明",
+    };
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const form = document.getElementById("record-form");
@@ -206,15 +216,10 @@
         return;
       }
 
-      /**
-       * Supabase 資料表 records 建議欄位（需與後台一致）：
-       * floor (text), category (text), description (text)
-       * 若欄位名不同，請改下列 payload 的 key。
-       */
       const payload = {
-        floor,
-        category,
-        description,
+        [DB_COLUMNS.floor]: floor,
+        [DB_COLUMNS.category]: category,
+        [DB_COLUMNS.description]: description,
       };
 
       submitBtn.disabled = true;
