@@ -75,6 +75,16 @@
       min-height: 120px;
       resize: vertical;
     }
+    input[readonly]{
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+    }
     input[type="file"]{
       width: 100%;
       padding: 0.5rem 0.4rem;
@@ -144,6 +154,13 @@
         <p class="section-title">樓層 · 分類</p>
         <div class="row-pair">
           <div>
+            <label for="serial">編號</label>
+            <input id="serial" name="serial" type="text" readonly />
+          </div>
+          <div></div>
+        </div>
+        <div class="row-pair">
+          <div>
             <label for="floor">樓層</label>
             <select id="floor" name="floor" required>
               <option value="" disabled selected>請選擇</option>
@@ -153,6 +170,46 @@
             <label for="category">分類</label>
             <select id="category" name="category" required>
               <option value="" disabled selected>請選擇</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="section-title">位置（關聯式下拉）</p>
+        <div class="row-pair">
+          <div>
+            <label for="loc1">位置1</label>
+            <select id="loc1" name="loc1" required>
+              <option value="" disabled selected>請選擇</option>
+            </select>
+          </div>
+          <div>
+            <label for="loc2">位置2</label>
+            <select id="loc2" name="loc2" required disabled>
+              <option value="" disabled selected>請先選擇 位置1</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem;">
+          <label for="loc3">位置3</label>
+          <select id="loc3" name="loc3" required disabled>
+            <option value="" disabled selected>請先選擇 位置2</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <p class="section-title">廠商（關聯式下拉）</p>
+        <div class="row-pair">
+          <div>
+            <label for="vendor1">廠商1</label>
+            <select id="vendor1" name="vendor1" required>
+              <option value="" disabled selected>請選擇</option>
+            </select>
+          </div>
+          <div>
+            <label for="vendor2">廠商2</label>
+            <select id="vendor2" name="vendor2" required disabled>
+              <option value="" disabled selected>請先選擇 廠商1</option>
             </select>
           </div>
         </div>
@@ -186,8 +243,14 @@
      * 若錯誤為找不到某欄位：在 SQL Editor 補欄位，或把此處值改成表上實際欄位名。
      */
     const DB_COLUMNS = {
+      serial: "編號",
       floor: "樓層",
       category: "分類",
+      loc1: "位置1",
+      loc2: "位置2",
+      loc3: "位置3",
+      vendor1: "廠商1",
+      vendor2: "廠商2",
       description: "說明",
       photo: "照片",
     };
@@ -195,8 +258,14 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const form = document.getElementById("record-form");
+    const serialInput = document.getElementById("serial");
     const floorSelect = document.getElementById("floor");
     const categorySelect = document.getElementById("category");
+    const loc1Select = document.getElementById("loc1");
+    const loc2Select = document.getElementById("loc2");
+    const loc3Select = document.getElementById("loc3");
+    const vendor1Select = document.getElementById("vendor1");
+    const vendor2Select = document.getElementById("vendor2");
     const descriptionEl = document.getElementById("description");
     const photoInput = document.getElementById("photo");
     const submitBtn = document.getElementById("submit-btn");
@@ -213,6 +282,82 @@
 
     fillSelect(floorSelect, FLOOR_OPTIONS);
     fillSelect(categorySelect, CATEGORY_OPTIONS);
+
+    function resetSelect(select, placeholder) {
+      select.innerHTML = "";
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.disabled = true;
+      opt.selected = true;
+      opt.textContent = placeholder;
+      select.appendChild(opt);
+    }
+
+    function fillSelectFromList(select, options, placeholder) {
+      resetSelect(select, placeholder);
+      for (const v of options) {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        select.appendChild(o);
+      }
+    }
+
+    // 假資料：位置三層關聯（之後你可自行替換）
+    const LOCATION_TREE = {
+      A區: {
+        一段: ["A-一段-001", "A-一段-002", "A-一段-003"],
+        二段: ["A-二段-001", "A-二段-002"],
+      },
+      B區: {
+        北側: ["B-北側-101", "B-北側-102"],
+        南側: ["B-南側-201", "B-南側-202", "B-南側-203"],
+      },
+      C區: {
+        地下: ["C-地下-01", "C-地下-02"],
+      },
+    };
+
+    // 假資料：廠商二層關聯（之後你可自行替換）
+    const VENDOR_TREE = {
+      甲公司: ["甲-北區", "甲-中區", "甲-南區"],
+      乙公司: ["乙-一部", "乙-二部"],
+      丙公司: ["丙-A組", "丙-B組", "丙-C組"],
+    };
+
+    fillSelectFromList(loc1Select, Object.keys(LOCATION_TREE), "請選擇");
+    resetSelect(loc2Select, "請先選擇 位置1");
+    resetSelect(loc3Select, "請先選擇 位置2");
+    loc2Select.disabled = true;
+    loc3Select.disabled = true;
+
+    fillSelectFromList(vendor1Select, Object.keys(VENDOR_TREE), "請選擇");
+    resetSelect(vendor2Select, "請先選擇 廠商1");
+    vendor2Select.disabled = true;
+
+    loc1Select.addEventListener("change", () => {
+      const v1 = loc1Select.value;
+      const level2 = v1 ? Object.keys(LOCATION_TREE[v1] || {}) : [];
+      fillSelectFromList(loc2Select, level2, "請選擇");
+      loc2Select.disabled = level2.length === 0;
+      resetSelect(loc3Select, "請先選擇 位置2");
+      loc3Select.disabled = true;
+    });
+
+    loc2Select.addEventListener("change", () => {
+      const v1 = loc1Select.value;
+      const v2 = loc2Select.value;
+      const level3 = v1 && v2 ? (LOCATION_TREE[v1]?.[v2] || []) : [];
+      fillSelectFromList(loc3Select, level3, "請選擇");
+      loc3Select.disabled = level3.length === 0;
+    });
+
+    vendor1Select.addEventListener("change", () => {
+      const v1 = vendor1Select.value;
+      const level2 = v1 ? (VENDOR_TREE[v1] || []) : [];
+      fillSelectFromList(vendor2Select, level2, "請選擇");
+      vendor2Select.disabled = level2.length === 0;
+    });
 
     function setStatus(msg, kind) {
       statusEl.textContent = msg;
@@ -244,23 +389,36 @@
       return `${year}${month}${day}${seconds}${ms}${getFileExt(file)}`;
     }
 
+    function generateSerialNumber() {
+      // 自動「累加」的可查詢編號：使用毫秒時間戳，保證每次送出唯一且遞增
+      return String(Date.now());
+    }
+
     // 注意：Supabase Storage 的「Bucket」與 bucket 內的「資料夾路徑」是兩件事
     // 你描述的「Rublic 夾」通常是 bucket 內的資料夾，因此這裡改成常見的 public bucket
     const STORAGE_BUCKET = "Public"; // 你的 Supabase Storage bucket 名稱（大小寫需完全一致）
     const STORAGE_OBJECT_PREFIX = "Rublic"; // bucket 內資料夾（可留空表示根目錄）
     const PHOTO_DB_COLUMN = "照片"; // records 用來存照片 URL/路徑 的欄位名
 
+    serialInput.value = generateSerialNumber();
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setStatus("");
 
+      const serial = (serialInput.value || "").trim() || generateSerialNumber();
       const floor = floorSelect.value.trim();
       const category = categorySelect.value.trim();
+      const loc1 = loc1Select.value.trim();
+      const loc2 = loc2Select.value.trim();
+      const loc3 = loc3Select.value.trim();
+      const vendor1 = vendor1Select.value.trim();
+      const vendor2 = vendor2Select.value.trim();
       const description = descriptionEl.value.trim();
       const photoFile = photoInput.files?.[0];
 
-      if (!floor || !category || !description) {
-        setStatus("請完成樓層、分類與說明。", "error");
+      if (!serial || !floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
+        setStatus("請完成編號、樓層、分類、位置、廠商與說明。", "error");
         return;
       }
       if (!photoFile) {
@@ -302,8 +460,14 @@
       }
 
       const payload = {
+        [DB_COLUMNS.serial]: serial,
         [DB_COLUMNS.floor]: floor,
         [DB_COLUMNS.category]: category,
+        [DB_COLUMNS.loc1]: loc1,
+        [DB_COLUMNS.loc2]: loc2,
+        [DB_COLUMNS.loc3]: loc3,
+        [DB_COLUMNS.vendor1]: vendor1,
+        [DB_COLUMNS.vendor2]: vendor2,
         [DB_COLUMNS.description]: description,
       };
 
@@ -328,6 +492,7 @@
       setStatus("已成功儲存。", "success");
       form.reset();
       photoInput.value = "";
+      serialInput.value = generateSerialNumber();
     });
   </script>
 </body>
