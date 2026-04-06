@@ -244,8 +244,10 @@
       return `${year}${month}${day}${seconds}${ms}${getFileExt(file)}`;
     }
 
-    const STORAGE_BUCKET = "Rublic"; // 你的 Supabase Storage bucket 名稱
-    const STORAGE_OBJECT_PREFIX = ""; // 需要像資料夾一樣分層可改成例如 "photos"
+    // 注意：Supabase Storage 的「Bucket」與 bucket 內的「資料夾路徑」是兩件事
+    // 你描述的「Rublic 夾」通常是 bucket 內的資料夾，因此這裡改成常見的 public bucket
+    const STORAGE_BUCKET = "Public"; // 你的 Supabase Storage bucket 名稱（大小寫需完全一致）
+    const STORAGE_OBJECT_PREFIX = "Rublic"; // bucket 內資料夾（可留空表示根目錄）
     const PHOTO_DB_COLUMN = "照片"; // records 用來存照片 URL/路徑 的欄位名
 
     form.addEventListener("submit", async (e) => {
