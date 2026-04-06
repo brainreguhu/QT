@@ -36,13 +36,9 @@
       <option>缺失</option>
       <option>記錄</option>
     </select>
-
-    <label>圖片</label>
-    <input type="file" id="photoInput">
-
+    
     <button type="button" id="submitBtn">送出</button>
   </form>
-
   <div id="msg"></div>
 </div>
 
@@ -76,24 +72,6 @@ async function submitData() {
 
     if (!樓層 || !分類) throw new Error("請填寫必要欄位");
 
-    /* ===== 圖片上傳 ===== */
-    let photoUrl = null;
-    const file = document.getElementById("photoInput").files[0];
-
-    if (file) {
-      const fileName = Date.now() + "_" + file.name;
-
-      const { error: uploadError } = await supabase.storage
-        .from("Public")      // ← 你的 Bucket 名稱
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from("Public")
-        .getPublicUrl(fileName);
-
-      photoUrl = data.publicUrl;
     }
 
     /* ===== 寫入資料到 Table ===== */
@@ -103,7 +81,6 @@ async function submitData() {
         樓層,
         說明,
         分類,
-        照片: photoUrl
       }]);
 
     if (error) throw error;
