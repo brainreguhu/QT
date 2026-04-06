@@ -390,8 +390,12 @@
     }
 
     function generateSerialNumber() {
-      // 自動「累加」的可查詢編號：使用毫秒時間戳，保證每次送出唯一且遞增
-      return String(Date.now());
+      // 自動「累加」的可查詢編號：
+      // - 前綴用毫秒時間戳（遞增）
+      // - 加上短隨機碼避免同 1ms 內重複或重送導致主鍵衝突
+      const t = Date.now();
+      const r = Math.random().toString(36).slice(2, 8);
+      return `${t}-${r}`;
     }
 
     // 注意：Supabase Storage 的「Bucket」與 bucket 內的「資料夾路徑」是兩件事
@@ -406,7 +410,9 @@
       e.preventDefault();
       setStatus("");
 
-      const serial = (serialInput.value || "").trim() || generateSerialNumber();
+      // 每次送出都強制產生新編號，避免重送造成 records_pkey 重複
+      const serial = generateSerialNumber();
+      serialInput.value = serial;
       const floor = floorSelect.value.trim();
       const category = categorySelect.value.trim();
       const loc1 = loc1Select.value.trim();
