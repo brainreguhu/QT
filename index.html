@@ -30,7 +30,7 @@
     main {
       max-width: 546px;
       margin: 0 auto;
-      padding: 2.5rem 1.25rem 3rem;
+      padding: 28px 20px 24px;
     }
     h1 {
       font-size: 1.35rem;
@@ -42,10 +42,10 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1.5rem;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 12px;
     }
     label {
       display: block;
@@ -72,8 +72,8 @@
       box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
     }
     textarea {
-      min-height: 120px;
-      resize: vertical;
+      height: 72px;
+      resize: none;
     }
     input[readonly]{
       width: 100%;
@@ -98,7 +98,7 @@
     .row-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      gap: 10px;
     }
     @media (max-width: 400px) {
       .row-pair {
@@ -106,20 +106,34 @@
       }
     }
     .section-title {
-      font-size: 0.75rem;
+      font-size: 16px;
       text-transform: none;
       color: var(--muted);
-      margin: 0 0 0.5rem;
+      margin: 4px;
       font-weight: 600;
+      padding-left: 12px;
+    }
+    .serial-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .serial-row .section-title {
+      margin: 4px;
+      white-space: nowrap;
+    }
+    .serial-row input[readonly]{
+      flex: 1;
+      min-width: 0;
     }
     button[type="submit"] {
-      margin-top: 0.25rem;
-      padding: 0.75rem 1rem;
+      margin-top: 4px;
+      padding: 12px 16px;
       border: none;
       border-radius: 8px;
       background: var(--accent);
       color: #fff;
-      font-size: 1rem;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       font-family: inherit;
@@ -133,9 +147,10 @@
       cursor: not-allowed;
     }
     #status {
-      min-height: 1.25rem;
-      font-size: 0.875rem;
-      margin-top: 0.5rem;
+      min-height: 14px;
+      font-size: 14px;
+      margin-top: 2px;
+      margin-bottom: 0;
       text-align: center;
     }
     #status.error {
@@ -148,20 +163,16 @@
 </head>
 <body>
   <main>
-    <h1>新增記錄</h1>
     <form id="record-form" novalidate>
       <div>
-        <p class="section-title">樓層</p>
-        <div class="row-pair">
-          <div>
-            <label for="serial">編號</label>
-            <input id="serial" name="serial" type="text" readonly />
-          </div>
-          <div></div>
+
+        <div class="serial-row">
+          <label for="serial" class="section-title">編號</label>
+          <input id="serial" name="serial" type="text" readonly />
         </div>
         <div>
           <div>
-            <label for="floor">樓層</label>
+        <p class="section-title">樓層</p>
             <select id="floor" name="floor" required>
               <option value="" disabled selected>請選擇</option>
             </select>
@@ -169,37 +180,32 @@
         </div>
       </div>
       <div>
-        <p class="section-title">位置（關聯式下拉）</p>
+        <p class="section-title">位置</p>
         <div>
-          <label for="loc1">位置1</label>
           <select id="loc1" name="loc1" required>
             <option value="" disabled selected>請選擇</option>
           </select>
         </div>
         <div style="margin-top: 0.75rem;">
-          <label for="loc2">位置2</label>
           <select id="loc2" name="loc2" required disabled>
             <option value="" disabled selected>請先選擇 位置1</option>
           </select>
         </div>
         <div style="margin-top: 0.75rem;">
-          <label for="loc3">位置3</label>
           <select id="loc3" name="loc3" required disabled>
             <option value="" disabled selected>請先選擇 位置2</option>
           </select>
         </div>
       </div>
       <div>
-        <p class="section-title">廠商（關聯式下拉）</p>
+        <p class="section-title">廠商</p>
         <div class="row-pair">
           <div>
-            <label for="vendor1">廠商1</label>
             <select id="vendor1" name="vendor1" required>
               <option value="" disabled selected>請選擇</option>
             </select>
           </div>
           <div>
-            <label for="vendor2">廠商2</label>
             <select id="vendor2" name="vendor2" required disabled>
               <option value="" disabled selected>請先選擇 廠商1</option>
             </select>
@@ -207,17 +213,17 @@
         </div>
       </div>
       <div>
-        <label for="description">說明</label>
+        <label for="description" class="section-title" >說明</label>
         <textarea id="description" name="description" placeholder="請輸入說明…" required></textarea>
       </div>
       <div>
-        <label for="category">分類</label>
+        <label for="category" class="section-title" >分類</label>
         <select id="category" name="category" required>
           <option value="" disabled selected>請選擇</option>
         </select>
       </div>
       <div>
-        <label for="photo">照片</label>
+        <label for="photo" class="section-title" >照片</label>
         <input type="file" id="photo" name="photo" accept="image/*" required />
       </div>
       <button type="submit" id="submit-btn">送出至 Supabase</button>
@@ -268,6 +274,7 @@
     const photoInput = document.getElementById("photo");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
+    let statusTimer = null;
 
     function fillSelect(select, options) {
       for (const opt of options) {
@@ -362,6 +369,25 @@
       statusEl.className = kind || "";
     }
 
+    function startLoadingStatus(baseMsg) {
+      if (statusTimer) {
+        clearInterval(statusTimer);
+      }
+      let step = 0;
+      setStatus(baseMsg, "");
+      statusTimer = setInterval(() => {
+        step = (step + 1) % 4;
+        setStatus(`${baseMsg}${".".repeat(step)}`, "");
+      }, 350);
+    }
+
+    function stopLoadingStatus() {
+      if (statusTimer) {
+        clearInterval(statusTimer);
+        statusTimer = null;
+      }
+    }
+
     function pad2(n) {
       return String(n).padStart(2, "0");
     }
@@ -391,9 +417,9 @@
       // 自動「累加」的可查詢編號：
       // - 前綴用毫秒時間戳（遞增）
       // - 加上短隨機碼避免同 1ms 內重複或重送導致主鍵衝突
-      const t = Date.now();
-      const r = Math.random().toString(36).slice(2, 8);
-      return `${t}-${r}`;
+      const t = String(Date.now()).slice(-6);
+      const r = Math.random().toString(36).slice(2, 6).toUpperCase();
+      return `${t}${r}`;
     }
 
     // 注意：Supabase Storage 的「Bucket」與 bucket 內的「資料夾路徑」是兩件事
@@ -421,8 +447,8 @@
       const description = descriptionEl.value.trim();
       const photoFile = photoInput.files?.[0];
 
-      if (!serial || !floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
-        setStatus("請完成編號、樓層、分類、位置、廠商與說明。", "error");
+      if (!floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
+        setStatus("請完成樓層、分類、位置、廠商與說明。", "error");
         return;
       }
       if (!photoFile) {
@@ -431,7 +457,7 @@
       }
 
       submitBtn.disabled = true;
-      setStatus("上傳照片中…");
+      startLoadingStatus("上傳照片中");
 
       const objectName = generatePhotoObjectName(photoFile);
       const objectPath = STORAGE_OBJECT_PREFIX
@@ -447,6 +473,7 @@
         });
 
       submitBtn.disabled = false;
+      stopLoadingStatus();
 
       if (uploadError) {
         setStatus(uploadError.message || "照片上傳失敗。", "error");
@@ -481,11 +508,12 @@
       }
 
       submitBtn.disabled = true;
-      setStatus("送出中…");
+      startLoadingStatus("送出中");
 
       // 不使用 .select()，避免還需要額外的 select policy
       const { error: insertError } = await supabase.from("records").insert([payload]);
       submitBtn.disabled = false;
+      stopLoadingStatus();
 
       if (insertError) {
         setStatus(insertError.message || "寫入失敗，請檢查資料表與 RLS 設定。", "error");
