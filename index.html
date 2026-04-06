@@ -75,6 +75,16 @@
       min-height: 120px;
       resize: vertical;
     }
+    input[type="file"]{
+      width: 100%;
+      padding: 0.5rem 0.4rem;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
     .row-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -151,6 +161,10 @@
         <label for="description">說明</label>
         <textarea id="description" name="description" placeholder="請輸入說明…" required></textarea>
       </div>
+      <div>
+        <label for="photo">照片</label>
+        <input type="file" id="photo" name="photo" accept="image/*" required />
+      </div>
       <button type="submit" id="submit-btn">送出至 Supabase</button>
       <p id="status" role="status" aria-live="polite"></p>
     </form>
@@ -175,6 +189,7 @@
       floor: "樓層",
       category: "分類",
       description: "說明",
+      photo: "照片",
     };
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -183,6 +198,7 @@
     const floorSelect = document.getElementById("floor");
     const categorySelect = document.getElementById("category");
     const descriptionEl = document.getElementById("description");
+    const photoInput = document.getElementById("photo");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
 
@@ -203,6 +219,35 @@
       statusEl.className = kind || "";
     }
 
+    function pad2(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function pad3(n) {
+      return String(n).padStart(3, "0");
+    }
+
+    function getFileExt(file) {
+      // 盡量沿用原檔副檔名；若沒有就用圖片預設 .jpg
+      const m = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
+      return m ? `.${m[1]}` : ".jpg";
+    }
+
+    function generatePhotoObjectName(file) {
+      // 依你需求：西元年 + 月 + 日 + 秒 + 毫秒
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = pad2(now.getMonth() + 1);
+      const day = pad2(now.getDate());
+      const seconds = pad2(now.getSeconds());
+      const ms = pad3(now.getMilliseconds());
+      return `${year}${month}${day}${seconds}${ms}${getFileExt(file)}`;
+    }
+
+    const STORAGE_BUCKET = "Rublic"; // 你的 Supabase Storage bucket 名稱
+    const STORAGE_OBJECT_PREFIX = ""; // 需要像資料夾一樣分層可改成例如 "photos"
+    const PHOTO_DB_COLUMN = "照片"; // records 用來存照片 URL/路徑 的欄位名
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setStatus("");
@@ -210,10 +255,48 @@
       const floor = floorSelect.value.trim();
       const category = categorySelect.value.trim();
       const description = descriptionEl.value.trim();
+      const photoFile = photoInput.files?.[0];
 
       if (!floor || !category || !description) {
         setStatus("請完成樓層、分類與說明。", "error");
         return;
+      }
+      if (!photoFile) {
+        setStatus("請選擇照片。", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      setStatus("上傳照片中…");
+
+      const objectName = generatePhotoObjectName(photoFile);
+      const objectPath = STORAGE_OBJECT_PREFIX
+        ? `${STORAGE_OBJECT_PREFIX.replace(/^\/|\/$/g, "")}/${objectName}`
+        : objectName;
+
+      const { error: uploadError } = await supabase
+        .storage
+        .from(STORAGE_BUCKET)
+        .upload(objectPath, photoFile, {
+          contentType: photoFile.type || "image/*",
+          upsert: false,
+        });
+
+      submitBtn.disabled = false;
+
+      if (uploadError) {
+        setStatus(uploadError.message || "照片上傳失敗。", "error");
+        console.error(uploadError);
+        return;
+      }
+
+      let photoUrl = null;
+      try {
+        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
+        photoUrl = data?.publicUrl || null;
+      } catch (err) {
+        // 若 bucket 不是 public，仍可把 objectPath 存入 DB 由後續端取得
+        console.warn(err);
       }
 
       const payload = {
@@ -222,21 +305,27 @@
         [DB_COLUMNS.description]: description,
       };
 
+      // 只有在你把 PHOTO_DB_COLUMN 填好後才會寫入照片資訊，避免再次因欄位不存在而失敗
+      if (PHOTO_DB_COLUMN) {
+        payload[PHOTO_DB_COLUMN] = photoUrl || objectPath;
+      }
+
       submitBtn.disabled = true;
       setStatus("送出中…");
 
-      const { data, error } = await supabase.from("records").insert([payload]).select();
-
+      // 不使用 .select()，避免還需要額外的 select policy
+      const { error: insertError } = await supabase.from("records").insert([payload]);
       submitBtn.disabled = false;
 
-      if (error) {
-        setStatus(error.message || "寫入失敗，請檢查資料表與 RLS 設定。", "error");
-        console.error(error);
+      if (insertError) {
+        setStatus(insertError.message || "寫入失敗，請檢查資料表與 RLS 設定。", "error");
+        console.error(insertError);
         return;
       }
 
       setStatus("已成功儲存。", "success");
       form.reset();
+      photoInput.value = "";
     });
   </script>
 </body>
