@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理後台</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-hover: #5a9dff;
+      --danger: #f87171;
+      --ok: #4ade80;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
+      --admin-table-min: 780px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+      color: var(--text);
+    }
+    main {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 24px 18px;
+    }
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      padding-right: 6.5rem;
+      font-size: 24px;
+    }
+    .hint {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status {
+      min-height: 16px;
+      font-size: 14px;
+      margin: 4px 0 10px;
+    }
+    #status.error { color: var(--danger); }
+    #status.success { color: var(--ok); }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: var(--admin-table-min);
+      table-layout: fixed;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    th:nth-child(1), td:nth-child(1) {
+      width: 16%;
+      word-break: break-all;
+    }
+    th:nth-child(2), td:nth-child(2) { width: 8%; }
+    th:nth-child(3), td:nth-child(3) { width: 8%; }
+    th:nth-child(4), td:nth-child(4) { width: 8%; }
+    th:nth-child(5), td:nth-child(5) {
+      width: 12%;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    th:nth-child(6), td:nth-child(6) { width: 15%; }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+    }
+    .badge.ok {
+      color: var(--ok);
+      border-color: rgba(74, 222, 128, 0.4);
+      background: rgba(74, 222, 128, 0.08);
+    }
+    .badge.no {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.4);
+      background: rgba(248, 113, 113, 0.08);
+    }
+    select.level {
+      width: 60px;
+      max-width: 100%;
+      padding: 4px 5px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+    .row-actions {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .row-actions button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .tiny { font-size: 12px; color: var(--muted); }
+    .card .back-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--btn-secondary-bg);
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .card .back-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <a class="back-btn" href="./index.html">↩ 返回</a>
+      <h1>使用者管理後台</h1>
+      <p class="hint">可批准註冊、設定權限等級（0 高 ~ 3 低）。僅管理員可操作。</p>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>帳號</th>
+              <th>使用者</th>
+              <th>批准</th>
+              <th>權限</th>
+              <th>建立時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="tiny">注意：此頁可用前提是 Supabase RLS 已允許管理員更新"profiles"。</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+    const ADMIN_LEVEL_MAX = 0; // 0 = 最高權限（可操作後台）
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const statusEl = document.getElementById("status");
+    const rowsEl = document.getElementById("rows");
+
+    let currentAdmin = null;
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || "";
+    }
+
+    function fmt(ts) {
+      if (!ts) return "-";
+      const d = new Date(ts);
+      return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+    }
+
+    function levelOptions(current) {
+      return [0, 1, 2, 3]
+        .map((lv) => `<option value="${lv}" ${Number(current) === lv ? "selected" : ""}>${lv}</option>`)
+        .join("");
+    }
+
+    async function requireAdmin() {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        setStatus("尚未登入，請先到 login.html 登入。", "error");
+        return false;
+      }
+
+      const { data: me, error } = await supabase
+        .from(PROFILE_TABLE)
+        .select("id, username, approved, permission_level")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error || !me) {
+        setStatus("無法讀取你的管理者資訊。", "error");
+        return false;
+      }
+
+      if (!me.approved || Number(me.permission_level) > ADMIN_LEVEL_MAX) {
+        setStatus("權限不足：僅權限等級 0 可進入管理後台。", "error");
+        return false;
+      }
+
+      currentAdmin = me;
+      return true;
+    }
+
+    async function updateProfile(id, patch) {
+      const { error } = await supabase
+        .from(PROFILE_TABLE)
+        .update({
+          ...patch,
+          approved_by: currentAdmin.id,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (error) throw error;
+    }
+
+    function renderRows(list) {
+      if (!list.length) {
+        rowsEl.innerHTML = `<tr><td colspan="6">目前無資料</td></tr>`;
+        return;
+      }
+
+      rowsEl.innerHTML = list.map((row) => `
+        <tr data-id="${row.id}">
+          <td>${row.account || "-"}</td>
+          <td>${row.username || "-"}</td>
+          <td>${row.approved ? `<span class="badge ok">已批准</span>` : `<span class="badge no">待批准</span>`}</td>
+          <td>
+            <select class="level" data-role-select>
+              ${levelOptions(row.permission_level)}
+            </select>
+          </td>
+          <td>${fmt(row.created_at)}</td>
+          <td>
+            <div class="row-actions">
+              <button type="button" data-approve>${row.approved ? "取消批准" : "批准"}</button>
+              <button type="button" data-save-role>儲存權限</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadProfiles() {
+      setStatus("讀取中...");
+      const { data, error } = await supabase
+        .from(PROFILE_TABLE)
+        .select("id, account, username, approved, permission_level, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setStatus(`讀取失敗：${error.message}`, "error");
+        return;
+      }
+      renderRows(data || []);
+      setStatus(`已載入 ${data?.length || 0} 筆`, "success");
+    }
+
+    rowsEl.addEventListener("click", async (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const tr = target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = tr.getAttribute("data-id");
+      if (!id) return;
+
+      try {
+        if (target.hasAttribute("data-approve")) {
+          const approved = target.textContent === "批准";
+          await updateProfile(id, { approved });
+          await loadProfiles();
+          return;
+        }
+
+        if (target.hasAttribute("data-save-role")) {
+          const select = tr.querySelector("[data-role-select]");
+          const level = Number(select?.value ?? 3);
+          if (Number.isNaN(level) || level < 0 || level > 3) {
+            setStatus("權限等級需介於 0~3。", "error");
+            return;
+          }
+          await updateProfile(id, { permission_level: level });
+          await loadProfiles();
+        }
+      } catch (err) {
+        setStatus(`更新失敗：${err.message}`, "error");
+      }
+    });
+
+    (async () => {
+      const ok = await requireAdmin();
+      if (!ok) return;
+      await loadProfiles();
+    })();
+  </script>
+</body>
+</html>

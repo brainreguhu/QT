@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>記錄送出</title>
+  <title>首頁導覽</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -15,517 +15,455 @@
       --accent-hover: #5a9dff;
       --danger: #f87171;
       --ok: #4ade80;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
     }
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
       color: var(--text);
-      line-height: 1.5;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      gap: 6px;
+      padding: 20px 16px 24px;
     }
-    main {
-      max-width: 546px;
-      margin: 0 auto;
-      padding: 28px 20px 24px;
+    .site-footer {
+      width: 100%;
+      max-width: 800px;
+      margin: -4px 0 0;
+      padding: 0 0 2px;
+      text-align: center;
+      font-size: 15px;
+      color: var(--muted);
     }
-    h1 {
-      font-size: 1.35rem;
-      font-weight: 600;
-      margin: 0 0 1.75rem;
-      letter-spacing: 0.02em;
-    }
-    form {
+    .card {
+      width: min(92vw, 400px);
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px;
+      padding: 9px;
+    }
+    .topbar {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .topbar-admin {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 600;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .topbar-admin:hover {
+      color: var(--text);
+      border-color: var(--muted);
+    }
+    .user {
+      font-size: 18px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .logout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .logout-icon svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    .logout-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: calc(22px * 0.8);
+      letter-spacing: 0.02em;
+    }
+    .function-zone {
+      margin-top: 8px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(45, 58, 77, 0.75);
+    }
+    .function-zone > h1 {
+      margin-bottom: 8px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .function-zone .links {
+      gap: 10px;
+    }
+    .function-zone .links-row-two,
+    .function-zone .links-row-three {
+      gap: 8px;
+    }
+    .function-zone .link-btn {
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .links {
+      display: grid;
+      gap: 14px;
+    }
+    .links-row-two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 0.4rem;
+    @media (max-width: 420px) {
+      .links-row-two {
+        grid-template-columns: 1fr;
+      }
     }
-    select,
-    textarea {
+    .links-row-three {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px) {
+      .links-row-three {
+        grid-template-columns: 1fr;
+      }
+    }
+    .link-btn {
+      display: block;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.15s ease;
+    }
+    .link-btn:hover {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+      color: #fff;
+    }
+    .notice-panel {
+      --notice-bg: linear-gradient(165deg, rgba(35, 55, 88, 0.65) 0%, rgba(18, 24, 38, 0.95) 100%);
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--notice-bg);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .notice-panel h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .notice-textarea {
       width: 100%;
-      padding: 0.65rem 0.75rem;
+      height: 120px;
+      min-height: 120px;
+      max-height: 120px;
+      resize: none;
+      overflow-y: auto;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: var(--bg);
       color: var(--text);
-      font-size: 1rem;
+      padding: 10px 12px;
+      font-size: 15px;
       font-family: inherit;
+      line-height: 1.45;
     }
-    select:focus,
-    textarea:focus {
+    .notice-textarea:read-only {
+      opacity: 0.92;
+      cursor: default;
+    }
+    .notice-textarea:focus:not(:read-only) {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
     }
-    textarea {
-      height: 72px;
-      resize: none;
-    }
-    input[readonly]{
-      width: 100%;
-      padding: 0.65rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      color: var(--text);
-      font-size: 1rem;
-      font-family: inherit;
-    }
-    input[type="file"]{
-      width: 100%;
-      padding: 0.5rem 0.4rem;
-      border-radius: 8px;
-      border: 1px dashed var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 0.95rem;
-      font-family: inherit;
-    }
-    .row-pair {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    @media (max-width: 400px) {
-      .row-pair {
-        grid-template-columns: 1fr;
-      }
-    }
-    .section-title {
-      font-size: 16px;
-      text-transform: none;
-      color: var(--muted);
-      margin: 4px;
-      font-weight: 600;
-      padding-left: 12px;
-    }
-    .serial-row {
+    .notice-actions {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
+      margin-top: 3px;
+      flex-wrap: wrap;
     }
-    .serial-row .section-title {
-      margin: 4px;
-      white-space: nowrap;
-    }
-    .serial-row input[readonly]{
+    .notice-hint-wrap {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px 10px;
       flex: 1;
       min-width: 0;
     }
-    button[type="submit"] {
-      margin-top: 4px;
-      padding: 12px 16px;
-      border: none;
-      border-radius: 8px;
-      background: var(--accent);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s ease;
+    .notice-hint {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
     }
-    button[type="submit"]:hover:not(:disabled) {
-      background: var(--accent-hover);
+    .notice-feedback {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--ok);
+      white-space: pre-wrap;
     }
-    button[type="submit"]:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-    #status {
-      min-height: 14px;
-      font-size: 14px;
-      margin-top: 2px;
-      margin-bottom: 0;
-      text-align: center;
-    }
-    #status.error {
+    .notice-feedback.error {
       color: var(--danger);
     }
-    #status.success {
-      color: var(--ok);
+    .notice-save {
+      align-self: flex-start;
+      margin: 0;
+      padding: 1px 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      background: var(--notice-bg);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.35;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .notice-save:hover:not(:disabled) {
+      color: var(--text);
+      filter: brightness(1.28);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+    .notice-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body>
-  <main>
-    <form id="record-form" novalidate>
-      <div>
+  <main class="card">
+    <div class="topbar">
+      <div class="user" id="user-name">你好，讀取中...</div>
+      <div class="topbar-actions">
+        <a class="topbar-admin" href="./admin.html">人員管理</a>
+        <button class="logout-btn" id="logout-btn" type="button">
+          登出
+          <span class="logout-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+        </button>
+      </div>
+    </div>
 
-        <div class="serial-row">
-          <label for="serial" class="section-title">編號</label>
-          <input id="serial" name="serial" type="text" readonly />
-        </div>
-        <div>
-          <div>
-        <p class="section-title">樓層</p>
-            <select id="floor" name="floor" required>
-              <option value="" disabled selected>請選擇</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div>
-        <p class="section-title">位置</p>
-        <div>
-          <select id="loc1" name="loc1" required>
-            <option value="" disabled selected>請選擇</option>
-          </select>
-        </div>
-        <div style="margin-top: 0.75rem;">
-          <select id="loc2" name="loc2" required disabled>
-            <option value="" disabled selected>請先選擇 位置1</option>
-          </select>
-        </div>
-        <div style="margin-top: 0.75rem;">
-          <select id="loc3" name="loc3" required disabled>
-            <option value="" disabled selected>請先選擇 位置2</option>
-          </select>
+    <div class="notice-panel">
+      <h2>公告</h2>
+      <textarea
+        id="announcement-body"
+        class="notice-textarea"
+        readonly
+        placeholder="（尚無公告內容）"
+      ></textarea>
+      <div class="notice-actions">
+        <button type="button" class="notice-save" id="announcement-save" disabled hidden>儲存公告</button>
+        <div class="notice-hint-wrap">
+          <p class="notice-hint" id="announcement-hint">僅權限等級 0 可編輯與儲存。</p>
+          <span id="announcement-feedback" class="notice-feedback" aria-live="polite"></span>
         </div>
       </div>
-      <div>
-        <p class="section-title">廠商</p>
-        <div class="row-pair">
-          <div>
-            <select id="vendor1" name="vendor1" required>
-              <option value="" disabled selected>請選擇</option>
-            </select>
-          </div>
-          <div>
-            <select id="vendor2" name="vendor2" required disabled>
-              <option value="" disabled selected>請先選擇 廠商1</option>
-            </select>
-          </div>
-        </div>
+    </div>
+
+    <div class="function-zone">
+    <h1>請選擇功能</h1>
+    <div class="links">
+      <div class="links-row-two">
+        <a class="link-btn" href="">進度總覽🚧</a>
+        <a class="link-btn" href="">進度回報🚧</a>
       </div>
-      <div>
-        <label for="description" class="section-title" >說明</label>
-        <textarea id="description" name="description" placeholder="請輸入說明…" required></textarea>
+      <div class="links-row-two">
+        <a class="link-btn" href="./check.html">紀錄缺失✅</a>
+        <a class="link-btn" href="./checklist.html">管理紀錄✅</a>
       </div>
-      <div>
-        <label for="category" class="section-title" >分類</label>
-        <select id="category" name="category" required>
-          <option value="" disabled selected>請選擇</option>
-        </select>
+      <div class="links-row-three">
+        <a class="link-btn" href="">個人考勤紀錄🚧</a>
+        <a class="link-btn" href="">預訂月排休表🚧</a>
+        <a class="link-btn" href="">填寫打卡紀錄🚧</a>
       </div>
-      <div>
-        <label for="photo" class="section-title" >照片</label>
-        <input type="file" id="photo" name="photo" accept="image/*" required />
+      <a class="link-btn" href="">公司月行事曆🚧</a>
+      <a class="link-btn" href="">重要公文集🚧</a>
+      <div class="links-row-two">
+        <a class="link-btn" href="https://drive.google.com/drive/u/1/folders/101asPySuSM5x1dgdD2gw27wCO9yiZMqq">SOP圖集</a>
+        <a class="link-btn" href="">網路硬碟🚧</a>
       </div>
-      <button type="submit" id="submit-btn">送出至 Supabase</button>
-      <p id="status" role="status" aria-live="polite"></p>
-    </form>
+      <div class="links-row-two">
+        <a
+          class="link-btn"
+          href="https://www.google.com/maps/d/edit?hl=zh-TW&mid=1Xp45asKYhvmY419ltCTRt9_Q9ry2qhE&ll=25.064693094214952%2C121.41311614999996&z=12"
+          target="_blank"
+          rel="noopener noreferrer"
+          >業績地圖✅</a>
+        <a class="link-btn" href="">員工守則🚧</a>
+      </div>
+    </div>
+    </div>
   </main>
+  <footer class="site-footer">© Reguhu 2026</footer>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
-    const SUPABASE_ANON_KEY =
-      "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
-
-    /** 可依實際需求修改選項 */
-    const FLOOR_OPTIONS = ["1F", "2F", "3F", "B1", "B2"];
-    const CATEGORY_OPTIONS = ["設備", "清潔", "維修", "巡檢", "其他"];
-
-    /**
-     * 必須與 Supabase「Table Editor」裡 records 的欄位名完全一致。
-     * 若錯誤為找不到某欄位：在 SQL Editor 補欄位，或把此處值改成表上實際欄位名。
-     */
-    const DB_COLUMNS = {
-      serial: "編號",
-      floor: "樓層",
-      category: "分類",
-      loc1: "位置1",
-      loc2: "位置2",
-      loc3: "位置3",
-      vendor1: "廠商1",
-      vendor2: "廠商2",
-      description: "說明",
-      photo: "照片",
-    };
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+    const ANNOUNCEMENTS_TABLE = "announcements";
+    const ANNOUNCEMENT_ROW_ID = 1;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const form = document.getElementById("record-form");
-    const serialInput = document.getElementById("serial");
-    const floorSelect = document.getElementById("floor");
-    const categorySelect = document.getElementById("category");
-    const loc1Select = document.getElementById("loc1");
-    const loc2Select = document.getElementById("loc2");
-    const loc3Select = document.getElementById("loc3");
-    const vendor1Select = document.getElementById("vendor1");
-    const vendor2Select = document.getElementById("vendor2");
-    const descriptionEl = document.getElementById("description");
-    const photoInput = document.getElementById("photo");
-    const submitBtn = document.getElementById("submit-btn");
-    const statusEl = document.getElementById("status");
-    let statusTimer = null;
+    const userNameEl = document.getElementById("user-name");
+    const logoutBtn = document.getElementById("logout-btn");
+    const announcementBodyEl = document.getElementById("announcement-body");
+    const announcementSaveBtn = document.getElementById("announcement-save");
+    const announcementHintEl = document.getElementById("announcement-hint");
+    const announcementFeedbackEl = document.getElementById("announcement-feedback");
 
-    function fillSelect(select, options) {
-      for (const opt of options) {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        select.appendChild(o);
-      }
+    function setAnnouncementFeedback(msg, kind) {
+      announcementFeedbackEl.textContent = msg || "";
+      announcementFeedbackEl.classList.toggle("error", kind === "error");
     }
 
-    fillSelect(floorSelect, FLOOR_OPTIONS);
-    fillSelect(categorySelect, CATEGORY_OPTIONS);
-
-    function resetSelect(select, placeholder) {
-      select.innerHTML = "";
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.disabled = true;
-      opt.selected = true;
-      opt.textContent = placeholder;
-      select.appendChild(opt);
+    function canEditAnnouncement(profile) {
+      return Number(profile?.permission_level) === 0;
     }
 
-    function fillSelectFromList(select, options, placeholder) {
-      resetSelect(select, placeholder);
-      for (const v of options) {
-        const o = document.createElement("option");
-        o.value = v;
-        o.textContent = v;
-        select.appendChild(o);
-      }
-    }
+    async function loadAnnouncement() {
+      const { data, error } = await supabase
+        .from(ANNOUNCEMENTS_TABLE)
+        .select("content")
+        .eq("id", ANNOUNCEMENT_ROW_ID)
+        .maybeSingle();
 
-    // 假資料：位置三層關聯（之後你可自行替換）
-    const LOCATION_TREE = {
-      A區: {
-        一段: ["A-一段-001", "A-一段-002", "A-一段-003"],
-        二段: ["A-二段-001", "A-二段-002"],
-      },
-      B區: {
-        北側: ["B-北側-101", "B-北側-102"],
-        南側: ["B-南側-201", "B-南側-202", "B-南側-203"],
-      },
-      C區: {
-        地下: ["C-地下-01", "C-地下-02"],
-      },
-    };
-
-    // 假資料：廠商二層關聯（之後你可自行替換）
-    const VENDOR_TREE = {
-      甲公司: ["甲-北區", "甲-中區", "甲-南區"],
-      乙公司: ["乙-一部", "乙-二部"],
-      丙公司: ["丙-A組", "丙-B組", "丙-C組"],
-    };
-
-    fillSelectFromList(loc1Select, Object.keys(LOCATION_TREE), "請選擇");
-    resetSelect(loc2Select, "請先選擇 位置1");
-    resetSelect(loc3Select, "請先選擇 位置2");
-    loc2Select.disabled = true;
-    loc3Select.disabled = true;
-
-    fillSelectFromList(vendor1Select, Object.keys(VENDOR_TREE), "請選擇");
-    resetSelect(vendor2Select, "請先選擇 廠商1");
-    vendor2Select.disabled = true;
-
-    loc1Select.addEventListener("change", () => {
-      const v1 = loc1Select.value;
-      const level2 = v1 ? Object.keys(LOCATION_TREE[v1] || {}) : [];
-      fillSelectFromList(loc2Select, level2, "請選擇");
-      loc2Select.disabled = level2.length === 0;
-      resetSelect(loc3Select, "請先選擇 位置2");
-      loc3Select.disabled = true;
-    });
-
-    loc2Select.addEventListener("change", () => {
-      const v1 = loc1Select.value;
-      const v2 = loc2Select.value;
-      const level3 = v1 && v2 ? (LOCATION_TREE[v1]?.[v2] || []) : [];
-      fillSelectFromList(loc3Select, level3, "請選擇");
-      loc3Select.disabled = level3.length === 0;
-    });
-
-    vendor1Select.addEventListener("change", () => {
-      const v1 = vendor1Select.value;
-      const level2 = v1 ? (VENDOR_TREE[v1] || []) : [];
-      fillSelectFromList(vendor2Select, level2, "請選擇");
-      vendor2Select.disabled = level2.length === 0;
-    });
-
-    function setStatus(msg, kind) {
-      statusEl.textContent = msg;
-      statusEl.className = kind || "";
-    }
-
-    function startLoadingStatus(baseMsg) {
-      if (statusTimer) {
-        clearInterval(statusTimer);
-      }
-      let step = 0;
-      setStatus(baseMsg, "");
-      statusTimer = setInterval(() => {
-        step = (step + 1) % 4;
-        setStatus(`${baseMsg}${".".repeat(step)}`, "");
-      }, 350);
-    }
-
-    function stopLoadingStatus() {
-      if (statusTimer) {
-        clearInterval(statusTimer);
-        statusTimer = null;
-      }
-    }
-
-    function pad2(n) {
-      return String(n).padStart(2, "0");
-    }
-
-    function pad3(n) {
-      return String(n).padStart(3, "0");
-    }
-
-    function getFileExt(file) {
-      // 盡量沿用原檔副檔名；若沒有就用圖片預設 .jpg
-      const m = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
-      return m ? `.${m[1]}` : ".jpg";
-    }
-
-    function generatePhotoObjectName(file) {
-      // 依你需求：西元年 + 月 + 日 + 秒 + 毫秒
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = pad2(now.getMonth() + 1);
-      const day = pad2(now.getDate());
-      const seconds = pad2(now.getSeconds());
-      const ms = pad3(now.getMilliseconds());
-      return `${year}${month}${day}${seconds}${ms}${getFileExt(file)}`;
-    }
-
-    function generateSerialNumber() {
-      // 自動「累加」的可查詢編號：
-      // - 前綴用毫秒時間戳（遞增）
-      // - 加上短隨機碼避免同 1ms 內重複或重送導致主鍵衝突
-      const t = String(Date.now()).slice(-6);
-      const r = Math.random().toString(36).slice(2, 6).toUpperCase();
-      return `${t}${r}`;
-    }
-
-    // 注意：Supabase Storage 的「Bucket」與 bucket 內的「資料夾路徑」是兩件事
-    // 你描述的「Rublic 夾」通常是 bucket 內的資料夾，因此這裡改成常見的 public bucket
-    const STORAGE_BUCKET = "Public"; // 你的 Supabase Storage bucket 名稱（大小寫需完全一致）
-    const STORAGE_OBJECT_PREFIX = "Rublic"; // bucket 內資料夾（可留空表示根目錄）
-    const PHOTO_DB_COLUMN = "照片"; // records 用來存照片 URL/路徑 的欄位名
-
-    serialInput.value = generateSerialNumber();
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      setStatus("");
-
-      // 每次送出都強制產生新編號，避免重送造成 records_pkey 重複
-      const serial = generateSerialNumber();
-      serialInput.value = serial;
-      const floor = floorSelect.value.trim();
-      const category = categorySelect.value.trim();
-      const loc1 = loc1Select.value.trim();
-      const loc2 = loc2Select.value.trim();
-      const loc3 = loc3Select.value.trim();
-      const vendor1 = vendor1Select.value.trim();
-      const vendor2 = vendor2Select.value.trim();
-      const description = descriptionEl.value.trim();
-      const photoFile = photoInput.files?.[0];
-
-      if (!floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
-        setStatus("請完成樓層、分類、位置、廠商與說明。", "error");
+      if (error) {
+        setAnnouncementFeedback(
+          `讀取公告失敗：${error.message}（請在 Supabase 執行 announcements.sql）`,
+          "error"
+        );
+        announcementBodyEl.value = "";
         return;
       }
-      if (!photoFile) {
-        setStatus("請選擇照片。", "error");
+      announcementBodyEl.value = data?.content != null ? String(data.content) : "";
+    }
+
+    async function loadCurrentUserName() {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        window.location.href = "./login.html";
         return;
       }
 
-      submitBtn.disabled = true;
-      startLoadingStatus("上傳照片中");
+      const { data: profile, error } = await supabase
+        .from(PROFILE_TABLE)
+        .select("username, permission_level")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      const objectName = generatePhotoObjectName(photoFile);
-      const objectPath = STORAGE_OBJECT_PREFIX
-        ? `${STORAGE_OBJECT_PREFIX.replace(/^\/|\/$/g, "")}/${objectName}`
-        : objectName;
-
-      const { error: uploadError } = await supabase
-        .storage
-        .from(STORAGE_BUCKET)
-        .upload(objectPath, photoFile, {
-          contentType: photoFile.type || "image/*",
-          upsert: false,
-        });
-
-      submitBtn.disabled = false;
-      stopLoadingStatus();
-
-      if (uploadError) {
-        setStatus(uploadError.message || "照片上傳失敗。", "error");
-        console.error(uploadError);
+      if (error) {
+        userNameEl.textContent = `你好，${user.email || "未知使用者"}`;
+        setAnnouncementFeedback(`讀取名稱失敗：${error.message}`, "error");
+        await loadAnnouncement();
         return;
       }
 
-      let photoUrl = null;
-      try {
-        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
-        photoUrl = data?.publicUrl || null;
-      } catch (err) {
-        // 若 bucket 不是 public，仍可把 objectPath 存入 DB 由後續端取得
-        console.warn(err);
-      }
+      const displayName = profile?.username || user.email || "未知使用者";
+      userNameEl.textContent = `你好，${displayName}`;
 
-      const payload = {
-        [DB_COLUMNS.serial]: serial,
-        [DB_COLUMNS.floor]: floor,
-        [DB_COLUMNS.category]: category,
-        [DB_COLUMNS.loc1]: loc1,
-        [DB_COLUMNS.loc2]: loc2,
-        [DB_COLUMNS.loc3]: loc3,
-        [DB_COLUMNS.vendor1]: vendor1,
-        [DB_COLUMNS.vendor2]: vendor2,
-        [DB_COLUMNS.description]: description,
-      };
+      const editable = canEditAnnouncement(profile);
+      announcementBodyEl.readOnly = !editable;
+      announcementSaveBtn.hidden = !editable;
+      announcementSaveBtn.disabled = !editable;
+      announcementHintEl.textContent = editable
+        ? "您為最高權限等級，可編輯後按「儲存公告」。"
+        : "無操作權限，請聯絡管理員。";
+      setAnnouncementFeedback("");
 
-      // 只有在你把 PHOTO_DB_COLUMN 填好後才會寫入照片資訊，避免再次因欄位不存在而失敗
-      if (PHOTO_DB_COLUMN) {
-        payload[PHOTO_DB_COLUMN] = photoUrl || objectPath;
-      }
+      await loadAnnouncement();
+    }
 
-      submitBtn.disabled = true;
-      startLoadingStatus("送出中");
-
-      // 不使用 .select()，避免還需要額外的 select policy
-      const { error: insertError } = await supabase.from("records").insert([payload]);
-      submitBtn.disabled = false;
-      stopLoadingStatus();
-
-      if (insertError) {
-        setStatus(insertError.message || "寫入失敗，請檢查資料表與 RLS 設定。", "error");
-        console.error(insertError);
+    announcementSaveBtn.addEventListener("click", async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from(PROFILE_TABLE)
+        .select("permission_level")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!canEditAnnouncement(profile)) {
+        setAnnouncementFeedback("無權限儲存公告。", "error");
         return;
       }
 
-      setStatus("已成功儲存。", "success");
-      form.reset();
-      photoInput.value = "";
-      serialInput.value = generateSerialNumber();
+      announcementSaveBtn.disabled = true;
+      setAnnouncementFeedback("");
+      const content = announcementBodyEl.value;
+      const { error } = await supabase.from(ANNOUNCEMENTS_TABLE).upsert(
+        {
+          id: ANNOUNCEMENT_ROW_ID,
+          content,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+      announcementSaveBtn.disabled = false;
+      if (error) {
+        setAnnouncementFeedback(`儲存失敗：${error.message}`, "error");
+        return;
+      }
+      setAnnouncementFeedback("公告已儲存。");
     });
+
+    logoutBtn.addEventListener("click", async () => {
+      if (!confirm("確定要登出嗎？")) return;
+      await supabase.auth.signOut();
+      window.location.href = "./login.html";
+    });
+
+    loadCurrentUserName();
   </script>
 </body>
 </html>

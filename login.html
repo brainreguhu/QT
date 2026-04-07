@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>登入系統</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-hover: #5a9dff;
+      --danger: #f87171;
+      --ok: #4ade80;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+      color: var(--text);
+    }
+    main {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 28px 20px 24px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      letter-spacing: 0.02em;
+    }
+    .hint {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.15);
+    }
+    form {
+      display: grid;
+      gap: 10px;
+    }
+    label {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+    .hidden { display: none; }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .remember-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .remember-wrap input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent);
+    }
+    .remember-wrap label {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .submit-btn {
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .submit-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    #status {
+      margin: 0;
+      min-height: 0;
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.35;
+    }
+    #status.error { color: var(--danger); }
+    #status.success { color: var(--ok); }
+    .profile-box {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .profile-box p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+    .logout-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      padding: 8px 10px;
+      cursor: pointer;
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .logout-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .logout-icon svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>QT</h1>
+      <p class="hint">註冊後需後台批准，並設定權限才能登入使用。</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-login" type="button">登入</button>
+        <button class="tab-btn" id="tab-register" type="button">註冊</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <div id="username-wrap" class="hidden">
+          <label for="username">使用者名稱</label>
+          <input id="username" type="text" autocomplete="name" placeholder="真實姓名" />
+        </div>
+        <div>
+          <label for="account">帳號（建議使用 Email）</label>
+          <input id="account" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </div>
+        <div>
+          <label for="password">密碼</label>
+          <input id="password" type="password" autocomplete="current-password" minlength="6" required />
+        </div>
+        <div class="remember-wrap">
+          <input id="remember-me" type="checkbox" checked />
+          <label for="remember-me">記住我</label>
+        </div>
+        <div class="actions">
+          <button class="submit-btn" id="submit-btn" type="submit">登入</button>
+          <p id="status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+
+      <div class="profile-box hidden" id="profile-box">
+        <p id="profile-user"></p>
+        <p id="profile-role"></p>
+        <button class="logout-btn" id="logout-btn" type="button">
+          登出
+          <span class="logout-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const tabLogin = document.getElementById("tab-login");
+    const tabRegister = document.getElementById("tab-register");
+    const form = document.getElementById("auth-form");
+    const usernameWrap = document.getElementById("username-wrap");
+    const usernameInput = document.getElementById("username");
+    const accountInput = document.getElementById("account");
+    const passwordInput = document.getElementById("password");
+    const rememberMeInput = document.getElementById("remember-me");
+    const submitBtn = document.getElementById("submit-btn");
+    const statusEl = document.getElementById("status");
+    const profileBox = document.getElementById("profile-box");
+    const profileUser = document.getElementById("profile-user");
+    const profileRole = document.getElementById("profile-role");
+    const logoutBtn = document.getElementById("logout-btn");
+    const REMEMBER_KEY = "remember_me";
+    const REMEMBER_ACCOUNT_KEY = "remember_account_value";
+    const PROJECT_REF = (() => {
+      try {
+        return new URL(SUPABASE_URL).hostname.split(".")[0] || "";
+      } catch {
+        return "";
+      }
+    })();
+
+    const ALLOWED_POST_LOGIN = new Set(["index.html", "check.html", "checklist.html", "admin.html"]);
+
+    function getPostLoginRedirect() {
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (next && ALLOWED_POST_LOGIN.has(next)) {
+        return `./${next}`;
+      }
+      return "./index.html";
+    }
+
+    let mode = "login";
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || "";
+    }
+
+    function switchMode(nextMode) {
+      mode = nextMode;
+      const isRegister = mode === "register";
+      tabLogin.classList.toggle("active", !isRegister);
+      tabRegister.classList.toggle("active", isRegister);
+      usernameWrap.classList.toggle("hidden", !isRegister);
+      submitBtn.textContent = isRegister ? "註冊" : "登入";
+      passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+      setStatus("");
+    }
+
+    function showProfile(profile) {
+      const username = profile?.username || "未命名使用者";
+      const level = profile?.permission_level ?? "未設定";
+      profileUser.textContent = `使用者：${username}`;
+      profileBox.classList.remove("hidden");
+    }
+
+    function hideProfile() {
+      profileBox.classList.add("hidden");
+      profileUser.textContent = "";
+      profileRole.textContent = "";
+    }
+
+    function clearPersistedAuthStorage() {
+      if (!PROJECT_REF) return;
+      const tokenKey = `sb-${PROJECT_REF}-auth-token`;
+      const codeVerifierKey = `sb-${PROJECT_REF}-auth-token-code-verifier`;
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(codeVerifierKey);
+    }
+
+    async function loadProfileAndValidate() {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        hideProfile();
+        return false;
+      }
+
+      const { data: profile, error } = await supabase
+        .from(PROFILE_TABLE)
+        .select("id, username, permission_level, approved")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        setStatus(`讀取權限失敗：${error.message}`, "error");
+        return false;
+      }
+
+      if (!profile) {
+        await supabase.auth.signOut();
+        hideProfile();
+        setStatus("尚未建立使用者檔案，請聯絡管理員。", "error");
+        return false;
+      }
+
+      if (!profile.approved) {
+        await supabase.auth.signOut();
+        hideProfile();
+        setStatus("帳號尚未批准，請等待管理員審核。", "error");
+        return false;
+      }
+
+      showProfile(profile);
+      setStatus("登入成功。", "success");
+      return true;
+    }
+
+    tabLogin.addEventListener("click", () => switchMode("login"));
+    tabRegister.addEventListener("click", () => switchMode("register"));
+    rememberMeInput.addEventListener("change", () => {
+      localStorage.setItem(REMEMBER_KEY, rememberMeInput.checked ? "1" : "0");
+      if (!rememberMeInput.checked) {
+        localStorage.removeItem(REMEMBER_ACCOUNT_KEY);
+      } else {
+        localStorage.setItem(REMEMBER_ACCOUNT_KEY, accountInput.value.trim());
+      }
+    });
+
+    accountInput.addEventListener("input", () => {
+      if (rememberMeInput.checked) {
+        localStorage.setItem(REMEMBER_ACCOUNT_KEY, accountInput.value.trim());
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      if (!confirm("確定要登出嗎？")) return;
+      await supabase.auth.signOut();
+      hideProfile();
+      setStatus("已登出。", "success");
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus("");
+
+      const account = accountInput.value.trim();
+      const password = passwordInput.value;
+      const username = usernameInput.value.trim();
+
+      if (!account || !password) {
+        setStatus("請輸入帳號與密碼。", "error");
+        return;
+      }
+
+      if (mode === "register" && !username) {
+        setStatus("註冊時請輸入使用者名稱。", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+
+      if (mode === "register") {
+        const { error } = await supabase.auth.signUp({
+          email: account,
+          password,
+          options: {
+            data: {
+              username,
+            },
+          },
+        });
+
+        submitBtn.disabled = false;
+
+        if (error) {
+          setStatus(`註冊失敗：${error.message}`, "error");
+          return;
+        }
+
+        setStatus("註冊成功，請等待管理員批准後再登入。", "success");
+        form.reset();
+        return;
+      }
+
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: account,
+        password,
+      });
+
+      submitBtn.disabled = false;
+
+      if (loginError) {
+        setStatus(`登入失敗：${loginError.message}`, "error");
+        return;
+      }
+
+      localStorage.setItem(REMEMBER_KEY, rememberMeInput.checked ? "1" : "0");
+      if (!rememberMeInput.checked) {
+        // 不記住我：登入成功後清除持久化 token，重新開頁需再登入
+        clearPersistedAuthStorage();
+        localStorage.removeItem(REMEMBER_ACCOUNT_KEY);
+      } else {
+        localStorage.setItem(REMEMBER_ACCOUNT_KEY, account.trim());
+      }
+
+      const ok = await loadProfileAndValidate();
+      if (ok) {
+        window.location.href = getPostLoginRedirect();
+      }
+    });
+    const rememberSaved = localStorage.getItem(REMEMBER_KEY);
+    if (rememberSaved !== null) {
+      rememberMeInput.checked = rememberSaved === "1";
+    }
+    if (rememberMeInput.checked) {
+      const savedAccount = localStorage.getItem(REMEMBER_ACCOUNT_KEY) || "";
+      accountInput.value = savedAccount;
+    }
+    loadProfileAndValidate().then((ok) => {
+      if (ok) {
+        window.location.href = getPostLoginRedirect();
+      }
+    });
+  </script>
+</body>
+</html>

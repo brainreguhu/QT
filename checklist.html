@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>紀錄清單</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-hover: #5a9dff;
+      --danger: #f87171;
+      --ok: #4ade80;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
+      /* record-list 內：卡片外框、標題底線 */
+      --record-card-border: rgba(145, 168, 210, 0.58);
+      /* 卡片之間、卡片內列與列之間橫線 */
+      --record-row-divider: rgba(135, 158, 200, 0.52);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      font-size: 16px;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main {
+      max-width: min(96vw, 850px);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .toolbar h1 {
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      background: var(--btn-secondary-bg);
+      font-family: inherit;
+    }
+    .back-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 15px;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    .btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .hint {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .table-wrap {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 12px;
+    }
+    .record-card {
+      border: 1px solid var(--record-card-border);
+      border-radius: 10px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .record-card + .record-card {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--record-row-divider);
+    }
+    .record-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--record-card-border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .record-card-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 0;
+    }
+    .record-card-title strong {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .record-card-header-actions {
+      flex-shrink: 0;
+    }
+    .record-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 10px 14px;
+      font-size: 15px;
+    }
+    /* 與「備註」區上方相同的橫線：各資料列之間 */
+    .record-card-body > .record-card-row:not(:first-child) {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--record-row-divider);
+    }
+    .record-card-row {
+      display: grid;
+      gap: 8px 14px;
+      align-items: start;
+      min-width: 0;
+    }
+    .record-card-row--1 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* 第二列：由左排列，欄寬依內容，不均分 */
+    .record-card-row--4 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 6px 22px;
+    }
+    .record-card-row--4 .record-field {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
+    }
+    /* 第一列：分類／樓層壓縮；位置約為其他欄 2.5 倍權重 */
+    .record-card-row--6 {
+      grid-template-columns:
+        minmax(36px, 0.42fr)
+        minmax(36px, 0.42fr)
+        minmax(0, 2.5fr)
+        minmax(0, 1fr)
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+    }
+    .record-card-row--rest {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .record-field {
+      min-width: 0;
+    }
+    .record-field--spacer {
+      min-height: 0;
+      pointer-events: none;
+      visibility: hidden;
+    }
+    @media (max-width: 900px) {
+      .record-card-row--6 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px) {
+      .record-card-row--6 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 400px) {
+      .record-card-row--6 {
+        grid-template-columns: 1fr;
+      }
+    }
+    .record-field-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .record-field-value {
+      word-break: break-word;
+      line-height: 1.45;
+    }
+    .record-field-value a {
+      color: var(--accent);
+      word-break: break-all;
+    }
+    .record-field-value a:hover {
+      text-decoration: underline;
+    }
+    .record-field-wide {
+      grid-column: 1 / -1;
+    }
+    .record-card-row--rest .record-field-wide {
+      grid-column: 1 / -1;
+    }
+    .record-field-check .record-field-value {
+      display: flex;
+      align-items: center;
+      min-height: 1.5em;
+    }
+    .record-field-check input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 15px;
+      min-height: 20px;
+    }
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--ok); }
+    .empty {
+      padding: 20px;
+      text-align: center;
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .btn-delete {
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      border-radius: 6px;
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--danger);
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-delete:hover {
+      background: rgba(248, 113, 113, 0.22);
+      border-color: var(--danger);
+    }
+    .btn-delete:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .photo-open {
+      border: none;
+      background: none;
+      padding: 0;
+      color: var(--accent);
+      cursor: pointer;
+      font: inherit;
+      text-decoration: underline;
+      word-break: break-all;
+      text-align: left;
+    }
+    .photo-open:hover {
+      color: var(--accent-hover);
+    }
+    .photo-thumb-btn.photo-open {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      text-decoration: none;
+      word-break: normal;
+    }
+    .photo-thumb-wrap {
+      display: block;
+      width: fit-content;
+      max-width: min(100%, 400px);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.28);
+      line-height: 0;
+    }
+    .photo-thumb {
+      display: block;
+      width: auto;
+      max-width: 400px;
+      height: auto;
+    }
+    .photo-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .photo-lightbox[hidden] {
+      display: none !important;
+    }
+    .photo-lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      cursor: pointer;
+    }
+    .photo-lightbox-dialog {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-width: min(92vw, 720px);
+      max-height: min(88vh, 640px);
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+    .photo-lightbox-img-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .photo-lightbox-img-wrap img {
+      max-width: 100%;
+      max-height: min(72vh, 520px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      vertical-align: middle;
+    }
+    .photo-lightbox-close {
+      flex-shrink: 0;
+      width: 100%;
+      margin: 0;
+      padding: 12px 16px;
+      border: none;
+      border-top: 1px solid var(--border);
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .photo-lightbox-close:hover {
+      background: var(--btn-secondary-hover);
+      color: #fff;
+    }
+    .filter-panel {
+      margin-bottom: 16px;
+      padding: 14px 16px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(30, 52, 78, 0.55) 0%, rgba(14, 20, 32, 0.92) 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .filter-panel-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 14px;
+      margin-bottom: 10px;
+    }
+    .filter-panel-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .filter-result {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(196, 210, 230, 0.88);
+    }
+    .filter-result.muted {
+      color: var(--muted);
+    }
+    .filter-result.error {
+      color: var(--danger);
+    }
+    .filter-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+    }
+    .filter-row + .filter-row {
+      margin-top: 10px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      min-height: 0;
+    }
+    .filter-group--status-start {
+      margin-left: auto;
+    }
+    .filter-group--view-mode {
+      margin-left: auto;
+    }
+    .filter-label {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+    }
+    .filter-check {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+      flex-shrink: 0;
+      align-self: center;
+      cursor: pointer;
+      accent-color: var(--accent);
+      vertical-align: middle;
+    }
+    .btn.filter-clear {
+      flex-shrink: 0;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .filter-select {
+      min-width: 0;
+      width: 138px;
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 4px 7px;
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1.35;
+    }
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 8px 3px 3px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.16);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .view-toggle:hover {
+      border-color: rgba(120, 160, 220, 0.55);
+    }
+    .view-toggle-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .view-toggle-track {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .view-toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      background: rgba(220, 232, 250, 0.9);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      transition: left 160ms ease, background 160ms ease;
+    }
+    .view-toggle-input:checked + .view-toggle-track {
+      background: rgba(61, 139, 253, 0.25);
+      border-color: rgba(90, 160, 255, 0.75);
+    }
+    .view-toggle-input:checked + .view-toggle-track::after {
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+    }
+    .view-toggle-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(210, 223, 242, 0.92);
+      letter-spacing: 0.02em;
+    }
+    .view-toggle-input:focus-visible + .view-toggle-track {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.28);
+    }
+
+    .record-table-wrap {
+      overflow: auto;
+      border-radius: 10px;
+    }
+    table.record-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .record-table th,
+    .record-table td {
+      border-bottom: 1px solid rgba(90, 110, 150, 0.45);
+      border-right: 1px solid rgba(70, 92, 128, 0.35);
+      padding: 8px 10px;
+      vertical-align: top;
+      color: rgba(230, 236, 246, 0.95);
+      background: transparent;
+      max-width: 360px;
+      word-break: break-word;
+    }
+    .record-table th:last-child,
+    .record-table td:last-child {
+      border-right: none;
+    }
+    .record-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      text-align: left;
+      font-weight: 700;
+      color: rgba(210, 223, 242, 0.92);
+      background: rgba(20, 30, 46, 0.92);
+      border-bottom-color: rgba(120, 145, 185, 0.6);
+    }
+    .record-table tbody tr:hover td {
+      background: rgba(61, 139, 253, 0.06);
+    }
+    .photo-link {
+      color: rgba(140, 190, 255, 0.95);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 700;
+    }
+    .photo-link:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <div class="toolbar">
+        <h1>紀錄清單</h1>
+        <div class="toolbar-actions">
+          <a class="back-btn" href="./index.html">↩ 返回</a>
+        </div>
+      </div>
+      <p class="hint">資料來源：<code>records</code>。「完成／覆核」勾選會寫回資料庫；勾選時寫入當日時間，取消勾選會清空對應時間欄位。。</p>
+      <div class="filter-panel">
+        <div class="filter-panel-head">
+          <h1 class="filter-panel-title">篩選條件</h1>
+          <p id="filter-result" class="filter-result" role="status" aria-live="polite"></p>
+        </div>
+        <div class="filter-row">
+        <div class="filter-group">
+          <label for="category-filter" class="filter-label">分類</label>
+          <select id="category-filter" class="filter-select" aria-label="依分類篩選">
+            <option value="">全部</option>
+          </select>
+          <button type="button" class="btn filter-clear" id="clear-category-filter">清除</button>
+        </div>
+        <div class="filter-group filter-group--status-start">
+          <span class="filter-label">隱藏已完成</span>
+          <input
+            type="checkbox"
+            id="done-filter-check"
+            class="filter-check"
+            title="勾選後隱藏已完成項目"
+            aria-label="勾選後不顯示已完成之紀錄"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">隱藏已覆核</span>
+          <input
+            type="checkbox"
+            id="review-filter-check"
+            class="filter-check"
+            title="勾選後隱藏已覆核項目"
+            aria-label="勾選後不顯示已覆核之紀錄"
+          />
+        </div>
+        </div>
+        <div class="filter-row">
+        <div class="filter-group">
+          <label for="floor-filter" class="filter-label">樓層</label>
+          <select id="floor-filter" class="filter-select" aria-label="依樓層篩選">
+            <option value="">全部</option>
+          </select>
+          <button type="button" class="btn filter-clear" id="clear-floor-filter">清除</button>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">位置</span>
+          <select id="loc1-filter" class="filter-select" aria-label="依位置1篩選"></select>
+          <select id="loc2-filter" class="filter-select" aria-label="依位置2篩選" disabled></select>
+          <select id="loc3-filter" class="filter-select" aria-label="依位置3篩選" disabled></select>
+          <button type="button" class="btn filter-clear" id="clear-location-filter">清除</button>
+        </div>
+        <div class="filter-group filter-group--view-mode">
+          <label class="view-toggle" for="view-mode-toggle" title="切換清單顯示樣式">
+            <input id="view-mode-toggle" class="view-toggle-input" type="checkbox" />
+            <span class="view-toggle-track" aria-hidden="true"></span>
+            <span id="view-mode-text" class="view-toggle-text">大圖顯示</span>
+          </label>
+        </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div id="record-list" class="record-list"></div>
+      </div>
+      <p id="status" role="status" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <div id="photo-lightbox" class="photo-lightbox" hidden aria-hidden="true">
+    <div class="photo-lightbox-backdrop" aria-hidden="true"></div>
+    <div
+      class="photo-lightbox-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="照片預覽"
+    >
+      <div class="photo-lightbox-img-wrap">
+        <img id="photo-lightbox-img" src="" alt="" />
+      </div>
+      <button type="button" class="photo-lightbox-close" id="photo-lightbox-close" aria-label="關閉">
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+
+    /** 與 check.html「分類」下拉選項一致，用於篩選 */
+    const CATEGORY_OPTIONS = ["設備", "清潔", "維修", "巡檢", "其他"];
+    /** 與 check.html「樓層」下拉選項一致，用於篩選 */
+    const FLOOR_OPTIONS = ["1F", "2F", "3F", "B1", "B2"];
+    /** 與 check.html「位置」階層一致，用於關聯式篩選 */
+    const LOCATION_TREE = {
+      A區: { 一段: ["A-一段-001", "A-一段-002"], 二段: ["A-二段-001"] },
+      B區: { 北側: ["B-北側-101"], 南側: ["B-南側-201"] },
+    };
+
+    /** 合併欄：多個 DB 欄位 → 一個表頭 */
+    const MERGE_LOCATION = ["位置1", "位置2", "位置3"];
+    const MERGE_VENDOR = ["廠商2"];
+
+    /** 表頭顯示名稱（DB 欄位名 → 畫面標題） */
+    const HEADER_LABEL = {
+      勾選1: "完成",
+      勾選2: "覆核",
+      提交時間: "提交日期",
+      勾選時間1: "完成日期",
+      勾選時間2: "覆核日期",
+    };
+
+    /** 主要欄位順序（不含已合併的 位置1~3；廠商僅顯示 廠商2）；「樓層」「分類」已對調 */
+    const COLUMN_ORDER = [
+      "編號", "分類", "樓層",
+      "__位置__",
+      "__廠商__",
+      "說明", "照片", "來自", "提交時間",
+      "勾選1", "勾選2", "勾選時間1", "勾選時間2", "備註",
+    ];
+
+    const MERGED_KEYS = new Set([...MERGE_LOCATION, ...MERGE_VENDOR, "廠商1", "工區"]);
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const recordsListEl = document.getElementById("record-list");
+    const statusEl = document.getElementById("status");
+    const filterResultEl = document.getElementById("filter-result");
+    const categoryFilterEl = document.getElementById("category-filter");
+    const doneFilterCheckEl = document.getElementById("done-filter-check");
+    const reviewFilterCheckEl = document.getElementById("review-filter-check");
+    const floorFilterEl = document.getElementById("floor-filter");
+    const loc1FilterEl = document.getElementById("loc1-filter");
+    const loc2FilterEl = document.getElementById("loc2-filter");
+    const loc3FilterEl = document.getElementById("loc3-filter");
+    const viewModeToggleEl = document.getElementById("view-mode-toggle");
+    const viewModeTextEl = document.getElementById("view-mode-text");
+
+    let recordsCache = null;
+    let viewMode = "card"; // 'card'（大圖顯示） | 'list'（清單式顯示）
+
+    function loadViewMode() {
+      try {
+        const saved = localStorage.getItem("checklist:viewMode");
+        if (saved === "list" || saved === "card") viewMode = saved;
+      } catch (_) {}
+      viewModeToggleEl.checked = viewMode === "list";
+      viewModeTextEl.textContent = viewMode === "list" ? "清單式顯示" : "大圖顯示";
+    }
+
+    function setViewMode(next) {
+      viewMode = next === "list" ? "list" : "card";
+      viewModeToggleEl.checked = viewMode === "list";
+      viewModeTextEl.textContent = viewMode === "list" ? "清單式顯示" : "大圖顯示";
+      try {
+        localStorage.setItem("checklist:viewMode", viewMode);
+      } catch (_) {}
+    }
+
+    loadViewMode();
+    viewModeToggleEl.addEventListener("change", () => {
+      setViewMode(viewModeToggleEl.checked ? "list" : "card");
+      renderFilteredTable();
+    });
+
+    function resetFilterSelect(select, disabled) {
+      select.innerHTML = `<option value="">全部</option>`;
+      select.disabled = disabled;
+    }
+
+    function fillFilterSelectWithOptions(select, optionList, disabled) {
+      select.innerHTML = `<option value="">全部</option>`;
+      for (const opt of optionList) {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        select.appendChild(o);
+      }
+      select.disabled = disabled;
+    }
+
+    fillFilterSelectWithOptions(loc1FilterEl, Object.keys(LOCATION_TREE), false);
+    resetFilterSelect(loc2FilterEl, true);
+    resetFilterSelect(loc3FilterEl, true);
+
+    loc1FilterEl.addEventListener("change", () => {
+      const v1 = loc1FilterEl.value.trim();
+      if (!v1) {
+        resetFilterSelect(loc2FilterEl, true);
+        resetFilterSelect(loc3FilterEl, true);
+      } else {
+        const level2 = Object.keys(LOCATION_TREE[v1] || {});
+        fillFilterSelectWithOptions(loc2FilterEl, level2, level2.length === 0);
+        resetFilterSelect(loc3FilterEl, true);
+      }
+      renderFilteredTable();
+    });
+
+    loc2FilterEl.addEventListener("change", () => {
+      const v1 = loc1FilterEl.value.trim();
+      const v2 = loc2FilterEl.value.trim();
+      if (!v1 || !v2) {
+        resetFilterSelect(loc3FilterEl, true);
+        renderFilteredTable();
+        return;
+      }
+      const level3 = LOCATION_TREE[v1]?.[v2] || [];
+      fillFilterSelectWithOptions(loc3FilterEl, level3, level3.length === 0);
+      renderFilteredTable();
+    });
+
+    loc3FilterEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+
+    document.getElementById("clear-category-filter").addEventListener("click", () => {
+      categoryFilterEl.selectedIndex = 0;
+      renderFilteredTable();
+    });
+    document.getElementById("clear-floor-filter").addEventListener("click", () => {
+      floorFilterEl.selectedIndex = 0;
+      renderFilteredTable();
+    });
+    document.getElementById("clear-location-filter").addEventListener("click", () => {
+      fillFilterSelectWithOptions(loc1FilterEl, Object.keys(LOCATION_TREE), false);
+      resetFilterSelect(loc2FilterEl, true);
+      resetFilterSelect(loc3FilterEl, true);
+      renderFilteredTable();
+    });
+
+    for (const opt of CATEGORY_OPTIONS) {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      categoryFilterEl.appendChild(o);
+    }
+    for (const opt of FLOOR_OPTIONS) {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      floorFilterEl.appendChild(o);
+    }
+    const photoLightbox = document.getElementById("photo-lightbox");
+    const photoLightboxImg = document.getElementById("photo-lightbox-img");
+
+    function openPhotoLightbox(url) {
+      photoLightboxImg.src = url;
+      photoLightboxImg.alt = "照片預覽";
+      photoLightbox.hidden = false;
+      photoLightbox.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePhotoLightbox() {
+      photoLightbox.hidden = true;
+      photoLightbox.setAttribute("aria-hidden", "true");
+      photoLightboxImg.removeAttribute("src");
+      photoLightboxImg.alt = "";
+      document.body.style.overflow = "";
+    }
+
+    document.addEventListener("click", (e) => {
+      const opener = e.target.closest(".photo-open");
+      if (opener instanceof HTMLElement && opener.dataset.photoUrl) {
+        e.preventDefault();
+        openPhotoLightbox(opener.dataset.photoUrl);
+        return;
+      }
+      if (e.target.classList.contains("photo-lightbox-backdrop")) {
+        closePhotoLightbox();
+        return;
+      }
+      if (e.target.closest("#photo-lightbox-close")) {
+        closePhotoLightbox();
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !photoLightbox.hidden) {
+        closePhotoLightbox();
+      }
+    });
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg || "";
+      statusEl.className = kind === "error" ? "error" : kind === "ok" ? "ok" : "";
+    }
+
+    /** 篩選筆數／讀取狀態，顯示於「篩選條件」旁 */
+    function setFilterResult(msg, tone) {
+      filterResultEl.textContent = msg || "";
+      if (tone === "error") filterResultEl.className = "filter-result error";
+      else if (tone === "muted") filterResultEl.className = "filter-result muted";
+      else filterResultEl.className = "filter-result";
+    }
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    /** 西元年/月/日，不顯示時分秒 */
+    function formatDateYMD(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const s = String(value).trim();
+      const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        return `${isoMatch[1]}/${isoMatch[2]}/${isoMatch[3]}`;
+      }
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) return escapeHtml(s);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}/${m}/${day}`;
+    }
+
+    function isDateLikeField(key) {
+      if (!key) return false;
+      if (key === "提交時間") return true;
+      if (key.includes("時間")) return true;
+      return false;
+    }
+
+    function isTruthy(v) {
+      if (v === true || v === 1) return true;
+      if (v === false || v === 0 || v === null || v === undefined) return false;
+      const s = String(v).trim().toLowerCase();
+      return s === "true" || s === "t" || s === "yes" || s === "1" || s === "是";
+    }
+
+    function escapeAttr(s) {
+      return String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    }
+
+    /**
+     * 刪除／更新需能唯一指定列：優先 id（uuid 或 bigint），否則用非空「編號」。
+     * 若兩者皆無，Supabase 無法安全刪除（舊資料常為 NULL）。
+     * @returns {{ kind: "id" | "serial", value: string } | null}
+     */
+    function rowPrimaryKey(row) {
+      const id = row.id;
+      if (id !== undefined && id !== null && id !== "") {
+        return { kind: "id", value: String(id) };
+      }
+      const serial = row.編號;
+      if (serial !== undefined && serial !== null && String(serial).trim() !== "") {
+        return { kind: "serial", value: String(serial).trim() };
+      }
+      return null;
+    }
+
+    function formatCell(columnKey, value) {
+      if (value === null || value === undefined) return "";
+      if (isDateLikeField(columnKey)) {
+        return escapeHtml(formatDateYMD(value));
+      }
+      const str = String(value);
+      const isUrl = /^https?:\/\//i.test(str.trim());
+      const isPhotoCol = columnKey === "照片" || /photo|url|link/i.test(columnKey);
+      if (isUrl && isPhotoCol) {
+        const u = str.trim();
+        const safe = escapeAttr(u);
+        return `<button type="button" class="photo-open photo-thumb-btn" data-photo-url="${safe}" aria-label="預覽照片（放大）"><span class="photo-thumb-wrap"><img class="photo-thumb" src="${safe}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></span></button>`;
+      }
+      if (isUrl && str.length > 200) {
+        const safe = escapeHtml(str.trim());
+        return `<a href="${safe}" target="_blank" rel="noopener noreferrer">照片</a>`;
+      }
+      return escapeHtml(str);
+    }
+
+    function mergeValues(row, keys) {
+      return keys
+        .filter((k) => Object.prototype.hasOwnProperty.call(row, k))
+        .map((k) => row[k])
+        .filter((v) => v !== null && v !== undefined && String(v).trim() !== "")
+        .map((v) => String(v).trim())
+        .join(" / ");
+    }
+
+    /**
+     * @returns {{ header: string, kind: 'single'|'merged', key?: string, keys?: string[] }[]}
+     */
+    function buildDisplayColumns(sampleRow) {
+      const keys = Object.keys(sampleRow);
+      const keySet = new Set(keys);
+      const used = new Set(MERGED_KEYS);
+      const cols = [];
+
+      const hasLoc = MERGE_LOCATION.some((k) => keySet.has(k));
+      const hasVen = MERGE_VENDOR.some((k) => keySet.has(k));
+
+      for (const token of COLUMN_ORDER) {
+        if (token === "__位置__") {
+          if (hasLoc) cols.push({ kind: "merged", header: "位置", keys: MERGE_LOCATION.filter((k) => keySet.has(k)) });
+          continue;
+        }
+        if (token === "__廠商__") {
+          if (hasVen) cols.push({ kind: "merged", header: "廠商", keys: MERGE_VENDOR.filter((k) => keySet.has(k)) });
+          continue;
+        }
+        if (token === "勾選1") {
+          if (keySet.has("勾選1")) {
+            cols.push({ kind: "checkbox", key: "勾選1", timeKey: "勾選時間1", header: "完成" });
+          }
+          continue;
+        }
+        if (token === "勾選2") {
+          if (keySet.has("勾選2")) {
+            cols.push({ kind: "checkbox", key: "勾選2", timeKey: "勾選時間2", header: "覆核" });
+          }
+          continue;
+        }
+        if (!keySet.has(token)) continue;
+        const header = HEADER_LABEL[token] || token;
+        cols.push({ kind: "single", key: token, header });
+      }
+
+      for (const k of [...keys].sort((a, b) => a.localeCompare(b, "zh-Hant"))) {
+        if (used.has(k)) continue;
+        if (cols.some((c) => c.kind === "single" && c.key === k)) continue;
+        if (cols.some((c) => c.kind === "checkbox" && c.key === k)) continue;
+        cols.push({ kind: "single", key: k, header: HEADER_LABEL[k] || k });
+      }
+      return cols;
+    }
+
+    /** 固定列順序：先依「編號」字串數字排序，再依 id */
+    function sortRowsStable(rows) {
+      return [...rows].sort((a, b) => {
+        const cmp = String(a.編號 ?? "").localeCompare(String(b.編號 ?? ""), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        if (cmp !== 0) return cmp;
+        const ida = Number(a.id);
+        const idb = Number(b.id);
+        if (!Number.isNaN(ida) && !Number.isNaN(idb)) return ida - idb;
+        return 0;
+      });
+    }
+
+    function recordFieldCardClass(col) {
+      const parts = ["record-field"];
+      if (col.kind === "checkbox") parts.push("record-field-check");
+      /* 尾段兩欄區塊中「備註」跨滿列 */
+      if (col.kind === "single" && col.key === "備註") parts.push("record-field-wide");
+      return parts.join(" ");
+    }
+
+    const DELETE_COL = { kind: "delete", header: "刪除" };
+
+    function cellHtml(col, row) {
+      if (col.kind === "delete") {
+        const pk = rowPrimaryKey(row);
+        if (!pk) {
+          return `<button type="button" class="btn-delete" disabled title="此列缺少 id 與編號，無法刪除；請在 Supabase 補齊主鍵或刪除該列">刪除</button>`;
+        }
+        if (pk.kind === "id") {
+          return `<button type="button" class="btn-delete" data-pk-id="${escapeAttr(pk.value)}">刪除</button>`;
+        }
+        return `<button type="button" class="btn-delete" data-pk-serial="${escapeAttr(pk.value)}">刪除</button>`;
+      }
+      if (col.kind === "merged") {
+        const text = mergeValues(row, col.keys);
+        return escapeHtml(text);
+      }
+      if (col.kind === "checkbox") {
+        const checked = isTruthy(row[col.key]);
+        const pk = rowPrimaryKey(row);
+        if (!pk) {
+          return `<input type="checkbox" class="row-check" disabled title="此列缺少 id 與編號，無法寫回" />`;
+        }
+        const pkAttr =
+          pk.kind === "id"
+            ? `data-pk-id="${escapeAttr(pk.value)}"`
+            : `data-pk-serial="${escapeAttr(pk.value)}"`;
+        return `<input type="checkbox" class="row-check" ${pkAttr} data-check-key="${escapeAttr(col.key)}" data-time-key="${escapeAttr(col.timeKey)}" ${checked ? "checked" : ""} />`;
+      }
+      return formatCell(col.key, row[col.key]);
+    }
+
+    function colSignature(c) {
+      if (c.kind === "merged") return `m:${c.header}`;
+      if (c.kind === "checkbox") return `c:${c.key}`;
+      return `s:${c.key}`;
+    }
+
+    function findColSingle(bodyCols, key) {
+      return bodyCols.find((c) => c.kind === "single" && c.key === key) ?? null;
+    }
+
+    function findColMerged(bodyCols, header) {
+      return bodyCols.find((c) => c.kind === "merged" && c.header === header) ?? null;
+    }
+
+    function findColCheckbox(bodyCols, key) {
+      return bodyCols.find((c) => c.kind === "checkbox" && c.key === key) ?? null;
+    }
+
+    function fieldCellHtml(col, row) {
+      const cls = recordFieldCardClass(col);
+      const label = escapeHtml(col.header);
+      const val = cellHtml(col, row);
+      return `<div class="${cls}"><div class="record-field-label">${label}</div><div class="record-field-value">${val}</div></div>`;
+    }
+
+    function renderRecordCardHTML(row, bodyCols) {
+      const serialRaw = row.編號;
+      const serial =
+        serialRaw !== undefined && serialRaw !== null && String(serialRaw).trim() !== ""
+          ? escapeHtml(String(serialRaw).trim())
+          : "（無編號）";
+      const deleteHtml = cellHtml(DELETE_COL, row);
+
+      const used = new Set();
+
+      function slotHtml(c) {
+        if (!c) {
+          return `<div class="record-field record-field--spacer" aria-hidden="true"></div>`;
+        }
+        used.add(colSignature(c));
+        return fieldCellHtml(c, row);
+      }
+
+      const c分類 = findColSingle(bodyCols, "分類");
+      const c樓層 = findColSingle(bodyCols, "樓層");
+      const c位置 = findColMerged(bodyCols, "位置");
+      const c廠商 = findColMerged(bodyCols, "廠商");
+      const c說明 = findColSingle(bodyCols, "說明");
+      const c照片 = findColSingle(bodyCols, "照片");
+      const c來自 = findColSingle(bodyCols, "來自");
+      const c提交 = findColSingle(bodyCols, "提交時間");
+      const c完成 = findColCheckbox(bodyCols, "勾選1");
+      const c完成日 = findColSingle(bodyCols, "勾選時間1");
+      const c覆核 = findColCheckbox(bodyCols, "勾選2");
+      const c覆核日 = findColSingle(bodyCols, "勾選時間2");
+
+      const chunks = [];
+
+      /* 第一列：分類、樓層、位置、廠商、來自、提交日期 */
+      if (c分類 || c樓層 || c位置 || c廠商 || c來自 || c提交) {
+        chunks.push(
+          `<div class="record-card-row record-card-row--6">${slotHtml(c分類)}${slotHtml(c樓層)}${slotHtml(c位置)}${slotHtml(c廠商)}${slotHtml(c來自)}${slotHtml(c提交)}</div>`
+        );
+      }
+
+      /* 第二列：完成、完成日期、覆核、覆核日期 */
+      if (c完成 || c完成日 || c覆核 || c覆核日) {
+        chunks.push(
+          `<div class="record-card-row record-card-row--4">${slotHtml(c完成)}${slotHtml(c完成日)}${slotHtml(c覆核)}${slotHtml(c覆核日)}</div>`
+        );
+      }
+
+      /* 第三列：說明 */
+      if (c說明) {
+        used.add(colSignature(c說明));
+        chunks.push(`<div class="record-card-row record-card-row--1">${fieldCellHtml(c說明, row)}</div>`);
+      }
+
+      /* 第四列：照片 */
+      if (c照片) {
+        used.add(colSignature(c照片));
+        chunks.push(`<div class="record-card-row record-card-row--1">${fieldCellHtml(c照片, row)}</div>`);
+      }
+
+      const rest = bodyCols.filter((c) => !used.has(colSignature(c)));
+      if (rest.length) {
+        chunks.push(
+          `<div class="record-card-row record-card-row--rest">${rest.map((c) => fieldCellHtml(c, row)).join("")}</div>`
+        );
+      }
+
+      const fieldsHtml = chunks.join("");
+      return `<article class="record-card"><header class="record-card-header"><span class="record-card-title">編號：<strong>${serial}</strong></span><div class="record-card-header-actions">${deleteHtml}</div></header><div class="record-card-body">${fieldsHtml}</div></article>`;
+    }
+
+    function photoLinkCellHtml(urlRaw) {
+      if (urlRaw === null || urlRaw === undefined) return "";
+      const u = String(urlRaw).trim();
+      if (!/^https?:\/\//i.test(u)) return escapeHtml(u);
+      const safe = escapeAttr(u);
+      return `<a href="${safe}" class="photo-open photo-link" data-photo-url="${safe}">照片</a>`;
+    }
+
+    function cellHtmlForList(col, row) {
+      if (col.kind === "single" && col.key === "照片") {
+        return photoLinkCellHtml(row[col.key]);
+      }
+      return cellHtml(col, row);
+    }
+
+    function renderRecordListTableHTML(rows, displayCols) {
+      const cols = [...displayCols, DELETE_COL];
+      const thead = `<thead><tr>${cols.map((c) => `<th>${escapeHtml(c.header)}</th>`).join("")}</tr></thead>`;
+      const tbody = `<tbody>${rows
+        .map((row) => {
+          const tds = cols
+            .map((c) => {
+              const v = cellHtmlForList(c, row);
+              return `<td>${v}</td>`;
+            })
+            .join("");
+          return `<tr>${tds}</tr>`;
+        })
+        .join("")}</tbody>`;
+      return `<div class="record-table-wrap"><table class="record-table">${thead}${tbody}</table></div>`;
+    }
+
+    function renderFilteredTable() {
+      recordsListEl.innerHTML = "";
+
+      if (!recordsCache || recordsCache.length === 0) {
+        recordsListEl.innerHTML = `<div class="empty">尚無資料</div>`;
+        setFilterResult("共 0 筆。", "muted");
+        return;
+      }
+
+      const catFilter = categoryFilterEl.value.trim();
+      const floorFilter = floorFilterEl.value.trim();
+      let rows = recordsCache;
+      if (catFilter !== "") {
+        rows = rows.filter((r) => String(r["分類"] ?? "").trim() === catFilter);
+      }
+      if (doneFilterCheckEl.checked) {
+        rows = rows.filter((r) => !isTruthy(r["勾選1"]));
+      }
+      if (reviewFilterCheckEl.checked) {
+        rows = rows.filter((r) => !isTruthy(r["勾選2"]));
+      }
+      if (floorFilter !== "") {
+        rows = rows.filter((r) => String(r["樓層"] ?? "").trim() === floorFilter);
+      }
+
+      const loc1Filter = loc1FilterEl.value.trim();
+      const loc2Filter = loc2FilterEl.value.trim();
+      const loc3Filter = loc3FilterEl.value.trim();
+      if (loc1Filter !== "") {
+        rows = rows.filter((r) => String(r["位置1"] ?? "").trim() === loc1Filter);
+      }
+      if (loc2Filter !== "") {
+        rows = rows.filter((r) => String(r["位置2"] ?? "").trim() === loc2Filter);
+      }
+      if (loc3Filter !== "") {
+        rows = rows.filter((r) => String(r["位置3"] ?? "").trim() === loc3Filter);
+      }
+
+      const sampleForCols = rows.length > 0 ? rows[0] : recordsCache[0];
+      const displayCols = buildDisplayColumns(sampleForCols);
+      const bodyCols = displayCols.filter(
+        (c) => c.kind !== "delete" && !(c.kind === "single" && c.key === "編號")
+      );
+
+      if (rows.length === 0) {
+        recordsListEl.innerHTML = `<div class="empty">無符合篩選條件的資料。</div>`;
+        setFilterResult("共 0 筆（依篩選條件）。", "muted");
+        return;
+      }
+
+      if (viewMode === "list") {
+        recordsListEl.innerHTML = renderRecordListTableHTML(rows, displayCols);
+      } else {
+        recordsListEl.innerHTML = rows.map((row) => renderRecordCardHTML(row, bodyCols)).join("");
+      }
+
+      setFilterResult(`共 ${rows.length} 筆。`);
+    }
+
+    async function loadRecords() {
+      setStatus("");
+      setFilterResult("讀取中…", "muted");
+      recordsListEl.innerHTML = "";
+
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) {
+        window.location.href = "./login.html";
+        return;
+      }
+
+      const { data, error } = await supabase.from("records").select("*");
+
+      if (error) {
+        setFilterResult("");
+        setStatus(`讀取失敗：${error.message}`, "error");
+        return;
+      }
+
+      recordsCache = sortRowsStable(data || []);
+      renderFilteredTable();
+    }
+
+    recordsListEl.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".btn-delete");
+      if (!(btn instanceof HTMLButtonElement)) return;
+
+      if (!confirm("確定要刪除此筆紀錄？刪除後無法復原。")) return;
+
+      btn.disabled = true;
+      let q = supabase.from("records").delete();
+      if (btn.dataset.pkId) {
+        q = q.eq("id", btn.dataset.pkId);
+      } else if (btn.dataset.pkSerial !== undefined && btn.dataset.pkSerial !== "") {
+        q = q.eq("編號", btn.dataset.pkSerial);
+      } else {
+        setStatus("無法刪除：找不到主鍵（id 或 編號）。", "error");
+        btn.disabled = false;
+        return;
+      }
+
+      const { data: deletedRows, error } = await q.select();
+      btn.disabled = false;
+      if (error) {
+        setStatus(`刪除失敗：${error.message}`, "error");
+        return;
+      }
+      if (!deletedRows || deletedRows.length === 0) {
+        setStatus(
+          "刪除未生效：資料庫沒有刪到任何列（主鍵可能不符、或需檢查 RLS / records_delete 政策）。",
+          "error"
+        );
+        return;
+      }
+      setStatus("已刪除。", "ok");
+      await loadRecords();
+    });
+
+    recordsListEl.addEventListener("change", async (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement) || !t.classList.contains("row-check")) return;
+
+      const checkKey = t.dataset.checkKey;
+      const timeKey = t.dataset.timeKey;
+      const checked = t.checked;
+      const prev = !checked;
+
+      const patch = { [checkKey]: checked };
+      if (timeKey) {
+        patch[timeKey] = checked ? new Date().toISOString() : null;
+      }
+
+      let q = supabase.from("records").update(patch);
+      if (t.dataset.pkId) {
+        q = q.eq("id", t.dataset.pkId);
+      } else if (t.dataset.pkSerial !== undefined && t.dataset.pkSerial !== "") {
+        q = q.eq("編號", t.dataset.pkSerial);
+      } else {
+        setStatus("無法更新：找不到列主鍵（id 或 編號）。", "error");
+        t.checked = prev;
+        return;
+      }
+
+      const { data: updatedRows, error } = await q.select();
+      if (error) {
+        setStatus(`更新失敗：${error.message}`, "error");
+        t.checked = prev;
+        return;
+      }
+      if (!updatedRows || updatedRows.length === 0) {
+        setStatus("更新未生效：沒有符合主鍵的列（請確認 id／編號與 RLS）。", "error");
+        t.checked = prev;
+        return;
+      }
+      setStatus("已儲存。", "ok");
+      await loadRecords();
+    });
+
+    categoryFilterEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+    doneFilterCheckEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+    reviewFilterCheckEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+    floorFilterEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+
+    loadRecords();
+  </script>
+</body>
+</html>
