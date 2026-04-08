@@ -17,7 +17,7 @@
       --ok: #4ade80;
       --btn-secondary-bg: #2a3038;
       --btn-secondary-hover: #383e4a;
-      --admin-table-min: 780px;
+      --admin-table-min: 920px;
     }
     * { box-sizing: border-box; }
     body {
@@ -45,7 +45,7 @@
       font-size: 24px;
     }
     .hint {
-      margin: 0 0 10px;
+      margin: 0 0 0px;
       color: var(--muted);
       font-size: 14px;
     }
@@ -91,15 +91,16 @@
       width: 16%;
       word-break: break-all;
     }
-    th:nth-child(2), td:nth-child(2) { width: 8%; }
+    th:nth-child(2), td:nth-child(2) { width: 12%; }
     th:nth-child(3), td:nth-child(3) { width: 8%; }
     th:nth-child(4), td:nth-child(4) { width: 8%; }
-    th:nth-child(5), td:nth-child(5) {
-      width: 12%;
+    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(6), td:nth-child(6) {
+      width: 14%;
       font-size: 12px;
       line-height: 1.35;
     }
-    th:nth-child(6), td:nth-child(6) { width: 15%; }
+    th:nth-child(7), td:nth-child(7) { width: 32%; }
     th {
       color: var(--muted);
       font-weight: 600;
@@ -132,6 +133,16 @@
       background: var(--bg);
       color: var(--text);
     }
+    input.work-zone {
+      width: 72px;
+      max-width: 100%;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
     .row-actions {
       display: flex;
       gap: 4px;
@@ -141,7 +152,7 @@
       padding: 4px 8px;
       font-size: 12px;
     }
-    .tiny { font-size: 12px; color: var(--muted); }
+    .tiny { font-size: 12px; color: var(--muted); margin: 5px 0px -5px 0px ;}
     .card .back-btn {
       position: absolute;
       top: 14px;
@@ -173,7 +184,8 @@
     <div class="card">
       <a class="back-btn" href="./index.html">↩ 返回</a>
       <h1>使用者管理後台</h1>
-      <p class="hint">可批准註冊、設定權限等級（0 高 ~ 3 低）。僅管理員可操作。</p>
+      <p class="hint">可批准註冊、設定權限等級（0高~3低）。</p>
+      <p class="hint">僅管理員可操作。(請向右滑動表格)</p>
       <p id="status" role="status" aria-live="polite"></p>
       <div class="table-wrap">
         <table>
@@ -183,6 +195,7 @@
               <th>使用者</th>
               <th>批准</th>
               <th>權限</th>
+              <th>工區</th>
               <th>建立時間</th>
               <th>操作</th>
             </tr>
@@ -190,7 +203,9 @@
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="tiny">注意：此頁可用前提是 Supabase RLS 已允許管理員更新"profiles"。</p>
+      <p class="tiny">注意：此頁可用前提是 Supabase RLS 已允許管理員更新 "profiles" 表單。</p>
+      <p class="tiny">資料修正(刪除)需於 Supabase 資料庫執行，請洽詢管理員。</p>
+      <p class="tiny">密碼保存於 Supabase 加密資料庫，管理員無法查看，遺失密碼請重新註冊。</p>
     </div>
   </main>
 
@@ -200,6 +215,7 @@
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
     const PROFILE_TABLE = "profiles";
+    const RECORDS_TABLE = "records";
     const ADMIN_LEVEL_MAX = 0; // 0 = 最高權限（可操作後台）
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -266,10 +282,17 @@
         .eq("id", id);
       if (error) throw error;
     }
+    async function updateUserWorkZone(username, workZone) {
+      const { error } = await supabase
+        .from(RECORDS_TABLE)
+        .update({ 工區: workZone })
+        .eq("來自", username);
+      if (error) throw error;
+    }
 
     function renderRows(list) {
       if (!list.length) {
-        rowsEl.innerHTML = `<tr><td colspan="6">目前無資料</td></tr>`;
+        rowsEl.innerHTML = `<tr><td colspan="7">目前無資料</td></tr>`;
         return;
       }
 
@@ -283,30 +306,55 @@
               ${levelOptions(row.permission_level)}
             </select>
           </td>
+          <td>
+            <input class="work-zone" data-work-zone-input type="text" value="" placeholder="例如 69" />
+          </td>
           <td>${fmt(row.created_at)}</td>
           <td>
             <div class="row-actions">
               <button type="button" data-approve>${row.approved ? "取消批准" : "批准"}</button>
               <button type="button" data-save-role>儲存權限</button>
+              <button type="button" data-save-work-zone>儲存工區</button>
             </div>
           </td>
         </tr>
       `).join("");
     }
 
+    async function fetchAllProfiles() {
+      const pageSize = 1000;
+      let from = 0;
+      const all = [];
+
+      while (true) {
+        const to = from + pageSize - 1;
+        const { data, error } = await supabase
+          .from(PROFILE_TABLE)
+          .select("id, account, username, approved, permission_level, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, to);
+
+        if (error) throw error;
+
+        const chunk = data || [];
+        all.push(...chunk);
+        if (chunk.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return all;
+    }
+
     async function loadProfiles() {
       setStatus("讀取中...");
-      const { data, error } = await supabase
-        .from(PROFILE_TABLE)
-        .select("id, account, username, approved, permission_level, created_at")
-        .order("created_at", { ascending: false });
-
-      if (error) {
+      try {
+        const data = await fetchAllProfiles();
+        renderRows(data || []);
+        setStatus(`已載入 ${data?.length || 0} 筆`, "success");
+      } catch (error) {
         setStatus(`讀取失敗：${error.message}`, "error");
         return;
       }
-      renderRows(data || []);
-      setStatus(`已載入 ${data?.length || 0} 筆`, "success");
     }
 
     rowsEl.addEventListener("click", async (e) => {
@@ -334,6 +382,23 @@
           }
           await updateProfile(id, { permission_level: level });
           await loadProfiles();
+          return;
+        }
+
+        if (target.hasAttribute("data-save-work-zone")) {
+          const username = String(tr.children[1]?.textContent || "").trim();
+          const zoneInput = tr.querySelector("[data-work-zone-input]");
+          const workZone = String(zoneInput?.value || "").trim();
+          if (!username || username === "-") {
+            setStatus("缺少使用者名稱，無法更新工區。", "error");
+            return;
+          }
+          if (!workZone) {
+            setStatus("請先輸入工區。", "error");
+            return;
+          }
+          await updateUserWorkZone(username, workZone);
+          setStatus(`已將 ${username} 的 records 工區更新為 ${workZone}。`, "success");
         }
       } catch (err) {
         setStatus(`更新失敗：${err.message}`, "error");

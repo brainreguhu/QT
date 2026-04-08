@@ -33,7 +33,7 @@
       line-height: 1.5;
     }
     main {
-      max-width: min(96vw, 850px);
+      max-width: min(96vw, 1500px);
       margin: 0 auto;
       padding: 20px 16px 32px;
     }
@@ -183,15 +183,19 @@
       min-width: 0;
       max-width: 100%;
     }
-    /* 第一列：分類／樓層壓縮；位置約為其他欄 2.5 倍權重 */
+    /* 第一列：統一水平並排，不換行 */
     .record-card-row--6 {
-      grid-template-columns:
-        minmax(36px, 0.42fr)
-        minmax(36px, 0.42fr)
-        minmax(0, 2.5fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 8px 22px;
+      overflow-x: auto;
+    }
+    .record-card-row--6 .record-field {
+      flex: 0 0 auto;
+      min-width: 0;
+      max-width: 100%;
     }
     .record-card-row--rest {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -203,21 +207,6 @@
       min-height: 0;
       pointer-events: none;
       visibility: hidden;
-    }
-    @media (max-width: 900px) {
-      .record-card-row--6 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-    @media (max-width: 720px) {
-      .record-card-row--6 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    @media (max-width: 400px) {
-      .record-card-row--6 {
-        grid-template-columns: 1fr;
-      }
     }
     .record-field-label {
       font-size: 15px;
@@ -565,6 +554,7 @@
     }
     table.record-table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       min-width: 920px;
       font-size: 14px;
@@ -597,6 +587,21 @@
       background: rgba(20, 30, 46, 0.92);
       border-bottom-color: rgba(120, 145, 185, 0.6);
     }
+    .record-table th:nth-child(1), .record-table td:nth-child(1) { width: 7%; }
+    .record-table th:nth-child(2), .record-table td:nth-child(2) { width: 4%; }
+    .record-table th:nth-child(3), .record-table td:nth-child(3) { width: 4%; }
+    .record-table th:nth-child(4), .record-table td:nth-child(4) { width: 14%; }
+    .record-table th:nth-child(5), .record-table td:nth-child(5) { width: 6%; }
+    .record-table th:nth-child(6), .record-table td:nth-child(6) { width: 18%; }
+    .record-table th:nth-child(7), .record-table td:nth-child(7) { width: 4%; }
+    .record-table th:nth-child(8), .record-table td:nth-child(8) { width: 6%; }
+    .record-table th:nth-child(9), .record-table td:nth-child(9) { width: 7%; }
+    .record-table th:nth-child(10), .record-table td:nth-child(10) { width: 3%; }
+    .record-table th:nth-child(11), .record-table td:nth-child(11) { width: 3%; }
+    .record-table th:nth-child(12), .record-table td:nth-child(12) { width: 7%; }
+    .record-table th:nth-child(13), .record-table td:nth-child(13) { width: 7%; }
+    .record-table th:nth-child(14), .record-table td:nth-child(14) { width: 4%; }
+    .record-table th:nth-child(15), .record-table td:nth-child(15) { width: 6%; }
     .record-table tbody tr:hover td {
       background: rgba(61, 139, 253, 0.06);
     }
@@ -1164,27 +1169,20 @@
 
       const chunks = [];
 
-      /* 第一列：分類、樓層、位置、廠商、來自、提交日期 */
-      if (c分類 || c樓層 || c位置 || c廠商 || c來自 || c提交) {
+      /* 第一列：分類、樓層、位置、廠商、來自、提交日期、完成、完成日期、覆核、覆核日期 */
+      if (c分類 || c樓層 || c位置 || c廠商 || c來自 || c提交 || c完成 || c完成日 || c覆核 || c覆核日) {
         chunks.push(
-          `<div class="record-card-row record-card-row--6">${slotHtml(c分類)}${slotHtml(c樓層)}${slotHtml(c位置)}${slotHtml(c廠商)}${slotHtml(c來自)}${slotHtml(c提交)}</div>`
+          `<div class="record-card-row record-card-row--6">${slotHtml(c分類)}${slotHtml(c樓層)}${slotHtml(c位置)}${slotHtml(c廠商)}${slotHtml(c來自)}${slotHtml(c提交)}${slotHtml(c完成)}${slotHtml(c完成日)}${slotHtml(c覆核)}${slotHtml(c覆核日)}</div>`
         );
       }
 
-      /* 第二列：完成、完成日期、覆核、覆核日期 */
-      if (c完成 || c完成日 || c覆核 || c覆核日) {
-        chunks.push(
-          `<div class="record-card-row record-card-row--4">${slotHtml(c完成)}${slotHtml(c完成日)}${slotHtml(c覆核)}${slotHtml(c覆核日)}</div>`
-        );
-      }
-
-      /* 第三列：說明 */
+      /* 第二列：說明 */
       if (c說明) {
         used.add(colSignature(c說明));
         chunks.push(`<div class="record-card-row record-card-row--1">${fieldCellHtml(c說明, row)}</div>`);
       }
 
-      /* 第四列：照片 */
+      /* 第三列：照片 */
       if (c照片) {
         used.add(colSignature(c照片));
         chunks.push(`<div class="record-card-row record-card-row--1">${fieldCellHtml(c照片, row)}</div>`);

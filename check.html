@@ -58,6 +58,33 @@
       font-size: 14px;
       border-style: dashed;
     }
+    .select-with-reset {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .select-with-reset > select {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .select-reset-btn {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .select-reset-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
     select:focus, textarea:focus {
       outline: none;
       border-color: var(--accent);
@@ -186,6 +213,169 @@
       min-height: 1.5em;
     }
     #auth-status.hidden { display: none; }
+    .query-card {
+      margin-top: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px 12px;
+    }
+    #query-missing-btn {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #query-missing-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    #query-missing-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    #query-warning {
+      display: none;
+      margin: 5px 0 0;
+      color: var(--danger);
+      font-size: 14px;
+      text-align: center;
+    }
+    #query-warning:not(:empty) {
+      display: block;
+    }
+    .missing-result-row {
+      margin: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0px;
+    }
+    .missing-result-row[hidden] {
+      display: none;
+    }
+    #missing-result {
+      margin: 0;
+      min-height: 1.2em;
+      color: var(--ok);
+      font-size: 14px;
+    }
+    .missing-hint {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .missing-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .missing-item {
+      border: 1px solid rgba(70, 92, 128, 0.5);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.12);
+      padding: 8px 10px 8px 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 20px;
+      align-items: start;
+      gap: 8px;
+    }
+    .missing-item-main {
+      min-width: 0;
+      line-height: 1.45;
+      word-break: break-word;
+      font-size: 14px;
+    }
+    .missing-item-row {
+      margin: 0;
+    }
+    .missing-item-row + .missing-item-row {
+      margin-top: 4px;
+    }
+    .missing-photo-link {
+      color: #9ac7ff;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 600;
+    }
+    .missing-photo-link:hover {
+      color: #fff;
+    }
+    .missing-item-check {
+      width: 20px;
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 10px;
+    }
+    .missing-check {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    .photo-modal[hidden] { display: none; }
+    .photo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .photo-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .photo-modal-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(92vw, 720px);
+      max-height: 90vh;
+      background: #0f1419;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .photo-modal-img-wrap {
+      min-height: 120px;
+      max-height: calc(90vh - 90px);
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(70, 92, 128, 0.45);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 6px;
+    }
+    .photo-modal-img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    .photo-modal-close {
+      align-self: center;
+      width: 80px;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 0;
+      font-size: 16px;
+      font-weight: 700;
+      background: var(--btn-secondary-bg);
+      color: #fff;
+      cursor: pointer;
+    }
+    .photo-modal-close:hover { background: var(--btn-secondary-hover); }
   </style>
 </head>
 <body>
@@ -209,16 +399,22 @@
 
       <div>
         <p class="section-title">樓層</p>
-        <select id="floor" name="floor" required>
-          <option value="" disabled selected>請選擇</option>
-        </select>
+        <div class="select-with-reset">
+          <select id="floor" name="floor" required>
+            <option value="" disabled selected>請選擇</option>
+          </select>
+          <button type="button" id="clear-floor-btn" class="select-reset-btn">清除</button>
+        </div>
       </div>
 
       <div>
         <p class="section-title">位置</p>
-        <select id="loc1" name="loc1" required>
-          <option value="" disabled selected>請選擇</option>
-        </select>
+        <div class="select-with-reset">
+          <select id="loc1" name="loc1" required>
+            <option value="" disabled selected>請選擇</option>
+          </select>
+          <button type="button" id="clear-loc1-btn" class="select-reset-btn">清除</button>
+        </div>
         <div style="margin-top:5px;">
           <select id="loc2" name="loc2" required disabled>
             <option value="" disabled selected>請先選擇 位置1</option>
@@ -237,9 +433,12 @@
           <select id="vendor1" name="vendor1" required>
             <option value="" disabled selected>請選擇</option>
           </select>
-          <select id="vendor2" name="vendor2" required disabled>
-            <option value="" disabled selected>請先選擇 廠商1</option>
-          </select>
+          <div class="select-with-reset">
+            <select id="vendor2" name="vendor2" required disabled>
+              <option value="" disabled selected>請先選擇 廠商1</option>
+            </select>
+            <button type="button" id="clear-vendor2-btn" class="select-reset-btn">清除</button>
+          </div>
         </div>
       </div>
 
@@ -260,7 +459,25 @@
       <button type="submit" id="submit-btn">送出至 Supabase</button>
       <p id="status" role="status" aria-live="polite"></p>
     </form>
+    <section class="query-card" aria-label="查詢缺失卡片">
+      <button type="button" id="query-missing-btn">查詢缺失</button>
+      <p id="query-warning" role="status" aria-live="polite"></p>
+      <div id="missing-result-row" class="missing-result-row" hidden>
+        <p id="missing-result" role="status" aria-live="polite"></p>
+        <span class="missing-hint">完成請打勾</span>
+      </div>
+      <ol id="missing-list" class="missing-list"></ol>
+    </section>
   </main>
+  <div id="photo-modal" class="photo-modal" hidden aria-hidden="true">
+    <div class="photo-modal-backdrop" aria-hidden="true"></div>
+    <div class="photo-modal-dialog" role="dialog" aria-modal="true" aria-label="照片預覽">
+      <div class="photo-modal-img-wrap">
+        <img id="photo-modal-img" class="photo-modal-img" alt="照片預覽" />
+      </div>
+      <button type="button" id="photo-modal-close" class="photo-modal-close">X</button>
+    </div>
+  </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -309,12 +526,24 @@
     const loc3Select = document.getElementById("loc3");
     const vendor1Select = document.getElementById("vendor1");
     const vendor2Select = document.getElementById("vendor2");
+    const clearFloorBtn = document.getElementById("clear-floor-btn");
+    const clearLoc1Btn = document.getElementById("clear-loc1-btn");
+    const clearVendor2Btn = document.getElementById("clear-vendor2-btn");
     const descriptionEl = document.getElementById("description");
     const photoInput = document.getElementById("photo");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
     const authStatusEl = document.getElementById("auth-status");
+    const queryMissingBtn = document.getElementById("query-missing-btn");
+    const queryWarningEl = document.getElementById("query-warning");
+    const missingResultRowEl = document.getElementById("missing-result-row");
+    const missingResultEl = document.getElementById("missing-result");
+    const missingListEl = document.getElementById("missing-list");
+    const photoModalEl = document.getElementById("photo-modal");
+    const photoModalImgEl = document.getElementById("photo-modal-img");
+    const photoModalCloseEl = document.getElementById("photo-modal-close");
     let statusTimer = null;
+    let queryWarningTimer = null;
 
     function redirectToLogin() {
       window.location.href = LOGIN_URL;
@@ -341,6 +570,83 @@
     function stopLoadingStatus() {
       if (statusTimer) clearInterval(statusTimer);
       statusTimer = null;
+    }
+    function setMissingStatus(msg) {
+      missingResultEl.textContent = msg;
+    }
+    function showQueryWarning(msg) {
+      if (queryWarningTimer) clearTimeout(queryWarningTimer);
+      queryWarningEl.textContent = msg;
+      queryWarningTimer = setTimeout(() => {
+        queryWarningEl.textContent = "";
+        queryWarningTimer = null;
+      }, 3000);
+    }
+    function showMissingResultRow(show) {
+      missingResultRowEl.hidden = !show;
+    }
+    function openPhotoModal(url) {
+      photoModalImgEl.src = url;
+      photoModalEl.hidden = false;
+      photoModalEl.setAttribute("aria-hidden", "false");
+    }
+    function closePhotoModal() {
+      photoModalEl.hidden = true;
+      photoModalEl.setAttribute("aria-hidden", "true");
+      photoModalImgEl.removeAttribute("src");
+    }
+    function clearMissingList() {
+      missingListEl.innerHTML = "";
+    }
+    function renderMissingList(rows) {
+      if (!rows || rows.length === 0) {
+        clearMissingList();
+        setMissingStatus("篩選符合共 0 筆。");
+        showMissingResultRow(true);
+        return;
+      }
+      const html = rows
+        .map((r) => {
+          const serialKey = String(r[DB_COLUMNS.serial] ?? "").trim();
+          const serial = String(r[DB_COLUMNS.serial] ?? "").trim() || "（無編號）";
+          const category = String(r[DB_COLUMNS.category] ?? "").trim() || "（無分類）";
+          const loc1 = String(r[DB_COLUMNS.loc1] ?? "").trim();
+          const loc2 = String(r[DB_COLUMNS.loc2] ?? "").trim();
+          const loc3 = String(r[DB_COLUMNS.loc3] ?? "").trim();
+          const locDisplay = [loc1, loc2, loc3].filter(Boolean).join("/");
+          const vendor2 = String(r[DB_COLUMNS.vendor2] ?? "").trim() || "（無廠商2）";
+          const desc = String(r[DB_COLUMNS.description] ?? "").trim() || "（無說明）";
+          const photo = String(r[DB_COLUMNS.photo] ?? "").trim();
+          const from = String(r[DB_COLUMNS.from] ?? "").trim() || "未知來源";
+          const doneRaw = r["勾選1"] ?? r["完成"];
+          const done = doneRaw === true || doneRaw === "true" || doneRaw === 1 || doneRaw === "1" || doneRaw === "Y";
+          const photoHtml = photo
+            ? `<a class="missing-photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer">照片</a>`
+            : "（無）";
+          const checkHtml = serialKey
+            ? `<input type="checkbox" class="missing-check" data-row-serial="${escapeHtml(serialKey)}" ${done ? "checked" : ""} />`
+            : `<input type="checkbox" class="missing-check" disabled title="缺少編號，無法寫回" />`;
+          return `<li class="missing-item"><div class="missing-item-main"><p class="missing-item-row"><strong>${escapeHtml(serial)}</strong> | ${escapeHtml(category)} | ${escapeHtml(vendor2)} | ${escapeHtml(from)}</p><p class="missing-item-row">${escapeHtml(locDisplay || "（無位置）")} | ${photoHtml}</p><p class="missing-item-row">${escapeHtml(desc)}</p></div><div class="missing-item-check">${checkHtml}</div></li>`;
+        })
+        .join("");
+      missingListEl.innerHTML = html;
+      setMissingStatus(`篩選符合共 ${rows.length} 筆。`);
+      showMissingResultRow(true);
+    }
+    function getTodayDateYMD() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
     function resetSelect(select, placeholder) {
       select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
@@ -389,9 +695,9 @@
     fillSelect(categorySelect, CATEGORY_OPTIONS);
     fillSelectFromList(loc1Select, Object.keys(LOCATION_TREE), "請選擇");
     fillSelectFromList(vendor1Select, Object.keys(VENDOR_TREE), "請選擇");
-    resetSelect(loc2Select, "請先選擇 位置1");
-    resetSelect(loc3Select, "請先選擇 位置2");
-    resetSelect(vendor2Select, "請先選擇 廠商1");
+    resetSelect(loc2Select, "-"); //請先選擇位置1
+    resetSelect(loc3Select, "-"); //請先選擇位置2
+    resetSelect(vendor2Select, "-"); //請先選擇廠商1
     loc2Select.disabled = true;
     loc3Select.disabled = true;
     vendor2Select.disabled = true;
@@ -414,6 +720,19 @@
       fillSelectFromList(vendor2Select, level2, "請選擇");
       vendor2Select.disabled = level2.length === 0;
     });
+    clearFloorBtn.addEventListener("click", () => {
+      floorSelect.selectedIndex = 0;
+    });
+    clearLoc1Btn.addEventListener("click", () => {
+      loc1Select.selectedIndex = 0;
+      resetSelect(loc2Select, "請先選擇 位置1");
+      resetSelect(loc3Select, "請先選擇 位置2");
+      loc2Select.disabled = true;
+      loc3Select.disabled = true;
+    });
+    clearVendor2Btn.addEventListener("click", () => {
+      vendor2Select.selectedIndex = 0;
+    });
 
     (async function gateCheckPage() {
       const {
@@ -426,6 +745,74 @@
       form.removeAttribute("inert");
       authStatusEl.classList.add("hidden");
     })();
+
+    queryMissingBtn.addEventListener("click", async () => {
+      const floor = floorSelect.value.trim();
+      const loc1 = loc1Select.value.trim();
+      const loc2 = loc2Select.value.trim();
+      const loc3 = loc3Select.value.trim();
+      const vendor2 = vendor2Select.value.trim();
+      const category = categorySelect.value.trim();
+      const hasAnyFilter = Boolean(floor || loc1 || loc2 || loc3 || vendor2 || category);
+      if (!hasAnyFilter) {
+        showQueryWarning("請設置條件");
+        return;
+      }
+
+      queryMissingBtn.disabled = true;
+      queryWarningEl.textContent = "";
+      showMissingResultRow(false);
+      clearMissingList();
+
+      let query = supabase.from("records").select("編號, 分類, 位置1, 位置2, 位置3, 廠商2, 說明, 照片, 來自, 勾選1");
+      if (floor) query = query.eq(DB_COLUMNS.floor, floor);
+      if (loc1) query = query.eq(DB_COLUMNS.loc1, loc1);
+      if (loc2) query = query.eq(DB_COLUMNS.loc2, loc2);
+      if (loc3) query = query.eq(DB_COLUMNS.loc3, loc3);
+      if (vendor2) query = query.eq(DB_COLUMNS.vendor2, vendor2);
+      if (category) query = query.eq(DB_COLUMNS.category, category);
+      const { data: rows, error } = await query.order(DB_COLUMNS.serial, { ascending: true });
+
+      queryMissingBtn.disabled = false;
+      if (error) {
+        showMissingResultRow(false);
+        setMissingStatus(`查詢失敗：${error.message || "未知錯誤"}`);
+        return;
+      }
+      renderMissingList(rows || []);
+    });
+    missingListEl.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const link = target.closest(".missing-photo-link");
+      if (!link) return;
+      e.preventDefault();
+      const href = link.getAttribute("href") || "";
+      if (!href) return;
+      openPhotoModal(href);
+    });
+    missingListEl.addEventListener("change", async (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement) || !target.classList.contains("missing-check")) return;
+      const rowSerial = (target.dataset.rowSerial || "").trim();
+      if (!rowSerial) return;
+      const checked = target.checked;
+      target.disabled = true;
+      const patch = { 勾選1: checked, 勾選時間1: checked ? getTodayDateYMD() : null };
+      const { error } = await supabase.from("records").update(patch).eq(DB_COLUMNS.serial, rowSerial);
+      target.disabled = false;
+      if (error) {
+        target.checked = !checked;
+        setMissingStatus(`更新完成狀態失敗：${error.message || "未知錯誤"}`);
+        return;
+      }
+      setMissingStatus(checked ? "已更新為完成。" : "已取消完成。");
+    });
+    photoModalCloseEl.addEventListener("click", closePhotoModal);
+    photoModalEl.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target instanceof HTMLElement && target.classList.contains("photo-modal-backdrop")) closePhotoModal();
+    });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
