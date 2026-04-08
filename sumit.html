@@ -394,7 +394,7 @@
   <main>
     <div class="card card-sticky-top">
       <div class="toolbar">
-        <h1>業主合約進度</h1>
+        <h1>69業主合約進度</h1>
         <div class="toolbar-actions">
           <a class="btn" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center;">↩ 返回</a>
           <button type="button" class="btn primary" id="add-big">＋ 新增項目</button>
@@ -427,7 +427,16 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const SUBMIT_STATES_TABLE = "submit_states";
+    const CLOUD_WORK_ZONE = "69";
+    const CLOUD_TITLE = "default";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     const FLOORS = [
       "B4F","B3F","B2F","B1F",
       ...Array.from({ length: 15 }, (_, i) => `${i + 1}F`),
@@ -439,6 +448,9 @@
 
     /** @type {{ bigItems: { id: string, title: string, smallItems: { id: string, name: string, mode?: "setup" | "check", enabledFloors?: Record<string, boolean>, checks: Record<string, boolean> }[] }[] }} */
     let state = { bigItems: [] };
+    let cloudUserId = null;
+    let cloudSyncTimer = null;
+    let cloudSyncInFlight = false;
 
     const elSection = document.getElementById("section");
     const elGridHead = document.getElementById("grid-head");
@@ -468,7 +480,7 @@
         .replace(/"/g, "&quot;");
     }
 
-    function load() {
+    function loadLocal() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
@@ -479,11 +491,69 @@
       } catch (_) {}
     }
 
-    function save() {
+    function saveLocal() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch (err) {
         setStatus(`儲存失敗：${err.message}`, "error");
+      }
+    }
+    function scheduleCloudSave() {
+      if (!cloudUserId) return;
+      if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = setTimeout(async () => {
+        if (cloudSyncInFlight) return;
+        cloudSyncInFlight = true;
+        try {
+          const payload = {
+            user_id: cloudUserId,
+            work_zone: CLOUD_WORK_ZONE,
+            title: CLOUD_TITLE,
+            state_json: state,
+            updated_at: new Date().toISOString(),
+          };
+          const { error } = await supabase
+            .from(SUBMIT_STATES_TABLE)
+            .upsert(payload, { onConflict: "user_id,work_zone,title" });
+          if (error) throw error;
+        } catch (err) {
+          setStatus(`雲端同步失敗：${err.message}`, "error");
+        } finally {
+          cloudSyncInFlight = false;
+        }
+      }, 2500);
+    }
+    function saveAll() {
+      saveLocal();
+      scheduleCloudSave();
+    }
+    async function initCloudState() {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData?.user;
+        if (!user) {
+          setStatus("未登入：目前僅本機保存。", "muted");
+          return;
+        }
+        cloudUserId = user.id;
+        const { data, error } = await supabase
+          .from(SUBMIT_STATES_TABLE)
+          .select("state_json")
+          .eq("user_id", user.id)
+          .eq("work_zone", CLOUD_WORK_ZONE)
+          .eq("title", CLOUD_TITLE)
+          .maybeSingle();
+        if (error) throw error;
+        const cloudState = data?.state_json;
+        if (cloudState && Array.isArray(cloudState.bigItems)) {
+          state = cloudState;
+          saveLocal();
+          setStatus("已載入雲端資料。", "ok");
+        } else {
+          setStatus("已啟用雲端同步。", "ok");
+        }
+      } catch (err) {
+        setStatus(`雲端初始化失敗：${err.message}`, "error");
       }
     }
 
@@ -654,7 +724,7 @@
         title: "",
         smallItems: [],
       });
-      save();
+      saveAll();
       render();
       setStatus("已新增項目。", "ok");
     }
@@ -669,14 +739,14 @@
         enabledFloors: Object.fromEntries(FLOORS.map((f) => [f, true])),
         checks: Object.fromEntries(FLOORS.map((f) => [f, false])),
       });
-      save();
+      saveAll();
       render();
       setStatus("已新增次項目。", "ok");
     }
 
     function delBig(bigId) {
       state.bigItems = state.bigItems.filter((b) => b.id !== bigId);
-      save();
+      saveAll();
       render();
       setStatus("已刪除項目。", "ok");
     }
@@ -685,7 +755,7 @@
       const big = state.bigItems.find((b) => b.id === bigId);
       if (!big) return;
       big.smallItems = big.smallItems.filter((s) => s.id !== smallId);
-      save();
+      saveAll();
       render();
       setStatus("已刪除次項目。", "ok");
     }
@@ -695,7 +765,7 @@
     document.getElementById("reset-all").addEventListener("click", () => {
       if (!confirm("確定要清空所有項目/次項目與勾選？（只影響本機瀏覽器）")) return;
       state = { bigItems: [] };
-      save();
+      saveAll();
       render();
       setStatus("已清空。", "ok");
     });
@@ -736,7 +806,7 @@
         if (!small) return;
         ensureSmallState(small);
         small.mode = small.mode === "setup" ? "check" : "setup";
-        save();
+        saveAll();
         render();
       }
     });
@@ -753,7 +823,7 @@
 
       if (target.hasAttribute("data-big-title")) {
         big.title = target.value;
-        save();
+        saveAll();
         return;
       }
       if (target.hasAttribute("data-small-name")) {
@@ -763,7 +833,7 @@
         const small = big.smallItems.find((s) => s.id === smallId);
         if (!small) return;
         small.name = target.value;
-        save();
+        saveAll();
       }
     });
 
@@ -788,7 +858,7 @@
         if (!target.checked) {
           small.checks[floorEnable] = false;
         }
-        save();
+        saveAll();
         render();
         return;
       }
@@ -796,17 +866,19 @@
       const floor = target.getAttribute("data-floor");
       if (!floor || !small.enabledFloors[floor]) return;
       small.checks[floor] = target.checked;
-      save();
+      saveAll();
       render();
     });
 
-    load();
+    loadLocal();
     if (state.bigItems.length === 0) {
       state.bigItems = [
         { id: uid(), title: "（範例）項目", smallItems: [{ id: uid(), name: "（範例）次項目", checks: Object.fromEntries(FLOORS.map((f) => [f, false])) }] },
       ];
-      save();
+      saveAll();
     }
+    render();
+    await initCloudState();
     render();
   </script>
 </body>
