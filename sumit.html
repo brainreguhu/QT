@@ -61,17 +61,26 @@
     }
     .toolbar h1 {
       margin: 0;
-      flex: 1 1 auto;
-      min-width: 0;
+      flex: 0 0 auto;
       font-size: 22px;
       font-weight: 700;
       letter-spacing: 0.02em;
+    }
+    .cloud-load-status {
+      margin-left: 10px;
+      color: var(--ok);
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity 0.45s ease;
     }
     .toolbar-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+      margin-left: auto;
     }
     .btn {
       border: 1px solid var(--border);
@@ -178,6 +187,14 @@
       text-align: left;
       font-size: 14px;
     }
+    .head-add-big-btn {
+      width: fit-content;
+      min-width: 0;
+      padding: 4px 6px;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
 
     .section {
       margin-top: 0;
@@ -199,8 +216,8 @@
       flex-wrap: wrap;
       gap: 10px 12px;
       align-items: center;
-      justify-content: space-between;
-      padding: 12px 12px;
+      justify-content: flex-start;
+      padding: 5px 5px;
       background: rgba(255, 255, 255, 0.03);
       border-bottom: 1px solid rgba(145, 168, 210, 0.38);
     }
@@ -209,7 +226,8 @@
       align-items: center;
       gap: 10px;
       min-width: 260px;
-      flex: 1 1 auto;
+      flex: 0 1 50%;
+      max-width: 50%;
     }
     .big-title input {
       width: 100%;
@@ -231,11 +249,15 @@
     .big-meta {
       display: inline-flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
+      margin-left: 20px;
       color: rgba(196, 210, 230, 0.88);
       font-size: 13px;
       font-weight: 700;
-      white-space: nowrap;
+      white-space: normal;
+      justify-content: flex-start;
+      text-align: left;
     }
     .big-actions {
       display: flex;
@@ -243,6 +265,25 @@
       gap: 8px;
       align-items: center;
       justify-content: flex-end;
+      margin-left: auto;
+    }
+    .collapse-toggle-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+      min-width: 38px;
+      text-align: center;
+      background: rgba(250, 220, 120, 0.25);
+      border-color: rgba(250, 220, 120, 0.7);
+      color: #ffe9a6;
+    }
+    .collapse-toggle-btn:hover {
+      background: rgba(250, 220, 120, 0.38);
+      border-color: rgba(250, 220, 120, 0.95);
+      color: #fff5cc;
+    }
+    .big-actions .btn {
+      padding: 4px 7px;
+      font-size: 12px;
     }
     .big-body {
       padding: 0;
@@ -364,19 +405,101 @@
       border-radius: 0;
       background: transparent;
     }
-    .footer-totals .grid-wrap {
+    /* 歷程：時間由新到舊，每筆一張小卡；總完成 + 各項目表格，利於比對 */
+    .history-snapshots {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+      padding: 10px 12px;
+      min-height: 48px;
+    }
+    .history-snapshot + .history-snapshot {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(90, 110, 150, 0.35);
+    }
+    .history-snapshot:first-child {
+      padding-top: 0;
+    }
+    .history-date {
+      font-size: 13px;
+      font-weight: 800;
+      color: rgba(210, 223, 242, 0.95);
+      margin-bottom: 4px;
+    }
+    .history-overall {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .history-overall strong {
+      color: var(--ok);
+      font-weight: 800;
+    }
+    /* 原 35% 再縮 50% → 17.5%；窄螢幕仍撐滿可讀 */
+    .history-item-table-wrap {
+      width: 17.5%;
+      max-width: 100%;
+    }
+    @media (max-width: 720px) {
+      .history-item-table-wrap {
+        width: 100%;
+      }
+    }
+    .history-item-table {
       width: 100%;
-      overflow: auto;
+      border-collapse: collapse;
+      font-size: 12px;
+      table-layout: fixed;
     }
-    .footer-totals .grid-body {
-      overflow: visible;
+    .history-item-table th,
+    .history-item-table td {
+      border: 1px solid rgba(70, 92, 128, 0.45);
+      padding: 4px 6px;
+      text-align: left;
+      vertical-align: middle;
     }
-    .footer-totals .grid-row {
-      min-width: calc(var(--item-col) + (var(--floor-col) * var(--floor-count)) + var(--action-col));
-      grid-template-columns: var(--item-col) repeat(var(--floor-count), var(--floor-col)) var(--action-col);
+    .history-item-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-weight: 700;
+    }
+    /* 三欄寬度均分 */
+    .history-item-table th:nth-child(1),
+    .history-item-table td:nth-child(1) {
+      width: calc(100% / 3);
+      word-break: break-word;
+      text-align: left;
+    }
+    .history-item-table th:nth-child(2),
+    .history-item-table td:nth-child(2) {
+      width: calc(100% / 3);
+      text-align: center;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .history-item-table th:nth-child(3),
+    .history-item-table td:nth-child(3) {
+      width: calc(100% / 3);
+      text-align: right;
+      font-weight: 800;
+      color: rgba(230, 236, 246, 0.95);
+      white-space: nowrap;
+    }
+    .history-empty {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 6px 0;
+    }
+    .footer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
     }
     .footer-totals h2 {
-      margin: 0 0 8px;
+      margin: 0;
       font-size: 16px;
       font-weight: 900;
     }
@@ -395,10 +518,9 @@
     <div class="card card-sticky-top">
       <div class="toolbar">
         <h1>69業主合約進度</h1>
+        <span id="cloud-load-status" class="cloud-load-status"></span>
         <div class="toolbar-actions">
           <a class="btn" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center;">↩ 返回</a>
-          <button type="button" class="btn primary" id="add-big">＋ 新增項目</button>
-          <button type="button" class="btn danger" id="reset-all" title="清空本頁所有資料（只影響本機瀏覽器）">清空</button>
         </div>
       </div>
       <p class="hint">上方固定欄位為樓層（B4F~PRF）。每筆次項目先按「設定樓層」勾選適用樓層，再切回「勾選統計」模式進行勾選計數。資料會暫存於本機瀏覽器。</p>
@@ -406,7 +528,8 @@
       <div class="summary" id="summary">
         <span class="muted">項目：<b id="sum-big">0</b></span>
         <span class="muted">次項目：<b id="sum-small">0</b></span>
-        <span class="muted">總勾選：<b id="sum-checked">0</b></span>
+        <span class="muted">完成/總數：<b id="sum-checked-total">0/0</b></span>
+        <span class="muted">完成：<b id="sum-done-percent">0.00%</b></span>
       </div>
 
       <div class="grid-wrap" id="grid-wrap" style="--floor-count: 1;">
@@ -418,10 +541,11 @@
 
     <div class="card">
       <div class="footer-totals">
-        <h2>欄位合計（全頁）</h2>
-        <div class="grid-wrap" style="--floor-count: 1;">
-          <div class="grid-body" id="totals-wrap"></div>
+        <div class="footer-head">
+          <h2>歷程瀏覽</h2>
+          <button type="button" class="btn primary" id="save-history">保存</button>
         </div>
+        <div id="history-snapshots" class="history-snapshots" aria-live="polite"><div class="history-empty">讀取中…</div></div>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </div>
     </div>
@@ -446,7 +570,7 @@
 
     const STORAGE_KEY = "sumit:data:v1";
 
-    /** @type {{ bigItems: { id: string, title: string, smallItems: { id: string, name: string, mode?: "setup" | "check", enabledFloors?: Record<string, boolean>, checks: Record<string, boolean> }[] }[] }} */
+    /** @type {{ bigItems: { id: string, title: string, collapsed?: boolean, smallItems: { id: string, name: string, mode?: "setup" | "check", enabledFloors?: Record<string, boolean>, checks: Record<string, boolean> }[] }[] }} */
     let state = { bigItems: [] };
     let cloudUserId = null;
     let cloudSyncTimer = null;
@@ -455,12 +579,17 @@
     const elSection = document.getElementById("section");
     const elGridHead = document.getElementById("grid-head");
     const elGridWrap = document.getElementById("grid-wrap");
-    const elTotalsWrap = document.getElementById("totals-wrap");
+    const elHistorySnapshots = document.getElementById("history-snapshots");
     const elStatus = document.getElementById("status");
+    const elCloudLoadStatus = document.getElementById("cloud-load-status");
+    const elSaveHistory = document.getElementById("save-history");
+    let cloudLoadFadeTimer = null;
+    let cloudLoadFadeEndHandler = null;
 
     const elSumBig = document.getElementById("sum-big");
     const elSumSmall = document.getElementById("sum-small");
-    const elSumChecked = document.getElementById("sum-checked");
+    const elSumCheckedTotal = document.getElementById("sum-checked-total");
+    const elSumDonePercent = document.getElementById("sum-done-percent");
 
     function uid() {
       return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -527,6 +656,30 @@
       saveLocal();
       scheduleCloudSave();
     }
+    function showCloudLoadMessageThenFade(msg) {
+      if (cloudLoadFadeTimer) {
+        clearTimeout(cloudLoadFadeTimer);
+        cloudLoadFadeTimer = null;
+      }
+      if (cloudLoadFadeEndHandler) {
+        elCloudLoadStatus.removeEventListener("transitionend", cloudLoadFadeEndHandler);
+        cloudLoadFadeEndHandler = null;
+      }
+      elCloudLoadStatus.textContent = msg;
+      elCloudLoadStatus.style.opacity = "1";
+      cloudLoadFadeTimer = setTimeout(() => {
+        cloudLoadFadeTimer = null;
+        cloudLoadFadeEndHandler = (e) => {
+          if (e.propertyName !== "opacity") return;
+          elCloudLoadStatus.removeEventListener("transitionend", cloudLoadFadeEndHandler);
+          cloudLoadFadeEndHandler = null;
+          elCloudLoadStatus.textContent = "";
+          elCloudLoadStatus.style.opacity = "1";
+        };
+        elCloudLoadStatus.addEventListener("transitionend", cloudLoadFadeEndHandler);
+        elCloudLoadStatus.style.opacity = "0";
+      }, 5000);
+    }
     async function initCloudState() {
       try {
         const { data: authData } = await supabase.auth.getUser();
@@ -548,12 +701,145 @@
         if (cloudState && Array.isArray(cloudState.bigItems)) {
           state = cloudState;
           saveLocal();
-          setStatus("已載入雲端資料。", "ok");
+          showCloudLoadMessageThenFade("已載入雲端資料。");
         } else {
+          if (cloudLoadFadeTimer) {
+            clearTimeout(cloudLoadFadeTimer);
+            cloudLoadFadeTimer = null;
+          }
+          if (cloudLoadFadeEndHandler) {
+            elCloudLoadStatus.removeEventListener("transitionend", cloudLoadFadeEndHandler);
+            cloudLoadFadeEndHandler = null;
+          }
+          elCloudLoadStatus.textContent = "";
+          elCloudLoadStatus.style.opacity = "1";
           setStatus("已啟用雲端同步。", "ok");
         }
       } catch (err) {
         setStatus(`雲端初始化失敗：${err.message}`, "error");
+      }
+    }
+    async function saveHistorySnapshot() {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData?.user;
+        if (!user) {
+          setStatus("未登入，無法保存歷程。", "error");
+          return;
+        }
+        const now = new Date();
+        const stamp = now.toISOString().replaceAll(":", "-");
+        const historyTitle = `history-${stamp}`;
+        const statsNow = computeAll();
+        const payload = {
+          user_id: user.id,
+          work_zone: CLOUD_WORK_ZONE,
+          title: historyTitle,
+          state_json: {
+            ...state,
+            __meta: {
+              saved_at: now.toISOString(),
+              checked: statsNow.checkedCount,
+              total: statsNow.totalSlots,
+            },
+          },
+          version: 1,
+        };
+        const { error } = await supabase.from(SUBMIT_STATES_TABLE).insert([payload]);
+        if (error) throw error;
+        setStatus("已保存一筆歷程快照。", "ok");
+        await fetchHistorySnapshots();
+      } catch (err) {
+        setStatus(`保存歷程失敗：${err.message}`, "error");
+      }
+    }
+
+    function fmtHistoryDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    /** 從快照 state 計算總完成與各「項目」完成率（不修改頁面 state） */
+    function computeMetricsFromSnapshotState(raw) {
+      const st = JSON.parse(JSON.stringify(raw || {}));
+      if (st.__meta) delete st.__meta;
+      if (!st.bigItems || !Array.isArray(st.bigItems)) {
+        return { overallPct: "0.00", checked: 0, total: 0, items: [] };
+      }
+      let checked = 0;
+      let total = 0;
+      const items = [];
+      for (const big of st.bigItems) {
+        let bc = 0;
+        let bt = 0;
+        for (const s of big.smallItems || []) {
+          ensureSmallState(s);
+          bc += rowCheckedCount(s);
+          bt += rowTotalSlotsCount(s);
+        }
+        checked += bc;
+        total += bt;
+        const pct = bt > 0 ? ((bc / bt) * 100).toFixed(2) : "0.00";
+        const label = String(big.title || "").trim() || "（未命名項目）";
+        items.push({ label, pct, checked: bc, total: bt });
+      }
+      const overallPct = total > 0 ? ((checked / total) * 100).toFixed(2) : "0.00";
+      return { overallPct, checked, total, items };
+    }
+
+    async function fetchHistorySnapshots() {
+      if (!elHistorySnapshots) return;
+      elHistorySnapshots.innerHTML = `<div class="history-empty">讀取中…</div>`;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData?.user;
+        if (!user) {
+          elHistorySnapshots.innerHTML = `<div class="history-empty">請登入後可查看最近保存的歷程。</div>`;
+          return;
+        }
+        const { data: rows, error } = await supabase
+          .from(SUBMIT_STATES_TABLE)
+          .select("state_json, created_at, updated_at")
+          .eq("user_id", user.id)
+          .eq("work_zone", CLOUD_WORK_ZONE)
+          .like("title", "history-%")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (error) throw error;
+        const list = rows || [];
+        if (list.length === 0) {
+          elHistorySnapshots.innerHTML = `<div class="history-empty">尚無歷程紀錄。按下「保存」會新增一筆快照，最多顯示最近 5 筆。</div>`;
+          return;
+        }
+        elHistorySnapshots.innerHTML = list
+          .map((row) => {
+            const meta = row.state_json?.__meta;
+            const savedAt = meta?.saved_at || row.created_at || row.updated_at;
+            const m = computeMetricsFromSnapshotState(row.state_json);
+            const rowsHtml = m.items
+              .map(
+                (it) =>
+                  `<tr><td>${safeText(it.label)}</td><td>${it.checked}／${it.total}</td><td>${it.pct}%</td></tr>`
+              )
+              .join("");
+            return `
+              <div class="history-snapshot">
+                <div class="history-date">${safeText(fmtHistoryDate(savedAt))}</div>
+                <div class="history-overall">總完成 <strong>${m.overallPct}%</strong>（${m.checked}／${m.total}）</div>
+                <div class="history-item-table-wrap">
+                  <table class="history-item-table">
+                    <thead><tr><th>項目</th><th>完成/總數</th><th>完成</th></tr></thead>
+                    <tbody>${rowsHtml || `<tr><td colspan="3">無項目</td></tr>`}</tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      } catch (err) {
+        elHistorySnapshots.innerHTML = `<div class="history-empty" style="color:var(--danger);">讀取歷程失敗：${safeText(err.message)}</div>`;
       }
     }
 
@@ -588,20 +874,32 @@
       }
       return n;
     }
+    function rowTotalSlotsCount(small) {
+      ensureSmallState(small);
+      let n = 0;
+      for (const f of FLOORS) {
+        if (small.enabledFloors[f]) n++;
+      }
+      return n;
+    }
 
     function computeAll() {
       const colTotals = Object.fromEntries(FLOORS.map((f) => [f, 0]));
       let smallCount = 0;
       let checkedCount = 0;
+      let totalSlots = 0;
 
       for (const big of state.bigItems) {
         for (const s of big.smallItems) {
           smallCount++;
           ensureSmallState(s);
           for (const f of FLOORS) {
-            if (s.enabledFloors[f] && s.checks[f]) {
-              colTotals[f] += 1;
-              checkedCount += 1;
+            if (s.enabledFloors[f]) {
+              totalSlots += 1;
+              if (s.checks[f]) {
+                colTotals[f] += 1;
+                checkedCount += 1;
+              }
             }
           }
         }
@@ -611,6 +909,7 @@
         bigCount: state.bigItems.length,
         smallCount,
         checkedCount,
+        totalSlots,
         colTotals,
       };
     }
@@ -621,20 +920,7 @@
         <div class="grid-row">
           <div class="grid-cell">項目</div>
           ${FLOORS.map((f) => `<div class="grid-cell">${safeText(f)}</div>`).join("")}
-          <div class="grid-cell">合計</div>
-        </div>
-      `;
-    }
-
-    function renderTotals(colTotals, checkedCount) {
-      const gridStyle = `--floor-count:${FLOORS.length};`;
-      elTotalsWrap.innerHTML = `
-        <div class="grid-body">
-          <div class="grid-row" style="${gridStyle}">
-            <div class="grid-cell" style="font-weight:900;">欄合計</div>
-            ${FLOORS.map((f) => `<div class="grid-cell" style="justify-content:center; font-weight:900;">${colTotals[f] || 0}</div>`).join("")}
-            <div class="grid-cell" style="justify-content:center; font-weight:900;">${checkedCount}</div>
-          </div>
+          <div class="grid-cell"><button type="button" class="btn primary head-add-big-btn" data-add-big-header>＋新增項目</button></div>
         </div>
       `;
     }
@@ -645,11 +931,15 @@
 
       elSumBig.textContent = String(stats.bigCount);
       elSumSmall.textContent = String(stats.smallCount);
-      elSumChecked.textContent = String(stats.checkedCount);
+      elSumCheckedTotal.textContent = `${stats.checkedCount}/${stats.totalSlots}`;
+      elSumDonePercent.textContent = `${stats.totalSlots > 0 ? ((stats.checkedCount / stats.totalSlots) * 100).toFixed(2) : "0.00"}%`;
 
       elSection.innerHTML = state.bigItems
         .map((big) => {
-          const bigTotal = big.smallItems.reduce((acc, s) => acc + rowCheckedCount(s), 0);
+          const bigChecked = big.smallItems.reduce((acc, s) => acc + rowCheckedCount(s), 0);
+          const bigTotalSlots = big.smallItems.reduce((acc, s) => acc + rowTotalSlotsCount(s), 0);
+          const donePercent = bigTotalSlots > 0 ? ((bigChecked / bigTotalSlots) * 100).toFixed(2) : "0.00";
+          const collapsed = Boolean(big.collapsed);
           return `
             <div class="card">
               <section class="big-card" data-big-id="${safeText(big.id)}">
@@ -659,14 +949,16 @@
                   </div>
                   <div class="big-meta">
                     <span>次項目：<b style="color:#fff;">${big.smallItems.length}</b></span>
-                    <span>勾選：<b style="color:#fff;">${bigTotal}</b></span>
+                    <span>完成/總數：<b style="color:#fff;">${bigChecked}/${bigTotalSlots}</b></span>
+                    <span>完成：<b style="color:#fff;">${donePercent}%</b></span>
                   </div>
                   <div class="big-actions">
-                    <button type="button" class="btn danger" data-del-big>刪除項目</button>
+                    <button type="button" class="btn collapse-toggle-btn" data-toggle-collapse title="摺疊/展開次項目">${collapsed ? "展開" : "摺疊"}</button>
                     <button type="button" class="btn primary" data-add-small>＋ 新增次項目</button>
+                    <button type="button" class="btn danger" data-del-big>刪除</button>
                   </div>
                 </div>
-                <div class="big-body">
+                <div class="big-body" ${collapsed ? "hidden" : ""}>
                   <div class="small-list">
                     ${
                       big.smallItems.length
@@ -714,14 +1006,13 @@
           `;
         })
         .join("");
-
-      renderTotals(stats.colTotals, stats.checkedCount);
     }
 
     function addBig() {
       state.bigItems.unshift({
         id: uid(),
         title: "",
+        collapsed: false,
         smallItems: [],
       });
       saveAll();
@@ -760,14 +1051,13 @@
       setStatus("已刪除次項目。", "ok");
     }
 
-    document.getElementById("add-big").addEventListener("click", () => addBig());
-
-    document.getElementById("reset-all").addEventListener("click", () => {
-      if (!confirm("確定要清空所有項目/次項目與勾選？（只影響本機瀏覽器）")) return;
-      state = { bigItems: [] };
-      saveAll();
-      render();
-      setStatus("已清空。", "ok");
+    elGridHead.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest("[data-add-big-header]")) addBig();
+    });
+    elSaveHistory.addEventListener("click", () => {
+      saveHistorySnapshot();
     });
 
     elSection.addEventListener("click", (e) => {
@@ -785,6 +1075,14 @@
       if (target.hasAttribute("data-del-big")) {
         if (!confirm("確定要刪除此項目？")) return;
         delBig(bigId);
+        return;
+      }
+      if (target.hasAttribute("data-toggle-collapse")) {
+        const big = state.bigItems.find((b) => b.id === bigId);
+        if (!big) return;
+        big.collapsed = !Boolean(big.collapsed);
+        saveAll();
+        render();
         return;
       }
 
@@ -873,13 +1171,14 @@
     loadLocal();
     if (state.bigItems.length === 0) {
       state.bigItems = [
-        { id: uid(), title: "（範例）項目", smallItems: [{ id: uid(), name: "（範例）次項目", checks: Object.fromEntries(FLOORS.map((f) => [f, false])) }] },
+        { id: uid(), title: "（範例）項目", collapsed: false, smallItems: [{ id: uid(), name: "（範例）次項目", checks: Object.fromEntries(FLOORS.map((f) => [f, false])) }] },
       ];
       saveAll();
     }
     render();
     await initCloudState();
     render();
+    await fetchHistorySnapshots();
   </script>
 </body>
 </html>
