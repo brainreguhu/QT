@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>勾選統計</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-hover: #5a9dff;
+      --danger: #f87171;
+      --ok: #4ade80;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
+      --row-divider: rgba(135, 158, 200, 0.42);
+      --item-col: 192px;
+      --floor-col: 42px;
+      --action-col: 132px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      font-size: 16px;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main {
+      max-width: min(96vw, 1600px);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 7px;
+    }
+    .card-sticky-top {
+      position: sticky;
+      top: 10px;
+      z-index: 30;
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.48);
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .toolbar h1 {
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.primary {
+      background: rgba(61, 139, 253, 0.18);
+      border-color: rgba(90, 160, 255, 0.55);
+    }
+    .btn.primary:hover {
+      background: rgba(61, 139, 253, 0.3);
+      border-color: rgba(90, 160, 255, 0.8);
+    }
+    .btn.danger {
+      background: rgba(248, 113, 113, 0.14);
+      border-color: rgba(248, 113, 113, 0.4);
+      color: rgba(255, 210, 210, 0.98);
+    }
+    .btn.danger:hover {
+      background: rgba(248, 113, 113, 0.22);
+      border-color: rgba(248, 113, 113, 0.72);
+      color: #fff;
+    }
+    .hint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.14);
+      margin-bottom: 14px;
+    }
+    .summary b {
+      color: #fff;
+      font-weight: 800;
+    }
+    .muted { color: var(--muted); }
+
+    .grid-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.08);
+    }
+    .grid-head {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(20, 30, 46, 0.92);
+      border-bottom: 1px solid rgba(120, 145, 185, 0.6);
+      overflow: auto;
+    }
+    .grid-body {
+      overflow: auto;
+    }
+    .grid-row {
+      display: grid;
+      grid-template-columns: var(--item-col) repeat(var(--floor-count), var(--floor-col)) var(--action-col);
+      gap: 0;
+      min-width: calc(var(--item-col) + (var(--floor-col) * var(--floor-count)) + var(--action-col));
+    }
+    .grid-cell {
+      border-right: 1px solid rgba(70, 92, 128, 0.35);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+    }
+    .grid-row > .grid-cell:last-child {
+      border-right: none;
+    }
+    .grid-head .grid-cell {
+      padding: 10px 10px;
+      font-weight: 800;
+      color: rgba(210, 223, 242, 0.92);
+      justify-content: center;
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+    .grid-head .grid-cell:first-child,
+    .grid-head .grid-cell:last-child {
+      justify-content: flex-start;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .section .card {
+      padding: 7px;
+    }
+    .big-card {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    .big-card-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(145, 168, 210, 0.38);
+    }
+    .big-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 260px;
+      flex: 1 1 auto;
+    }
+    .big-title input {
+      width: 100%;
+      min-width: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 800;
+      outline: none;
+    }
+    .big-title input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+    .big-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(196, 210, 230, 0.88);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .big-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .big-body {
+      padding: 0;
+    }
+
+    .small-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .small-row {
+      border: 1px solid rgba(90, 110, 150, 0.35);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .small-row + .small-row {
+      border-top-color: rgba(90, 110, 150, 0.45);
+    }
+    .small-grid {
+      overflow: hidden;
+      border-top: 1px solid rgba(90, 110, 150, 0.24);
+    }
+    .small-grid .grid-row {
+      grid-template-columns: var(--item-col) repeat(var(--floor-count), var(--floor-col)) var(--action-col);
+      min-width: calc(var(--item-col) + (var(--floor-col) * var(--floor-count)) + var(--action-col));
+      border-bottom: 1px solid rgba(90, 110, 150, 0.22);
+      background: transparent;
+    }
+    .small-grid .grid-row:hover .grid-cell {
+      background: rgba(61, 139, 253, 0.05);
+    }
+    .small-grid .grid-cell {
+      padding: 4px 6px;
+      justify-content: center;
+    }
+    .small-grid .grid-cell:first-child {
+      justify-content: flex-start;
+    }
+    .small-grid .grid-cell:last-child {
+      justify-content: center;
+      font-weight: 900;
+      color: rgba(230, 236, 246, 0.95);
+    }
+    .small-grid-end {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
+      width: 100%;
+    }
+    .small-grid-end .btn {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .small-grid-end .btn.mode {
+      background: rgba(61, 139, 253, 0.16);
+      border-color: rgba(90, 160, 255, 0.45);
+    }
+    .small-grid-end .btn.mode:hover {
+      background: rgba(61, 139, 253, 0.28);
+      border-color: rgba(90, 160, 255, 0.72);
+    }
+    .check {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      background: #7b8493;
+      border: 1px solid #636d7d;
+      border-radius: 3px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      position: relative;
+    }
+    .check:checked {
+      background: #8cbcff;
+      border-color: #71aaff;
+    }
+    .check:checked::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 4px;
+      height: 9px;
+      border: solid #1f4f96;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .floor-na {
+      color: rgba(139, 156, 179, 0.8);
+      font-weight: 700;
+      user-select: none;
+    }
+    .small-grid-name-input {
+      width: 100%;
+      min-width: 0;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--text);
+      padding: 5px 8px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 700;
+      outline: none;
+    }
+    .small-grid-name-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+
+    .footer-totals {
+      margin-top: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    .footer-totals .grid-wrap {
+      width: 100%;
+      overflow: auto;
+    }
+    .footer-totals .grid-body {
+      overflow: visible;
+    }
+    .footer-totals .grid-row {
+      min-width: calc(var(--item-col) + (var(--floor-col) * var(--floor-count)) + var(--action-col));
+      grid-template-columns: var(--item-col) repeat(var(--floor-count), var(--floor-col)) var(--action-col);
+    }
+    .footer-totals h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card card-sticky-top">
+      <div class="toolbar">
+        <h1>業主合約進度</h1>
+        <div class="toolbar-actions">
+          <a class="btn" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center;">↩ 返回</a>
+          <button type="button" class="btn primary" id="add-big">＋ 新增項目</button>
+          <button type="button" class="btn danger" id="reset-all" title="清空本頁所有資料（只影響本機瀏覽器）">清空</button>
+        </div>
+      </div>
+      <p class="hint">上方固定欄位為樓層（B4F~PRF）。每筆次項目先按「設定樓層」勾選適用樓層，再切回「勾選統計」模式進行勾選計數。資料會暫存於本機瀏覽器。</p>
+
+      <div class="summary" id="summary">
+        <span class="muted">項目：<b id="sum-big">0</b></span>
+        <span class="muted">次項目：<b id="sum-small">0</b></span>
+        <span class="muted">總勾選：<b id="sum-checked">0</b></span>
+      </div>
+
+      <div class="grid-wrap" id="grid-wrap" style="--floor-count: 1;">
+        <div class="grid-head" id="grid-head"></div>
+      </div>
+    </div>
+
+    <div class="section" id="section"></div>
+
+    <div class="card">
+      <div class="footer-totals">
+        <h2>欄位合計（全頁）</h2>
+        <div class="grid-wrap" style="--floor-count: 1;">
+          <div class="grid-body" id="totals-wrap"></div>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const FLOORS = [
+      "B4F","B3F","B2F","B1F",
+      ...Array.from({ length: 15 }, (_, i) => `${i + 1}F`),
+      "R1F","R2F","R3F",
+      "PRF",
+    ];
+
+    const STORAGE_KEY = "sumit:data:v1";
+
+    /** @type {{ bigItems: { id: string, title: string, smallItems: { id: string, name: string, mode?: "setup" | "check", enabledFloors?: Record<string, boolean>, checks: Record<string, boolean> }[] }[] }} */
+    let state = { bigItems: [] };
+
+    const elSection = document.getElementById("section");
+    const elGridHead = document.getElementById("grid-head");
+    const elGridWrap = document.getElementById("grid-wrap");
+    const elTotalsWrap = document.getElementById("totals-wrap");
+    const elStatus = document.getElementById("status");
+
+    const elSumBig = document.getElementById("sum-big");
+    const elSumSmall = document.getElementById("sum-small");
+    const elSumChecked = document.getElementById("sum-checked");
+
+    function uid() {
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function setStatus(msg, kind) {
+      elStatus.textContent = msg || "";
+      elStatus.className = kind ? `status ${kind}` : "status";
+    }
+
+    function safeText(s) {
+      if (s === null || s === undefined) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.bigItems)) {
+          state = parsed;
+        }
+      } catch (_) {}
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (err) {
+        setStatus(`儲存失敗：${err.message}`, "error");
+      }
+    }
+
+    function ensureChecksObject(small) {
+      if (!small.checks || typeof small.checks !== "object") small.checks = {};
+      for (const f of FLOORS) {
+        if (typeof small.checks[f] !== "boolean") small.checks[f] = false;
+      }
+    }
+
+    function ensureSmallState(small) {
+      ensureChecksObject(small);
+      if (!small.enabledFloors || typeof small.enabledFloors !== "object") {
+        small.enabledFloors = {};
+      }
+      for (const f of FLOORS) {
+        if (typeof small.enabledFloors[f] !== "boolean") {
+          // 舊資料相容：預設全部樓層可用
+          small.enabledFloors[f] = true;
+        }
+      }
+      if (small.mode !== "setup" && small.mode !== "check") {
+        small.mode = "check";
+      }
+    }
+
+    function rowCheckedCount(small) {
+      ensureSmallState(small);
+      let n = 0;
+      for (const f of FLOORS) {
+        if (small.enabledFloors[f] && small.checks[f]) n++;
+      }
+      return n;
+    }
+
+    function computeAll() {
+      const colTotals = Object.fromEntries(FLOORS.map((f) => [f, 0]));
+      let smallCount = 0;
+      let checkedCount = 0;
+
+      for (const big of state.bigItems) {
+        for (const s of big.smallItems) {
+          smallCount++;
+          ensureSmallState(s);
+          for (const f of FLOORS) {
+            if (s.enabledFloors[f] && s.checks[f]) {
+              colTotals[f] += 1;
+              checkedCount += 1;
+            }
+          }
+        }
+      }
+
+      return {
+        bigCount: state.bigItems.length,
+        smallCount,
+        checkedCount,
+        colTotals,
+      };
+    }
+
+    function renderHeader() {
+      elGridWrap.style.setProperty("--floor-count", String(FLOORS.length));
+      elGridHead.innerHTML = `
+        <div class="grid-row">
+          <div class="grid-cell">項目</div>
+          ${FLOORS.map((f) => `<div class="grid-cell">${safeText(f)}</div>`).join("")}
+          <div class="grid-cell">合計</div>
+        </div>
+      `;
+    }
+
+    function renderTotals(colTotals, checkedCount) {
+      const gridStyle = `--floor-count:${FLOORS.length};`;
+      elTotalsWrap.innerHTML = `
+        <div class="grid-body">
+          <div class="grid-row" style="${gridStyle}">
+            <div class="grid-cell" style="font-weight:900;">欄合計</div>
+            ${FLOORS.map((f) => `<div class="grid-cell" style="justify-content:center; font-weight:900;">${colTotals[f] || 0}</div>`).join("")}
+            <div class="grid-cell" style="justify-content:center; font-weight:900;">${checkedCount}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      renderHeader();
+      const stats = computeAll();
+
+      elSumBig.textContent = String(stats.bigCount);
+      elSumSmall.textContent = String(stats.smallCount);
+      elSumChecked.textContent = String(stats.checkedCount);
+
+      elSection.innerHTML = state.bigItems
+        .map((big) => {
+          const bigTotal = big.smallItems.reduce((acc, s) => acc + rowCheckedCount(s), 0);
+          return `
+            <div class="card">
+              <section class="big-card" data-big-id="${safeText(big.id)}">
+                <div class="big-card-head">
+                  <div class="big-title">
+                    <input type="text" data-big-title value="${safeText(big.title || "")}" placeholder="輸入項目名稱" />
+                  </div>
+                  <div class="big-meta">
+                    <span>次項目：<b style="color:#fff;">${big.smallItems.length}</b></span>
+                    <span>勾選：<b style="color:#fff;">${bigTotal}</b></span>
+                  </div>
+                  <div class="big-actions">
+                    <button type="button" class="btn danger" data-del-big>刪除項目</button>
+                    <button type="button" class="btn primary" data-add-small>＋ 新增次項目</button>
+                  </div>
+                </div>
+                <div class="big-body">
+                  <div class="small-list">
+                    ${
+                      big.smallItems.length
+                        ? big.smallItems
+                            .map((s) => {
+                              ensureSmallState(s);
+                              const rowTotal = rowCheckedCount(s);
+                              const isSetupMode = s.mode === "setup";
+                              return `
+                                <div class="small-row" data-small-id="${safeText(s.id)}">
+                                  <div class="small-grid" style="--floor-count:${FLOORS.length};">
+                                    <div class="grid-row">
+                                      <div class="grid-cell" style="justify-content:flex-start;">
+                                        <input class="small-grid-name-input" type="text" data-small-name value="${safeText(s.name || "")}" placeholder="輸入次項目名稱" />
+                                      </div>
+                                      ${FLOORS.map((f) => {
+                                        if (isSetupMode) {
+                                          const enabled = s.enabledFloors[f] ? "checked" : "";
+                                          return `<div class="grid-cell"><input class="check" type="checkbox" data-floor-enable="${safeText(f)}" ${enabled} title="此樓層是否納入次項目" /></div>`;
+                                        }
+                                        if (!s.enabledFloors[f]) {
+                                          return `<div class="grid-cell"><span class="floor-na">－</span></div>`;
+                                        }
+                                        const checked = s.checks[f] ? "checked" : "";
+                                        return `<div class="grid-cell"><input class="check" type="checkbox" data-floor="${safeText(f)}" ${checked} title="勾選計入統計" /></div>`;
+                                      }).join("")}
+                                      <div class="grid-cell">
+                                        <span class="small-grid-end">
+                                          <button type="button" class="btn mode" data-toggle-mode>${isSetupMode ? "確定" : "設定樓層"}</button>
+                                          <button type="button" class="btn danger" data-del-small>刪除</button>
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              `;
+                            })
+                            .join("")
+                        : `<div class="muted" style="padding: 10px 4px;">尚無次項目，請按「新增次項目」。</div>`
+                    }
+                  </div>
+                </div>
+              </section>
+            </div>
+          `;
+        })
+        .join("");
+
+      renderTotals(stats.colTotals, stats.checkedCount);
+    }
+
+    function addBig() {
+      state.bigItems.unshift({
+        id: uid(),
+        title: "",
+        smallItems: [],
+      });
+      save();
+      render();
+      setStatus("已新增項目。", "ok");
+    }
+
+    function addSmall(bigId) {
+      const big = state.bigItems.find((b) => b.id === bigId);
+      if (!big) return;
+      big.smallItems.push({
+        id: uid(),
+        name: "",
+        mode: "setup",
+        enabledFloors: Object.fromEntries(FLOORS.map((f) => [f, true])),
+        checks: Object.fromEntries(FLOORS.map((f) => [f, false])),
+      });
+      save();
+      render();
+      setStatus("已新增次項目。", "ok");
+    }
+
+    function delBig(bigId) {
+      state.bigItems = state.bigItems.filter((b) => b.id !== bigId);
+      save();
+      render();
+      setStatus("已刪除項目。", "ok");
+    }
+
+    function delSmall(bigId, smallId) {
+      const big = state.bigItems.find((b) => b.id === bigId);
+      if (!big) return;
+      big.smallItems = big.smallItems.filter((s) => s.id !== smallId);
+      save();
+      render();
+      setStatus("已刪除次項目。", "ok");
+    }
+
+    document.getElementById("add-big").addEventListener("click", () => addBig());
+
+    document.getElementById("reset-all").addEventListener("click", () => {
+      if (!confirm("確定要清空所有項目/次項目與勾選？（只影響本機瀏覽器）")) return;
+      state = { bigItems: [] };
+      save();
+      render();
+      setStatus("已清空。", "ok");
+    });
+
+    elSection.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const bigEl = target.closest("[data-big-id]");
+      if (!bigEl) return;
+      const bigId = bigEl.getAttribute("data-big-id");
+      if (!bigId) return;
+
+      if (target.hasAttribute("data-add-small")) {
+        addSmall(bigId);
+        return;
+      }
+      if (target.hasAttribute("data-del-big")) {
+        if (!confirm("確定要刪除此項目？")) return;
+        delBig(bigId);
+        return;
+      }
+
+      const smallEl = target.closest("[data-small-id]");
+      if (smallEl && target.hasAttribute("data-del-small")) {
+        const smallId = smallEl.getAttribute("data-small-id");
+        if (!smallId) return;
+        if (!confirm("確定要刪除此次項目？")) return;
+        delSmall(bigId, smallId);
+        return;
+      }
+
+      if (smallEl && target.hasAttribute("data-toggle-mode")) {
+        const smallId = smallEl.getAttribute("data-small-id");
+        if (!smallId) return;
+        const small = state.bigItems
+          .find((b) => b.id === bigId)
+          ?.smallItems.find((s) => s.id === smallId);
+        if (!small) return;
+        ensureSmallState(small);
+        small.mode = small.mode === "setup" ? "check" : "setup";
+        save();
+        render();
+      }
+    });
+
+    elSection.addEventListener("input", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      const bigEl = target.closest("[data-big-id]");
+      if (!bigEl) return;
+      const bigId = bigEl.getAttribute("data-big-id");
+      if (!bigId) return;
+      const big = state.bigItems.find((b) => b.id === bigId);
+      if (!big) return;
+
+      if (target.hasAttribute("data-big-title")) {
+        big.title = target.value;
+        save();
+        return;
+      }
+      if (target.hasAttribute("data-small-name")) {
+        const smallEl = target.closest("[data-small-id]");
+        const smallId = smallEl?.getAttribute("data-small-id");
+        if (!smallId) return;
+        const small = big.smallItems.find((s) => s.id === smallId);
+        if (!small) return;
+        small.name = target.value;
+        save();
+      }
+    });
+
+    elSection.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== "checkbox") return;
+      const bigEl = target.closest("[data-big-id]");
+      const smallEl = target.closest("[data-small-id]");
+      const bigId = bigEl?.getAttribute("data-big-id");
+      const smallId = smallEl?.getAttribute("data-small-id");
+      if (!bigId || !smallId) return;
+
+      const big = state.bigItems.find((b) => b.id === bigId);
+      const small = big?.smallItems.find((s) => s.id === smallId);
+      if (!big || !small) return;
+      ensureSmallState(small);
+
+      const floorEnable = target.getAttribute("data-floor-enable");
+      if (floorEnable) {
+        small.enabledFloors[floorEnable] = target.checked;
+        if (!target.checked) {
+          small.checks[floorEnable] = false;
+        }
+        save();
+        render();
+        return;
+      }
+
+      const floor = target.getAttribute("data-floor");
+      if (!floor || !small.enabledFloors[floor]) return;
+      small.checks[floor] = target.checked;
+      save();
+      render();
+    });
+
+    load();
+    if (state.bigItems.length === 0) {
+      state.bigItems = [
+        { id: uid(), title: "（範例）項目", smallItems: [{ id: uid(), name: "（範例）次項目", checks: Object.fromEntries(FLOORS.map((f) => [f, false])) }] },
+      ];
+      save();
+    }
+    render();
+  </script>
+</body>
+</html>
+
