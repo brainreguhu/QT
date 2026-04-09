@@ -6,6 +6,7 @@
   <title>勾選統計</title>
   <style>
     :root {
+      --font-size: 15px;
       --bg: #0f1419;
       --panel: #1a2332;
       --border: #2d3a4d;
@@ -23,11 +24,20 @@
       --action-col: 132px;
     }
     * { box-sizing: border-box; }
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+    html {
+      font-size: var(--font-size);
+    }
     body {
       margin: 0;
       min-height: 100vh;
       font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-      font-size: 16px;
+      font-size: var(--font-size);
       background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
       color: var(--text);
       line-height: 1.5;
@@ -62,14 +72,14 @@
     .toolbar h1 {
       margin: 0;
       flex: 0 0 auto;
-      font-size: 22px;
+      font-size: 25px;
       font-weight: 700;
       letter-spacing: 0.02em;
     }
     .cloud-load-status {
       margin-left: 10px;
       color: var(--ok);
-      font-size: 14px;
+      font-size: var(--font-size);
       font-weight: 700;
       white-space: nowrap;
       opacity: 1;
@@ -89,7 +99,7 @@
       color: var(--text);
       padding: 8px 12px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: var(--font-size);
       font-family: inherit;
       font-weight: 700;
       white-space: nowrap;
@@ -117,10 +127,22 @@
       border-color: rgba(248, 113, 113, 0.72);
       color: #fff;
     }
+    /* 歷程「保存」：灰綠色；內距與「展開／摺疊」按鈕相同 */
+    #save-history {
+      padding: 4px 8px;
+      background: #4d6358;
+      border-color: #5f7a6d;
+      color: #e8f2ec;
+    }
+    #save-history:hover {
+      background: #5d7568;
+      border-color: #6f8c7a;
+      color: #fff;
+    }
     .hint {
       margin: 0 0 14px;
       color: var(--muted);
-      font-size: 14px;
+      font-size: var(--font-size);
     }
     .summary {
       display: flex;
@@ -178,20 +200,20 @@
       color: rgba(210, 223, 242, 0.92);
       justify-content: center;
       text-align: center;
-      font-size: 13px;
+      font-size: var(--font-size);
       letter-spacing: 0.02em;
     }
     .grid-head .grid-cell:first-child,
     .grid-head .grid-cell:last-child {
       justify-content: flex-start;
       text-align: left;
-      font-size: 14px;
+      font-size: var(--font-size);
     }
     .head-add-big-btn {
       width: fit-content;
       min-width: 0;
       padding: 4px 6px;
-      font-size: 12px;
+      font-size: var(--font-size);
       line-height: 1.2;
       white-space: nowrap;
     }
@@ -237,7 +259,7 @@
       background: rgba(0, 0, 0, 0.18);
       color: var(--text);
       padding: 8px 10px;
-      font-size: 14px;
+      font-size: var(--font-size);
       font-family: inherit;
       font-weight: 800;
       outline: none;
@@ -253,7 +275,7 @@
       gap: 12px;
       margin-left: 20px;
       color: rgba(196, 210, 230, 0.88);
-      font-size: 13px;
+      font-size: var(--font-size);
       font-weight: 700;
       white-space: normal;
       justify-content: flex-start;
@@ -269,7 +291,7 @@
     }
     .collapse-toggle-btn {
       padding: 4px 8px;
-      font-size: 12px;
+      font-size: var(--font-size);
       min-width: 38px;
       text-align: center;
       background: rgba(250, 220, 120, 0.25);
@@ -283,7 +305,7 @@
     }
     .big-actions .btn {
       padding: 4px 7px;
-      font-size: 12px;
+      font-size: var(--font-size);
     }
     .big-body {
       padding: 0;
@@ -337,7 +359,7 @@
     }
     .small-grid-end .btn {
       padding: 4px 8px;
-      font-size: 12px;
+      font-size: var(--font-size);
     }
     .small-grid-end .btn.mode {
       background: rgba(61, 139, 253, 0.16);
@@ -388,7 +410,7 @@
       background: rgba(0, 0, 0, 0.18);
       color: var(--text);
       padding: 5px 8px;
-      font-size: 14px;
+      font-size: var(--font-size);
       font-family: inherit;
       font-weight: 700;
       outline: none;
@@ -405,51 +427,61 @@
       border-radius: 0;
       background: transparent;
     }
-    /* 歷程：時間由新到舊，每筆一張小卡；總完成 + 各項目表格，利於比對 */
+    /* 歷程：最近 6 筆；一列 3 筆、共 2 列（3×2 網格） */
     .history-snapshots {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 12px;
+      row-gap: 24px;
+      align-items: start;
       border: 1px solid var(--border);
       border-radius: 10px;
       background: rgba(0, 0, 0, 0.12);
       padding: 10px 12px;
       min-height: 48px;
     }
-    .history-snapshot + .history-snapshot {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(90, 110, 150, 0.35);
-    }
-    .history-snapshot:first-child {
-      padding-top: 0;
+    .history-snapshot {
+      min-width: 0;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid rgba(90, 110, 150, 0.4);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.1);
     }
     .history-date {
-      font-size: 13px;
-      font-weight: 800;
+      font-size: var(--font-size);
+      font-weight: 400;
       color: rgba(210, 223, 242, 0.95);
       margin-bottom: 4px;
     }
     .history-overall {
-      font-size: 13px;
+      font-size: var(--font-size);
       color: var(--muted);
       margin-bottom: 8px;
     }
     .history-overall strong {
       color: var(--ok);
-      font-weight: 800;
+      font-weight: 400;
     }
-    /* 原 35% 再縮 50% → 17.5%；窄螢幕仍撐滿可讀 */
+    .history-diff {
+      font-size: var(--font-size);
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .history-diff.pos {
+      color: var(--ok);
+    }
+    .history-diff.neg {
+      color: var(--danger);
+    }
     .history-item-table-wrap {
-      width: 17.5%;
+      width: 100%;
       max-width: 100%;
-    }
-    @media (max-width: 720px) {
-      .history-item-table-wrap {
-        width: 100%;
-      }
     }
     .history-item-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: var(--font-size);
       table-layout: fixed;
     }
     .history-item-table th,
@@ -462,34 +494,57 @@
     .history-item-table th {
       background: rgba(255, 255, 255, 0.04);
       color: var(--muted);
-      font-weight: 700;
+      font-weight: 400;
     }
-    /* 三欄寬度均分 */
+    /* 項目欄寬 = 原 28% 加大 30%；剩餘三欄：「完成」「差異」各為均分寬的 80%，「完成/總數」為均分寬的 140%（吸收兩欄各減 20%） */
     .history-item-table th:nth-child(1),
     .history-item-table td:nth-child(1) {
-      width: calc(100% / 3);
+      width: calc(28% * 1.3);
       word-break: break-word;
       text-align: left;
     }
     .history-item-table th:nth-child(2),
     .history-item-table td:nth-child(2) {
-      width: calc(100% / 3);
+      width: calc((100% - 28% * 1.3) / 3 * 1.4);
+    }
+    .history-item-table th:nth-child(3),
+    .history-item-table td:nth-child(3),
+    .history-item-table th:nth-child(4),
+    .history-item-table td:nth-child(4) {
+      width: calc((100% - 28% * 1.3) / 3 * 0.8);
+    }
+    .history-item-table th:nth-child(2),
+    .history-item-table td:nth-child(2) {
       text-align: center;
-      font-weight: 700;
+      font-weight: 400;
       white-space: nowrap;
     }
     .history-item-table th:nth-child(3),
     .history-item-table td:nth-child(3) {
-      width: calc(100% / 3);
       text-align: right;
-      font-weight: 800;
+      font-weight: 400;
       color: rgba(230, 236, 246, 0.95);
       white-space: nowrap;
     }
+    .history-item-table th:nth-child(4),
+    .history-item-table td:nth-child(4) {
+      text-align: right;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .history-item-table td:nth-child(4) {
+      color: rgba(230, 236, 246, 0.95);
+    }
+    .history-item-table .history-total-row td:first-child {
+      font-weight: 400;
+      color: rgba(210, 223, 242, 0.95);
+    }
     .history-empty {
-      font-size: 14px;
+      font-size: var(--font-size);
       color: var(--muted);
       padding: 6px 0;
+      grid-column: 1 / -1;
+      width: 100%;
     }
     .footer-head {
       display: flex;
@@ -500,12 +555,12 @@
     }
     .footer-totals h2 {
       margin: 0;
-      font-size: 16px;
-      font-weight: 900;
+      font-size: 25px;
+      font-weight: 400;
     }
     .status {
       margin-top: 10px;
-      font-size: 14px;
+      font-size: var(--font-size);
       color: var(--muted);
       min-height: 20px;
     }
@@ -789,6 +844,38 @@
       return { overallPct, checked, total, items };
     }
 
+    function parseHistoryPct(p) {
+      if (p === undefined || p === null) return NaN;
+      return parseFloat(String(p).replace(/%/g, "").trim());
+    }
+
+    /** 與上一筆（較舊）快照比較完成率差異；無上一筆時回傳空字串 */
+    function historyPctDiffHtml(currentPct, olderPct) {
+      const cur = parseHistoryPct(currentPct);
+      const old = parseHistoryPct(olderPct);
+      if (Number.isNaN(cur) || Number.isNaN(old)) return "";
+      const d = cur - old;
+      if (Math.abs(d) < 0.005) return "";
+      const sign = d > 0 ? "+" : "";
+      const cls = d >= 0 ? "history-diff pos" : "history-diff neg";
+      return `<span class="${cls}">${sign}${d.toFixed(2)}%</span>`;
+    }
+
+    function findPrevHistoryItem(prevMetrics, label, index) {
+      if (!prevMetrics?.items?.length) return null;
+      const byLabel = prevMetrics.items.find((x) => x.label === label);
+      if (byLabel) return byLabel;
+      return prevMetrics.items[index] ?? null;
+    }
+
+    /** 差異欄內容：最舊一筆無比較時顯示「—」 */
+    function historyDiffTdContent(diffHtml, hasPrev) {
+      if (!hasPrev) return "—";
+      const s = typeof diffHtml === "string" ? diffHtml.trim() : "";
+      if (!s) return "—";
+      return s;
+    }
+
     async function fetchHistorySnapshots() {
       if (!elHistorySnapshots) return;
       elHistorySnapshots.innerHTML = `<div class="history-empty">讀取中…</div>`;
@@ -806,32 +893,39 @@
           .eq("work_zone", CLOUD_WORK_ZONE)
           .like("title", "history-%")
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(6);
         if (error) throw error;
         const list = rows || [];
         if (list.length === 0) {
-          elHistorySnapshots.innerHTML = `<div class="history-empty">尚無歷程紀錄。按下「保存」會新增一筆快照，最多顯示最近 5 筆。</div>`;
+          elHistorySnapshots.innerHTML = `<div class="history-empty">尚無歷程紀錄。按下「保存」會新增一筆快照，最多顯示最近 6 筆（一列 3 筆、共 2 列）。</div>`;
           return;
         }
         elHistorySnapshots.innerHTML = list
-          .map((row) => {
+          .map((row, idx) => {
             const meta = row.state_json?.__meta;
             const savedAt = meta?.saved_at || row.created_at || row.updated_at;
             const m = computeMetricsFromSnapshotState(row.state_json);
-            const rowsHtml = m.items
-              .map(
-                (it) =>
-                  `<tr><td>${safeText(it.label)}</td><td>${it.checked}／${it.total}</td><td>${it.pct}%</td></tr>`
-              )
+            const prev =
+              idx < list.length - 1 ? computeMetricsFromSnapshotState(list[idx + 1].state_json) : null;
+            const overallDiff = prev ? historyPctDiffHtml(m.overallPct, prev.overallPct) : "";
+            const hasPrev = !!prev;
+            const totalRow = `<tr class="history-total-row"><td>總計</td><td>${m.checked}／${m.total}</td><td>${m.overallPct}%</td><td>${historyDiffTdContent(overallDiff, hasPrev)}</td></tr>`;
+            const itemRowsHtml = m.items
+              .map((it, j) => {
+                const pIt = prev ? findPrevHistoryItem(prev, it.label, j) : null;
+                const pctDiffHtml = prev && pIt ? historyPctDiffHtml(it.pct, pIt.pct) : "";
+                return `<tr><td>${safeText(it.label)}</td><td>${it.checked}／${it.total}</td><td>${it.pct}%</td><td>${historyDiffTdContent(pctDiffHtml, hasPrev)}</td></tr>`;
+              })
               .join("");
+            const tbodyHtml = m.items.length ? `${totalRow}${itemRowsHtml}` : `${totalRow}<tr><td colspan="4" style="text-align:center;color:var(--muted);">無項目</td></tr>`;
             return `
               <div class="history-snapshot">
                 <div class="history-date">${safeText(fmtHistoryDate(savedAt))}</div>
                 <div class="history-overall">總完成 <strong>${m.overallPct}%</strong>（${m.checked}／${m.total}）</div>
                 <div class="history-item-table-wrap">
                   <table class="history-item-table">
-                    <thead><tr><th>項目</th><th>完成/總數</th><th>完成</th></tr></thead>
-                    <tbody>${rowsHtml || `<tr><td colspan="3">無項目</td></tr>`}</tbody>
+                    <thead><tr><th>項目</th><th>完成/總數</th><th>完成</th><th>差異</th></tr></thead>
+                    <tbody>${tbodyHtml}</tbody>
                   </table>
                 </div>
               </div>

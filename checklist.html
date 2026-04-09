@@ -33,7 +33,7 @@
       line-height: 1.5;
     }
     main {
-      max-width: min(96vw, 1500px);
+      max-width: min(96vw, 1600px);
       margin: 0 auto;
       padding: 20px 16px 32px;
     }
@@ -596,12 +596,12 @@
     .record-table th:nth-child(7), .record-table td:nth-child(7) { width: 4%; }
     .record-table th:nth-child(8), .record-table td:nth-child(8) { width: 6%; }
     .record-table th:nth-child(9), .record-table td:nth-child(9) { width: 7%; }
-    .record-table th:nth-child(10), .record-table td:nth-child(10) { width: 3%; }
-    .record-table th:nth-child(11), .record-table td:nth-child(11) { width: 3%; }
+    .record-table th:nth-child(10), .record-table td:nth-child(10) { width: 4%; }
+    .record-table th:nth-child(11), .record-table td:nth-child(11) { width: 4%; }
     .record-table th:nth-child(12), .record-table td:nth-child(12) { width: 7%; }
     .record-table th:nth-child(13), .record-table td:nth-child(13) { width: 7%; }
     .record-table th:nth-child(14), .record-table td:nth-child(14) { width: 4%; }
-    .record-table th:nth-child(15), .record-table td:nth-child(15) { width: 6%; }
+    .record-table th:nth-child(15), .record-table td:nth-child(15) { width: 4%; }
     .record-table tbody tr:hover td {
       background: rgba(61, 139, 253, 0.06);
     }
@@ -620,7 +620,7 @@
   <main>
     <div class="card">
       <div class="toolbar">
-        <h1>紀錄清單</h1>
+        <h1>69紀錄清單</h1>
         <div class="toolbar-actions">
           <a class="back-btn" href="./index.html">↩ 返回</a>
         </div>
@@ -638,6 +638,13 @@
             <option value="">全部</option>
           </select>
           <button type="button" class="btn filter-clear" id="clear-category-filter">清除</button>
+        </div>
+        <div class="filter-group">
+          <label for="vendor2-filter" class="filter-label">廠商</label>
+          <select id="vendor2-filter" class="filter-select" aria-label="依廠商2篩選">
+            <option value="">全部</option>
+          </select>
+          <button type="button" class="btn filter-clear" id="clear-vendor2-filter">清除</button>
         </div>
         <div class="filter-group filter-group--status-start">
           <span class="filter-label">隱藏已完成</span>
@@ -745,6 +752,14 @@
       "說明", "照片", "來自", "提交時間",
       "勾選1", "勾選2", "勾選時間1", "勾選時間2", "備註",
     ];
+    /** 清單式顯示：「完成日期」與「覆核」欄位對調（完成 → 完成日期 → 覆核 → 覆核日期） */
+    const COLUMN_ORDER_LIST = [
+      "編號", "分類", "樓層",
+      "__位置__",
+      "__廠商__",
+      "說明", "照片", "來自", "提交時間",
+      "勾選1", "勾選時間1", "勾選2", "勾選時間2", "備註",
+    ];
 
     const MERGED_KEYS = new Set([...MERGE_LOCATION, ...MERGE_VENDOR, "廠商1", "工區"]);
 
@@ -759,6 +774,7 @@
     const loc1FilterEl = document.getElementById("loc1-filter");
     const loc2FilterEl = document.getElementById("loc2-filter");
     const loc3FilterEl = document.getElementById("loc3-filter");
+    const vendor2FilterEl = document.getElementById("vendor2-filter");
     const viewModeToggleEl = document.getElementById("view-mode-toggle");
     const viewModeTextEl = document.getElementById("view-mode-text");
 
@@ -841,6 +857,10 @@
 
     document.getElementById("clear-category-filter").addEventListener("click", () => {
       categoryFilterEl.selectedIndex = 0;
+      renderFilteredTable();
+    });
+    document.getElementById("clear-vendor2-filter").addEventListener("click", () => {
+      vendor2FilterEl.selectedIndex = 0;
       renderFilteredTable();
     });
     document.getElementById("clear-floor-filter").addEventListener("click", () => {
@@ -1012,7 +1032,7 @@
     /**
      * @returns {{ header: string, kind: 'single'|'merged', key?: string, keys?: string[] }[]}
      */
-    function buildDisplayColumns(sampleRow) {
+    function buildDisplayColumns(sampleRow, columnOrder = COLUMN_ORDER) {
       const keys = Object.keys(sampleRow);
       const keySet = new Set(keys);
       const used = new Set(MERGED_KEYS);
@@ -1021,7 +1041,7 @@
       const hasLoc = MERGE_LOCATION.some((k) => keySet.has(k));
       const hasVen = MERGE_VENDOR.some((k) => keySet.has(k));
 
-      for (const token of COLUMN_ORDER) {
+      for (const token of columnOrder) {
         if (token === "__位置__") {
           if (hasLoc) cols.push({ kind: "merged", header: "位置", keys: MERGE_LOCATION.filter((k) => keySet.has(k)) });
           continue;
@@ -1241,10 +1261,14 @@
       }
 
       const catFilter = categoryFilterEl.value.trim();
+      const vendor2Filter = vendor2FilterEl.value.trim();
       const floorFilter = floorFilterEl.value.trim();
       let rows = recordsCache;
       if (catFilter !== "") {
         rows = rows.filter((r) => String(r["分類"] ?? "").trim() === catFilter);
+      }
+      if (vendor2Filter !== "") {
+        rows = rows.filter((r) => String(r["廠商2"] ?? "").trim() === vendor2Filter);
       }
       if (doneFilterCheckEl.checked) {
         rows = rows.filter((r) => !isTruthy(r["勾選1"]));
@@ -1270,7 +1294,10 @@
       }
 
       const sampleForCols = rows.length > 0 ? rows[0] : recordsCache[0];
-      const displayCols = buildDisplayColumns(sampleForCols);
+      const displayCols = buildDisplayColumns(
+        sampleForCols,
+        viewMode === "list" ? COLUMN_ORDER_LIST : COLUMN_ORDER
+      );
       const bodyCols = displayCols.filter(
         (c) => c.kind !== "delete" && !(c.kind === "single" && c.key === "編號")
       );
@@ -1310,7 +1337,25 @@
       }
 
       recordsCache = sortRowsStable(data || []);
+      populateVendor2FilterFromCache();
       renderFilteredTable();
+    }
+
+    /** 依目前快取資料建立「廠商2」選項（不重複、排序），並盡量保留已選值 */
+    function populateVendor2FilterFromCache() {
+      const prev = vendor2FilterEl.value;
+      const set = new Set();
+      for (const r of recordsCache || []) {
+        const v = r["廠商2"];
+        if (v !== null && v !== undefined && String(v).trim() !== "") {
+          set.add(String(v).trim());
+        }
+      }
+      const list = [...set].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      fillFilterSelectWithOptions(vendor2FilterEl, list, false);
+      if (prev && set.has(prev)) {
+        vendor2FilterEl.value = prev;
+      }
     }
 
     recordsListEl.addEventListener("click", async (e) => {
@@ -1389,6 +1434,9 @@
     });
 
     categoryFilterEl.addEventListener("change", () => {
+      renderFilteredTable();
+    });
+    vendor2FilterEl.addEventListener("change", () => {
       renderFilteredTable();
     });
     doneFilterCheckEl.addEventListener("change", () => {
