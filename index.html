@@ -296,7 +296,7 @@
       <div class="notice-actions">
         <button type="button" class="notice-save" id="announcement-save" disabled hidden>儲存公告</button>
         <div class="notice-hint-wrap">
-          <p class="notice-hint" id="announcement-hint">僅權限等級 0 可編輯與儲存。</p>
+          <p class="notice-hint" id="announcement-hint">最高權限等級 可編輯與儲存。</p>
           <span id="announcement-feedback" class="notice-feedback" aria-live="polite"></span>
         </div>
       </div>
@@ -306,12 +306,12 @@
     <h1>請選擇功能</h1>
     <div class="links">
       <div class="links-row-two">
-        <a class="link-btn" href="./action.html">進度總覽</a>
-        <a class="link-btn" href="./sumit.html">進度回報(電腦)</a>
+        <a class="link-btn" href="./action.html">進度總覽🖥️</a>
+        <a class="link-btn" href="./sumit.html">進度回報🖥️</a>
       </div>
       <div class="links-row-two">
-        <a class="link-btn" href="./check.html">回報缺失</a>
-        <a class="link-btn" href="./checklist.html">紀錄管理(電腦)</a>
+        <a class="link-btn" href="./check.html">回報缺失📱</a>
+        <a class="link-btn" href="./checklist.html">紀錄管理🖥️</a>
       </div>
       <div class="links-row-three">
         <a class="link-btn" href="">查詢考勤🚧</a>
@@ -413,7 +413,7 @@
       announcementSaveBtn.disabled = !editable;
       announcementHintEl.textContent = editable
         ? "您為最高權限等級，可編輯後按「儲存公告」。"
-        : "無操作權限，請聯絡管理員。";
+        : "不具有儲存公告的權限。";
       setAnnouncementFeedback("");
 
       await loadAnnouncement();

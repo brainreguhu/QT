@@ -28,7 +28,7 @@
       color: var(--text);
     }
     main {
-      max-width: 850px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 24px 18px;
     }
@@ -145,12 +145,42 @@
     }
     .row-actions {
       display: flex;
-      gap: 4px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .row-actions button {
-      padding: 4px 8px;
+      padding: 4px 4px;
       font-size: 12px;
+    }
+    .row-actions button[data-approve],
+    .row-actions button[data-save-role],
+    .row-actions button[data-save-work-zone] {
+      transform-origin: center center;
+      background-color: transparent;
+      transition:
+        transform 0.18s ease,
+        filter 0.18s ease,
+        box-shadow 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease;
+    }
+    .row-actions button[data-approve]:hover:not(:disabled),
+    .row-actions button[data-save-role]:hover:not(:disabled),
+    .row-actions button[data-save-work-zone]:hover:not(:disabled) {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      background-color: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+    }
+    .row-actions button[data-approve]:active:not(:disabled),
+    .row-actions button[data-save-role]:active:not(:disabled),
+    .row-actions button[data-save-work-zone]:active:not(:disabled) {
+      transform: scale(1.05);
+      filter: brightness(0.92);
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
     }
     .tiny { font-size: 12px; color: var(--muted); margin: 5px 0px -5px 0px ;}
     .card .back-btn {
@@ -184,7 +214,7 @@
     <div class="card">
       <a class="back-btn" href="./index.html">↩ 返回</a>
       <h1>使用者管理後台</h1>
-      <p class="hint">可批准註冊、設定權限等級（0高~3低）。</p>
+      <p class="hint">可批准註冊、設定權限等級（0:開發人員, 1:主管, 2:員工, 3:訪客）。</p>
       <p class="hint">僅管理員可操作。(請向右滑動表格)</p>
       <p id="status" role="status" aria-live="polite"></p>
       <div class="table-wrap">
@@ -215,7 +245,6 @@
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
     const PROFILE_TABLE = "profiles";
-    const RECORDS_TABLE = "records";
     const ADMIN_LEVEL_MAX = 0; // 0 = 最高權限（可操作後台）
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -242,6 +271,14 @@
         .join("");
     }
 
+    function escapeAttr(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
     async function requireAdmin() {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
@@ -262,7 +299,7 @@
       }
 
       if (!me.approved || Number(me.permission_level) > ADMIN_LEVEL_MAX) {
-        setStatus("權限不足：僅權限等級 0 可進入管理後台。", "error");
+        setStatus("權限不足：目前權限等級拒絕訪問資料及操作。", "error");
         return false;
       }
 
@@ -282,14 +319,18 @@
         .eq("id", id);
       if (error) throw error;
     }
-    async function updateUserWorkZone(username, workZone) {
+
+    /** 僅更新指定欄位（不寫入 approved_by／approved_at，避免工區等欄位變更被 RLS/審計欄位擋下） */
+    async function patchProfile(id, patch) {
       const { error } = await supabase
-        .from(RECORDS_TABLE)
-        .update({ 工區: workZone })
-        .eq("來自", username);
+        .from(PROFILE_TABLE)
+        .update({
+          ...patch,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
       if (error) throw error;
     }
-
     function renderRows(list) {
       if (!list.length) {
         rowsEl.innerHTML = `<tr><td colspan="7">目前無資料</td></tr>`;
@@ -307,7 +348,7 @@
             </select>
           </td>
           <td>
-            <input class="work-zone" data-work-zone-input type="text" value="" placeholder="例如 69" />
+            <input class="work-zone" data-work-zone-input type="text" value="${escapeAttr(String(row.工區 ?? ""))}" placeholder="例如 69" />
           </td>
           <td>${fmt(row.created_at)}</td>
           <td>
@@ -330,7 +371,7 @@
         const to = from + pageSize - 1;
         const { data, error } = await supabase
           .from(PROFILE_TABLE)
-          .select("id, account, username, approved, permission_level, created_at")
+          .select("id, account, username, approved, permission_level, created_at, 工區")
           .order("created_at", { ascending: false })
           .range(from, to);
 
@@ -349,12 +390,32 @@
       setStatus("讀取中...");
       try {
         const data = await fetchAllProfiles();
-        renderRows(data || []);
-        setStatus(`已載入 ${data?.length || 0} 筆`, "success");
+        const list = data || [];
+        renderRows(list);
+        setStatus(`已載入 ${list.length} 筆`, "success");
       } catch (error) {
         setStatus(`讀取失敗：${error.message}`, "error");
         return;
       }
+    }
+
+    async function saveWorkZoneForRow(tr) {
+      const id = tr.getAttribute("data-id");
+      if (!id) return;
+      const username = String(tr.children[1]?.textContent || "").trim();
+      const zoneInput = tr.querySelector("[data-work-zone-input]");
+      const workZone = String(zoneInput?.value || "").trim();
+      if (!username || username === "-") {
+        setStatus("缺少使用者名稱，無法更新工區。", "error");
+        return;
+      }
+      if (!workZone) {
+        setStatus("請先輸入工區。", "error");
+        return;
+      }
+      await patchProfile(id, { 工區: workZone });
+      await loadProfiles();
+      setStatus(`已將 ${username} 的 profiles 工區更新為 ${workZone}。`, "success");
     }
 
     rowsEl.addEventListener("click", async (e) => {
@@ -366,14 +427,15 @@
       if (!id) return;
 
       try {
-        if (target.hasAttribute("data-approve")) {
-          const approved = target.textContent === "批准";
+        if (target.closest("[data-approve]")) {
+          const approveBtn = target.closest("[data-approve]");
+          const approved = approveBtn?.textContent?.trim() === "批准";
           await updateProfile(id, { approved });
           await loadProfiles();
           return;
         }
 
-        if (target.hasAttribute("data-save-role")) {
+        if (target.closest("[data-save-role]")) {
           const select = tr.querySelector("[data-role-select]");
           const level = Number(select?.value ?? 3);
           if (Number.isNaN(level) || level < 0 || level > 3) {
@@ -385,24 +447,25 @@
           return;
         }
 
-        if (target.hasAttribute("data-save-work-zone")) {
-          const username = String(tr.children[1]?.textContent || "").trim();
-          const zoneInput = tr.querySelector("[data-work-zone-input]");
-          const workZone = String(zoneInput?.value || "").trim();
-          if (!username || username === "-") {
-            setStatus("缺少使用者名稱，無法更新工區。", "error");
-            return;
-          }
-          if (!workZone) {
-            setStatus("請先輸入工區。", "error");
-            return;
-          }
-          await updateUserWorkZone(username, workZone);
-          setStatus(`已將 ${username} 的 records 工區更新為 ${workZone}。`, "success");
+        if (target.closest("[data-save-work-zone]")) {
+          await saveWorkZoneForRow(tr);
         }
       } catch (err) {
         setStatus(`更新失敗：${err.message}`, "error");
       }
+    });
+
+    rowsEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement)) return;
+      if (!el.hasAttribute("data-work-zone-input")) return;
+      e.preventDefault();
+      const tr = el.closest("tr[data-id]");
+      if (!tr) return;
+      saveWorkZoneForRow(tr).catch((err) => {
+        setStatus(`更新失敗：${err.message}`, "error");
+      });
     });
 
     (async () => {

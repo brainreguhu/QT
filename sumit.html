@@ -1167,7 +1167,7 @@
         return;
       }
       if (target.hasAttribute("data-del-big")) {
-        if (!confirm("確定要刪除此項目？")) return;
+        if (!confirm("確定要刪除此項目？刪除後無法復原。")) return;
         delBig(bigId);
         return;
       }
@@ -1184,7 +1184,7 @@
       if (smallEl && target.hasAttribute("data-del-small")) {
         const smallId = smallEl.getAttribute("data-small-id");
         if (!smallId) return;
-        if (!confirm("確定要刪除此次項目？")) return;
+        if (!confirm("確定要刪除此次項目？刪除後無法復原。")) return;
         delSmall(bigId, smallId);
         return;
       }
