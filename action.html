@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>action</title>
+  <style>
+    /* 與 sumit.html 一致：頁面底色 */
+    :root {
+      --bg: #0f1419;
+      --text: #e7ecf3;
+    }
+
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+
+    body {
+      margin: 0 auto;
+      width: 1000px;
+      padding: 5px 24px;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      min-height: 100vh;
+      background: transparent;
+      box-sizing: border-box;
+    }
+
+    .toolbar {
+      position: relative;
+      z-index: 20;
+      margin-bottom: 30px;
+      padding: 10px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* 參考 sumit.html：.toolbar-actions 置右；此處返回鍵在最右，左側主區 flex:1 */
+    .toolbar-back-link {
+      flex-shrink: 0;
+      margin-left: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #57534e;
+      background: #475569;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition:
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .toolbar-back-link:hover {
+      filter: brightness(1.08);
+      background: #5b6b7d;
+      border-color: #64748b;
+      color: #fff;
+    }
+
+    .toolbar-add-block-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toolbar-zone-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .toolbar .user {
+      font-size: 16px;
+      font-weight: 700;
+      color: #cbd5e1;
+      max-width: min(240px, 28vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-left: 30px;
+    }
+
+    .toolbar-data-status {
+      font-size: 15px;
+      font-weight: 600;
+      color: #64748b;
+      white-space: nowrap;
+      margin-left: 4px;
+      opacity: 1;
+      transition: opacity 0.45s ease;
+    }
+
+    .toolbar-data-status.is-faded-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toolbar-data-status.is-loading {
+      color: #475569;
+    }
+
+    .toolbar-data-status.is-ok {
+      color: #15803d;
+    }
+
+    .toolbar-data-status.is-warn {
+      color: #a16207;
+    }
+
+    .toolbar-data-status.is-error {
+      color: #b91c1c;
+    }
+
+    .toolbar-zone-select {
+      font-family: inherit;
+      font-size: 19px;
+      font-weight: 900;
+      -webkit-text-stroke: 0.2px currentColor;
+      color: #1e293b;
+      padding: 2px 6px;
+      border: 1px solid #57534e;
+      border-radius: 8px;
+      background: #9ca3af;
+      cursor: pointer;
+      min-width: 4.5em;
+    }
+
+    .toolbar-switch-btn {
+      background: #475569;
+      color: #fff;
+      transition:
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .toolbar-switch-btn:hover {
+      filter: brightness(1.18);
+      background: #5b6b7d;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+    }
+
+    .toolbar-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-edit-toggle {
+      background: #334155;
+      color: #fff;
+      transform-origin: center center;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .toolbar-edit-toggle:hover {
+      transform: scale(1.2);
+      filter: brightness(1.18);
+      background: #5b6b7d;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+    }
+
+    body:not(.is-edit-mode) .edit-reveal-btn,
+    body:not(.is-edit-mode) .desc-item-style-select {
+      display: none !important;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 2px 5px 3px 5px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #addCardBtn {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    #addCardBtn,
+    .add-sub-btn,
+    .delete-btn,
+    .move-btn:not(.child-collapse-btn) {
+      transform-origin: center center;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    #addCardBtn:hover,
+    .add-sub-btn:hover,
+    .delete-btn:hover,
+    .move-btn:not(.child-collapse-btn):hover {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+    }
+
+    #cardsContainer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .card-with-side-arrows.is-viewport-focus {
+      transform: scale(1.07);
+      z-index: 2;
+      filter: none;
+      transition: transform 0.4s ease, z-index 0s;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 0px solid #dbe2ef;
+      border-radius: 10px;
+      padding: 5px;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      height: 600px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .card-header {
+      width: 100%;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .card-title-input {
+      width: 300px;
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 1px 8px;
+      background: transparent;
+      color: #fff;
+      line-height: 1.1;
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .card-title-input::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .move-btn {
+      background: #334155;
+      color: #fff;
+    }
+
+    .move-btn.child-collapse-btn {
+      width: 25px;
+      height: 25px;
+      min-width: 25px;
+      padding: 0px 0px 1px 0px;
+      border-radius: 50%;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      -webkit-text-stroke: 0.2px currentColor;
+      background: #363636;
+      color: #ffffff;
+      transform-origin: center center;
+      transition:
+        transform 0.2s ease,
+        background-color 0.2s ease,
+        filter 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .move-btn.child-collapse-btn:hover {
+      transform: scale(1.3);
+      filter: brightness(1.12);
+      background: #6c6c6c;
+      box-shadow: 0 6px 14px rgba(120, 53, 15, 0.22);
+    }
+
+    .add-sub-btn {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .delete-btn {
+      background: #6b2f2f;
+      color: #fff;
+    }
+
+    .card-with-side-arrows {
+      position: relative;
+      z-index: 0;
+      transform-origin: center center;
+      transition: transform 0.4s ease, filter 0.4s ease, z-index 0s linear 0.4s;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .card-with-side-arrows > .card {
+      min-width: 0;
+    }
+
+    .side-arrow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      align-self: center;
+      margin-top: 30px;
+    }
+
+    .side-arrow-caption {
+      font-size: 20px;
+      font-weight: 900;
+      color: #475569;
+      line-height: 1.0;
+      min-height: 1.2em;
+      text-align: center;
+      width: 52px;
+    }
+
+    .side-arrow-btn {
+      width: 52px;
+      height: 52px;
+      min-width: 52px;
+      padding: 0;
+      border-radius: 50%;
+      background: #0f5132;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 0 7px rgba(15, 81, 50, 0.28);
+      transition: transform 0.5s ease, box-shadow 0.5s ease, background-color 0.5s ease, filter 0.5s ease;
+    }
+
+    .side-arrow-btn:not(:disabled):focus-visible {
+      outline: 3px solid #22c55e;
+      outline-offset: 3px;
+    }
+
+    .card-with-side-arrows > .side-arrow-col:first-child .side-arrow-btn:not(:disabled):hover {
+      transform: translateX(-8px) scale(1.3);
+      background: #22c55e;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.42);
+    }
+
+    .card-with-side-arrows > .side-arrow-col:last-child .side-arrow-btn:not(:disabled):hover {
+      transform: translateX(8px) scale(1.3);
+      background: #22c55e;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.42);
+    }
+
+    .card-with-side-arrows > .side-arrow-col:first-child .side-arrow-btn:not(:disabled):active {
+      transform: translateX(-6px) scale(0.88);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease, filter 0.08s ease;
+      background: #15803d;
+      filter: brightness(0.92);
+      box-shadow:
+        inset 0 0 6px rgba(0, 0, 0, 0.35),
+        0 0 3px rgba(15, 81, 50, 0.25);
+    }
+
+    .card-with-side-arrows > .side-arrow-col:last-child .side-arrow-btn:not(:disabled):active {
+      transform: translateX(6px) scale(0.88);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease, filter 0.08s ease;
+      background: #15803d;
+      filter: brightness(0.92);
+      box-shadow:
+        inset 0 0 6px rgba(0, 0, 0, 0.35),
+        0 0 3px rgba(15, 81, 50, 0.25);
+    }
+
+    .side-arrow-btn:disabled {
+      display: none !important;
+    }
+
+    .subitems-viewport {
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-radius: 8px;
+      scroll-behavior: smooth;
+    }
+
+    .subitems {
+      width: 100%;
+      display: block;
+    }
+
+    .subitem {
+      width: 100%;
+      box-sizing: border-box;
+      border: 0px solid #d1d5db;
+      border-radius: 8px;
+      background: #9ca3af;
+      padding: 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    @keyframes subitem-enter-from-left {
+      from {
+        opacity: 0;
+        transform: translateX(-22px) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes subitem-enter-from-right {
+      from {
+        opacity: 0;
+        transform: translateX(22px) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    .subitem.subitem-enter-from-left {
+      animation: subitem-enter-from-left 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .subitem.subitem-enter-from-right {
+      animation: subitem-enter-from-right 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .subitem-header {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .subitem-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+      margin-left: auto;
+    }
+
+    .subitem-title-input {
+      width: 215px;
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 4px 8px 0px 8px;
+      margin-left: 20px;
+      background: transparent;
+      line-height: 1.1;
+      font-size: 25px;
+      font-weight: 700;
+    }
+
+    .subitem-check-stats {
+      font-size: 19px;
+      font-weight: 900;
+      color: #1e293b;
+      -webkit-text-stroke: 0.45px currentColor;
+      paint-order: stroke fill;
+      white-space: nowrap;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+
+    .child-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .child-item {
+      border: 0px dashed #94a3b8;
+      border-radius: 8px;
+      background: #9ca3af;
+      margin: 0px 0 0px 15px;
+      padding: 1px 2px 1px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .child-item-header {
+      display: flex;
+      align-items: center;
+      margin: 1px 0;
+      gap: 2px;
+    }
+
+    .child-item-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+      margin-left: auto;
+    }
+
+    .child-item-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .child-item-title-input {
+      width: 190px;
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 1px 8px;
+      background: transparent;
+      font-size: 20px;
+      font-weight: 700;
+      margin-left: 10px;
+    }
+
+    .child-check-stats {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      white-space: nowrap;
+      -webkit-text-stroke: 0.1px currentColor;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+
+    .child-content-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .check-item-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      border: 0px solid #e2e8f0;
+      border-radius: 8px;
+      margin: 1px 0px 1px 30px;
+      padding: 0 3px;
+      background: #9ca3af;
+    }
+
+    .check-item-checkbox {
+      transform: scale(1.5);
+      transform-origin: center;
+    }
+
+    .check-item-row .move-btn {
+      margin-left: 0;
+    }
+
+    .check-item-row .move-btn:first-of-type {
+      margin-left: auto;
+    }
+
+    .check-item-input {
+      width: 300px;
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 4px 8px 0px 8px;
+      background: transparent;
+      font-size: 15px;
+      line-height: 1.1;
+    }
+
+    .desc-item-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      border: 0px solid #e2e8f0;
+      border-radius: 8px;
+      margin: 1px 0;
+      padding: 0 3px;
+      background: #9ca3af;
+      margin-left: 20px;
+    }
+
+    .desc-item-input {
+      flex: 1;
+      min-width: 0;
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 4px 8px 0px 8px;
+      background: transparent;
+      font-size: 15px;
+      margin-left: 33px;
+      resize: none;
+      overflow: hidden;
+      line-height: 1.1;
+      min-height: 22px;
+      box-sizing: border-box;
+    }
+
+    .desc-item-style-select {
+      border: 0px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 3px 8px 0px 8px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .link-item-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      border: 0px solid #e2e8f0;
+      border-radius: 8px;
+      margin: 1px 0 1px 7px;
+      padding: 0 4px;
+      background: #9ca3af;
+    }
+
+    .link-item-row a {
+      flex: 0 1 auto;
+      align-self: center;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      margin-left: 53px;
+      color: #2563eb;
+      text-decoration: underline;
+      word-break: break-all;
+      line-height: 1.1;
+    }
+
+    .link-item-row > button:first-of-type {
+      margin-left: auto;
+    }
+
+    .page-bottom-bar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      background: var(--bg);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page-bottom-spacer {
+      height: 300px;
+      width: 100%;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <input type="hidden" id="workZoneCode" value="DEFAULT" data-supabase-field="工區" />
+    <div class="toolbar-add-block-wrap" data-supabase-tag="工區">
+      <div class="toolbar-zone-row">
+        <select id="toolbarZoneSelect" class="toolbar-zone-select" aria-label="工區">
+          <option value="69" selected>69</option>
+          <option value="70">70</option>
+          <option value="71">71</option>
+        </select>
+        <button id="toolbarSwitchBtn" type="button" class="toolbar-switch-btn">切換</button>
+        <div class="user" id="user-name" aria-live="polite">你好，讀取中...</div>
+        <span id="action-data-status" class="toolbar-data-status is-loading" aria-live="polite">資料讀取中…</span>
+      </div>
+      <div class="toolbar-right-actions">
+        <button id="addCardBtn" type="button" class="edit-reveal-btn">增加區塊</button>
+        <button id="toolbarEditToggle" type="button" class="toolbar-edit-toggle" aria-pressed="false">編輯</button>
+      </div>
+    </div>
+    <a
+      href="./index.html"
+      class="toolbar-back-link"
+      style="text-decoration: none; display: inline-flex; align-items: center"
+      title="返回功能選單"
+      >↩ 返回</a>
+  </div>
+
+  <div id="cardsContainer"></div>
+
+  <div class="page-bottom-spacer" aria-hidden="true"></div>
+
+  <div class="page-bottom-bar" aria-hidden="true"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    /** 與 index.html 相同專案（請一併維護） */
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+
+    let sb = null;
+    try {
+      const g = window.supabase;
+      const createClient =
+        g && typeof g.createClient === "function"
+          ? g.createClient
+          : g && g.default && typeof g.default.createClient === "function"
+            ? g.default.createClient
+            : null;
+      if (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+        sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn("Supabase 初始化失敗", e);
+    }
+
+    let cachedProfileUsername = null;
+    let actionRowId = null;
+    let autoSaveTimer = null;
+    let actionDataStatusFadeTimer = null;
+
+    const addCardBtn = document.getElementById("addCardBtn");
+    const cardsContainer = document.getElementById("cardsContainer");
+    const toolbarEditToggle = document.getElementById("toolbarEditToggle");
+    let cardCount = 0;
+
+    if (toolbarEditToggle) {
+      toolbarEditToggle.addEventListener("click", () => {
+        const on = document.body.classList.toggle("is-edit-mode");
+        toolbarEditToggle.setAttribute("aria-pressed", on ? "true" : "false");
+        toolbarEditToggle.textContent = on ? "完成" : "編輯";
+      });
+    }
+
+    let focusCardRaf = null;
+    function scheduleUpdateViewportFocusCard() {
+      if (focusCardRaf !== null) return;
+      focusCardRaf = requestAnimationFrame(() => {
+        focusCardRaf = null;
+        updateViewportFocusCard();
+      });
+    }
+
+    function updateViewportFocusCard() {
+      const wraps = cardsContainer.querySelectorAll(".card-with-side-arrows");
+      if (!wraps.length) return;
+      const vh = window.innerHeight;
+      const focusY = vh * 0.42;
+      let best = null;
+      let bestScore = -Infinity;
+      wraps.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const visTop = Math.max(r.top, 0);
+        const visBottom = Math.min(r.bottom, vh);
+        const visible = Math.max(0, visBottom - visTop);
+        if (visible <= 0) return;
+        const mid = (r.top + r.bottom) / 2;
+        const dist = Math.abs(mid - focusY);
+        const score = visible - dist * 0.2;
+        if (score > bestScore) {
+          bestScore = score;
+          best = el;
+        }
+      });
+      wraps.forEach((el) => {
+        el.classList.toggle("is-viewport-focus", el === best);
+      });
+    }
+
+    window.addEventListener("scroll", scheduleUpdateViewportFocusCard, { passive: true });
+    window.addEventListener("resize", scheduleUpdateViewportFocusCard);
+
+    function createCard() {
+      cardCount += 1;
+
+      const cardWrap = document.createElement("div");
+      cardWrap.className = "card-with-side-arrows";
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const header = document.createElement("div");
+      header.className = "card-header";
+
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.className = "card-title-input";
+      titleInput.placeholder = "請輸入區塊標題";
+      titleInput.value = "樓層" + cardCount;
+
+      const actions = document.createElement("div");
+      actions.className = "card-actions";
+
+      const moveUpBtn = document.createElement("button");
+      moveUpBtn.type = "button";
+      moveUpBtn.className = "move-btn edit-reveal-btn";
+      moveUpBtn.textContent = "上移";
+      moveUpBtn.addEventListener("click", () => {
+        const prev = cardWrap.previousElementSibling;
+        if (prev) {
+          cardsContainer.insertBefore(cardWrap, prev);
+          scheduleUpdateViewportFocusCard();
+        }
+      });
+
+      const moveDownBtn = document.createElement("button");
+      moveDownBtn.type = "button";
+      moveDownBtn.className = "move-btn edit-reveal-btn";
+      moveDownBtn.textContent = "下移";
+      moveDownBtn.addEventListener("click", () => {
+        const next = cardWrap.nextElementSibling;
+        if (next) {
+          cardsContainer.insertBefore(next, cardWrap);
+          scheduleUpdateViewportFocusCard();
+        }
+      });
+
+      const subitems = document.createElement("div");
+      subitems.className = "subitems";
+      const subitemsViewport = document.createElement("div");
+      subitemsViewport.className = "subitems-viewport";
+      subitemsViewport.appendChild(subitems);
+
+      const prevSubBtn = document.createElement("button");
+      prevSubBtn.type = "button";
+      prevSubBtn.className = "side-arrow-btn";
+      prevSubBtn.textContent = "<";
+
+      const prevSubCaption = document.createElement("div");
+      prevSubCaption.className = "side-arrow-caption";
+
+      const prevSubCol = document.createElement("div");
+      prevSubCol.className = "side-arrow-col";
+      prevSubCol.appendChild(prevSubBtn);
+      prevSubCol.appendChild(prevSubCaption);
+
+      const nextSubBtn = document.createElement("button");
+      nextSubBtn.type = "button";
+      nextSubBtn.className = "side-arrow-btn";
+      nextSubBtn.textContent = ">";
+
+      const nextSubCaption = document.createElement("div");
+      nextSubCaption.className = "side-arrow-caption";
+
+      const nextSubCol = document.createElement("div");
+      nextSubCol.className = "side-arrow-col";
+      nextSubCol.appendChild(nextSubBtn);
+      nextSubCol.appendChild(nextSubCaption);
+
+      cardWrap.appendChild(prevSubCol);
+      cardWrap.appendChild(card);
+      cardWrap.appendChild(nextSubCol);
+
+      let currentSubIndex = 0;
+      let subCount = 0;
+      let subitemsAnimIntent = null;
+
+      function updateSubitemsView() {
+        const total = subitems.children.length;
+        if (total === 0) {
+          currentSubIndex = 0;
+          prevSubBtn.disabled = true;
+          nextSubBtn.disabled = true;
+          prevSubCaption.textContent = "";
+          nextSubCaption.textContent = "";
+          subitemsAnimIntent = null;
+          return;
+        }
+
+        if (currentSubIndex < 0) {
+          currentSubIndex = 0;
+        }
+        if (currentSubIndex > total - 1) {
+          currentSubIndex = total - 1;
+        }
+
+        const animIntent = subitemsAnimIntent;
+        subitemsAnimIntent = null;
+
+        Array.from(subitems.children).forEach((item, index) => {
+          item.classList.remove("subitem-enter-from-left", "subitem-enter-from-right");
+          if (index === currentSubIndex) {
+            item.style.display = "flex";
+            if (animIntent === "prev" || animIntent === "next") {
+              void item.offsetWidth;
+              item.classList.add(animIntent === "prev" ? "subitem-enter-from-left" : "subitem-enter-from-right");
+              const onAnimEnd = (e) => {
+                if (e.target !== item) {
+                  return;
+                }
+                if (
+                  e.animationName !== "subitem-enter-from-left" &&
+                  e.animationName !== "subitem-enter-from-right"
+                ) {
+                  return;
+                }
+                item.classList.remove("subitem-enter-from-left", "subitem-enter-from-right");
+              };
+              item.addEventListener("animationend", onAnimEnd, { once: true });
+            }
+          } else {
+            item.style.display = "none";
+          }
+        });
+        prevSubBtn.disabled = currentSubIndex === 0;
+        nextSubBtn.disabled = currentSubIndex === total - 1;
+
+        const canGoPrev = currentSubIndex;
+        const canGoNext = total - 1 - currentSubIndex;
+        prevSubCaption.textContent = canGoPrev > 0 ? String(canGoPrev) : "";
+        nextSubCaption.textContent = canGoNext > 0 ? String(canGoNext) : "";
+      }
+
+      prevSubBtn.addEventListener("click", () => {
+        subitemsAnimIntent = "prev";
+        currentSubIndex -= 1;
+        updateSubitemsView();
+      });
+
+      nextSubBtn.addEventListener("click", () => {
+        subitemsAnimIntent = "next";
+        currentSubIndex += 1;
+        updateSubitemsView();
+      });
+
+      const addSubBtn = document.createElement("button");
+      addSubBtn.type = "button";
+      addSubBtn.className = "add-sub-btn edit-reveal-btn";
+      addSubBtn.textContent = "新增次項";
+      addSubBtn.addEventListener("click", () => {
+        subCount += 1;
+
+        const subitem = document.createElement("div");
+        subitem.className = "subitem";
+
+        const subHeader = document.createElement("div");
+        subHeader.className = "subitem-header";
+
+        const subTitleInput = document.createElement("input");
+        subTitleInput.type = "text";
+        subTitleInput.className = "subitem-title-input";
+        subTitleInput.value = "階段工進" + subCount;
+
+        const subDeleteBtn = document.createElement("button");
+        subDeleteBtn.type = "button";
+        subDeleteBtn.className = "delete-btn edit-reveal-btn";
+        subDeleteBtn.textContent = "刪除";
+        subDeleteBtn.addEventListener("click", () => {
+          subitem.remove();
+          updateSubitemsView();
+        });
+
+        const addChildBtn = document.createElement("button");
+        addChildBtn.type = "button";
+        addChildBtn.className = "add-sub-btn edit-reveal-btn";
+        addChildBtn.textContent = "新增子項";
+
+        const childItems = document.createElement("div");
+        childItems.className = "child-items";
+        let childCount = 0;
+
+        const subCheckStatsEl = document.createElement("span");
+        subCheckStatsEl.className = "subitem-check-stats";
+
+        function updateSubitemCheckStats() {
+          const boxes = subitem.querySelectorAll(".check-item-checkbox");
+          const total = boxes.length;
+          let checked = 0;
+          for (let i = 0; i < boxes.length; i++) {
+            if (boxes[i].checked) {
+              checked++;
+            }
+          }
+          const pctStr = total > 0 ? ((checked / total) * 100).toFixed(1) : "0.0";
+          subCheckStatsEl.textContent = checked + " / " + total + " · " + pctStr + "%";
+        }
+        updateSubitemCheckStats();
+
+        addChildBtn.addEventListener("click", () => {
+          childCount += 1;
+
+          const childItem = document.createElement("div");
+          childItem.className = "child-item";
+
+          const childHeader = document.createElement("div");
+          childHeader.className = "child-item-header";
+
+          const childTitleInput = document.createElement("input");
+          childTitleInput.type = "text";
+          childTitleInput.className = "child-item-title-input";
+          childTitleInput.value = "工項" + childCount;
+
+          const childDeleteBtn = document.createElement("button");
+          childDeleteBtn.type = "button";
+          childDeleteBtn.className = "delete-btn edit-reveal-btn";
+          childDeleteBtn.textContent = "刪除";
+          childDeleteBtn.addEventListener("click", () => {
+            childItem.remove();
+            updateSubitemCheckStats();
+          });
+
+          const childMoveUpBtn = document.createElement("button");
+          childMoveUpBtn.type = "button";
+          childMoveUpBtn.className = "move-btn edit-reveal-btn";
+          childMoveUpBtn.textContent = "上移";
+          childMoveUpBtn.addEventListener("click", () => {
+            const prevChild = childItem.previousElementSibling;
+            if (prevChild) {
+              childItems.insertBefore(childItem, prevChild);
+            }
+          });
+
+          const childMoveDownBtn = document.createElement("button");
+          childMoveDownBtn.type = "button";
+          childMoveDownBtn.className = "move-btn edit-reveal-btn";
+          childMoveDownBtn.textContent = "下移";
+          childMoveDownBtn.addEventListener("click", () => {
+            const nextChild = childItem.nextElementSibling;
+            if (nextChild) {
+              childItems.insertBefore(nextChild, childItem);
+            }
+          });
+
+          const addCheckBtn = document.createElement("button");
+          addCheckBtn.type = "button";
+          addCheckBtn.className = "add-sub-btn edit-reveal-btn";
+          addCheckBtn.textContent = "新增勾選";
+
+          const addImportantCheckBtn = document.createElement("button");
+          addImportantCheckBtn.type = "button";
+          addImportantCheckBtn.className = "add-sub-btn edit-reveal-btn";
+          addImportantCheckBtn.textContent = "勾選重要";
+
+          const addDescBtn = document.createElement("button");
+          addDescBtn.type = "button";
+          addDescBtn.className = "add-sub-btn edit-reveal-btn";
+          addDescBtn.textContent = "新增說明";
+
+          const addLinkBtn = document.createElement("button");
+          addLinkBtn.type = "button";
+          addLinkBtn.className = "add-sub-btn edit-reveal-btn";
+          addLinkBtn.textContent = "超連結";
+
+          const childContentFlow = document.createElement("div");
+          childContentFlow.className = "child-content-flow";
+
+          const checkStatsEl = document.createElement("span");
+          checkStatsEl.className = "child-check-stats";
+
+          function updateChildCheckStats() {
+            const boxes = childItem.querySelectorAll(".check-item-checkbox");
+            const total = boxes.length;
+            let checked = 0;
+            for (let i = 0; i < boxes.length; i++) {
+              if (boxes[i].checked) {
+                checked++;
+              }
+            }
+            const pctStr = total > 0 ? ((checked / total) * 100).toFixed(1) : "0.0";
+            checkStatsEl.textContent = checked + " / " + total + " · " + pctStr + "%";
+            updateSubitemCheckStats();
+          }
+          updateChildCheckStats();
+
+          addCheckBtn.addEventListener("click", () => {
+            const checkRow = document.createElement("div");
+            checkRow.className = "check-item-row";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check-item-checkbox";
+            checkbox.addEventListener("change", updateChildCheckStats);
+
+            const textInput = document.createElement("input");
+            textInput.type = "text";
+            textInput.className = "check-item-input";
+            textInput.value = "項目";
+
+            const checkMoveUpBtn = document.createElement("button");
+            checkMoveUpBtn.type = "button";
+            checkMoveUpBtn.className = "move-btn edit-reveal-btn";
+            checkMoveUpBtn.textContent = "上移";
+            checkMoveUpBtn.addEventListener("click", () => {
+              const prevRow = checkRow.previousElementSibling;
+              if (prevRow) {
+                childContentFlow.insertBefore(checkRow, prevRow);
+              }
+            });
+
+            const checkMoveDownBtn = document.createElement("button");
+            checkMoveDownBtn.type = "button";
+            checkMoveDownBtn.className = "move-btn edit-reveal-btn";
+            checkMoveDownBtn.textContent = "下移";
+            checkMoveDownBtn.addEventListener("click", () => {
+              const nextRow = checkRow.nextElementSibling;
+              if (nextRow) {
+                childContentFlow.insertBefore(nextRow, checkRow);
+              }
+            });
+
+            const checkDeleteBtn = document.createElement("button");
+            checkDeleteBtn.type = "button";
+            checkDeleteBtn.className = "delete-btn edit-reveal-btn";
+            checkDeleteBtn.textContent = "刪除";
+            checkDeleteBtn.addEventListener("click", () => {
+              checkRow.remove();
+              updateChildCheckStats();
+            });
+
+            checkRow.appendChild(checkbox);
+            checkRow.appendChild(textInput);
+            checkRow.appendChild(checkMoveUpBtn);
+            checkRow.appendChild(checkMoveDownBtn);
+            checkRow.appendChild(checkDeleteBtn);
+            childContentFlow.appendChild(checkRow);
+            updateChildCheckStats();
+          });
+
+          addImportantCheckBtn.addEventListener("click", () => {
+            const checkRow = document.createElement("div");
+            checkRow.className = "check-item-row";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check-item-checkbox";
+            checkbox.addEventListener("change", updateChildCheckStats);
+
+            const textInput = document.createElement("input");
+            textInput.type = "text";
+            textInput.className = "check-item-input";
+            textInput.value = "項目";
+            textInput.style.fontWeight = "700";
+
+            const checkMoveUpBtn = document.createElement("button");
+            checkMoveUpBtn.type = "button";
+            checkMoveUpBtn.className = "move-btn edit-reveal-btn";
+            checkMoveUpBtn.textContent = "上移";
+            checkMoveUpBtn.addEventListener("click", () => {
+              const prevRow = checkRow.previousElementSibling;
+              if (prevRow) {
+                childContentFlow.insertBefore(checkRow, prevRow);
+              }
+            });
+
+            const checkMoveDownBtn = document.createElement("button");
+            checkMoveDownBtn.type = "button";
+            checkMoveDownBtn.className = "move-btn edit-reveal-btn";
+            checkMoveDownBtn.textContent = "下移";
+            checkMoveDownBtn.addEventListener("click", () => {
+              const nextRow = checkRow.nextElementSibling;
+              if (nextRow) {
+                childContentFlow.insertBefore(nextRow, checkRow);
+              }
+            });
+
+            const checkDeleteBtn = document.createElement("button");
+            checkDeleteBtn.type = "button";
+            checkDeleteBtn.className = "delete-btn edit-reveal-btn";
+            checkDeleteBtn.textContent = "刪除";
+            checkDeleteBtn.addEventListener("click", () => {
+              checkRow.remove();
+              updateChildCheckStats();
+            });
+
+            checkRow.appendChild(checkbox);
+            checkRow.appendChild(textInput);
+            checkRow.appendChild(checkMoveUpBtn);
+            checkRow.appendChild(checkMoveDownBtn);
+            checkRow.appendChild(checkDeleteBtn);
+            childContentFlow.appendChild(checkRow);
+            updateChildCheckStats();
+          });
+
+          addLinkBtn.addEventListener("click", () => {
+            const linkText = window.prompt("顯示文字");
+            if (linkText === null) {
+              return;
+            }
+
+            const linkUrl = window.prompt("超連結網址");
+            if (linkUrl === null) {
+              return;
+            }
+
+            const linkRow = document.createElement("div");
+            linkRow.className = "link-item-row";
+
+            const linkAnchor = document.createElement("a");
+            linkAnchor.href = linkUrl;
+            linkAnchor.textContent = linkText || "連結";
+            linkAnchor.target = "_blank";
+            linkAnchor.rel = "noopener noreferrer";
+
+            const linkEditBtn = document.createElement("button");
+            linkEditBtn.type = "button";
+            linkEditBtn.className = "move-btn edit-reveal-btn";
+            linkEditBtn.textContent = "編輯";
+            linkEditBtn.addEventListener("click", () => {
+              const newText = window.prompt("顯示文字", linkAnchor.textContent || "");
+              if (newText === null) {
+                return;
+              }
+              const newUrl = window.prompt("超連結網址", linkAnchor.href || "");
+              if (newUrl === null) {
+                return;
+              }
+              linkAnchor.textContent = newText || "連結";
+              linkAnchor.href = newUrl;
+            });
+
+            const linkMoveUpBtn = document.createElement("button");
+            linkMoveUpBtn.type = "button";
+            linkMoveUpBtn.className = "move-btn edit-reveal-btn";
+            linkMoveUpBtn.textContent = "上移";
+            linkMoveUpBtn.addEventListener("click", () => {
+              const prevRow = linkRow.previousElementSibling;
+              if (prevRow) {
+                childContentFlow.insertBefore(linkRow, prevRow);
+              }
+            });
+
+            const linkMoveDownBtn = document.createElement("button");
+            linkMoveDownBtn.type = "button";
+            linkMoveDownBtn.className = "move-btn edit-reveal-btn";
+            linkMoveDownBtn.textContent = "下移";
+            linkMoveDownBtn.addEventListener("click", () => {
+              const nextRow = linkRow.nextElementSibling;
+              if (nextRow) {
+                childContentFlow.insertBefore(nextRow, linkRow);
+              }
+            });
+
+            const linkDeleteBtn = document.createElement("button");
+            linkDeleteBtn.type = "button";
+            linkDeleteBtn.className = "delete-btn edit-reveal-btn";
+            linkDeleteBtn.textContent = "刪除";
+            linkDeleteBtn.addEventListener("click", () => {
+              linkRow.remove();
+            });
+
+            linkRow.appendChild(linkAnchor);
+            linkRow.appendChild(linkEditBtn);
+            linkRow.appendChild(linkMoveUpBtn);
+            linkRow.appendChild(linkMoveDownBtn);
+            linkRow.appendChild(linkDeleteBtn);
+            childContentFlow.appendChild(linkRow);
+          });
+
+          addDescBtn.addEventListener("click", () => {
+            const descRow = document.createElement("div");
+            descRow.className = "desc-item-row";
+
+            const descInput = document.createElement("textarea");
+            descInput.className = "desc-item-input";
+            descInput.rows = 1;
+            descInput.value = "說明事項...";
+            const autoResize = () => {
+              descInput.style.height = "auto";
+              descInput.style.height = descInput.scrollHeight + "px";
+            };
+            descInput.addEventListener("input", autoResize);
+            autoResize();
+
+            const styleSelect = document.createElement("select");
+            styleSelect.className = "desc-item-style-select";
+            const normalOption = document.createElement("option");
+            normalOption.value = "normal";
+            normalOption.textContent = "一般";
+            const boldOption = document.createElement("option");
+            boldOption.value = "bold";
+            boldOption.textContent = "加粗";
+            styleSelect.appendChild(normalOption);
+            styleSelect.appendChild(boldOption);
+            styleSelect.addEventListener("change", () => {
+              descInput.style.fontWeight = styleSelect.value === "bold" ? "700" : "400";
+            });
+
+            const descMoveUpBtn = document.createElement("button");
+            descMoveUpBtn.type = "button";
+            descMoveUpBtn.className = "move-btn edit-reveal-btn";
+            descMoveUpBtn.textContent = "上移";
+            descMoveUpBtn.addEventListener("click", () => {
+              const prevRow = descRow.previousElementSibling;
+              if (prevRow) {
+                childContentFlow.insertBefore(descRow, prevRow);
+              }
+            });
+
+            const descMoveDownBtn = document.createElement("button");
+            descMoveDownBtn.type = "button";
+            descMoveDownBtn.className = "move-btn edit-reveal-btn";
+            descMoveDownBtn.textContent = "下移";
+            descMoveDownBtn.addEventListener("click", () => {
+              const nextRow = descRow.nextElementSibling;
+              if (nextRow) {
+                childContentFlow.insertBefore(nextRow, descRow);
+              }
+            });
+
+            const descDeleteBtn = document.createElement("button");
+            descDeleteBtn.type = "button";
+            descDeleteBtn.className = "delete-btn edit-reveal-btn";
+            descDeleteBtn.textContent = "刪除";
+            descDeleteBtn.addEventListener("click", () => {
+              descRow.remove();
+            });
+
+            descRow.appendChild(descInput);
+            descRow.appendChild(styleSelect);
+            descRow.appendChild(descMoveUpBtn);
+            descRow.appendChild(descMoveDownBtn);
+            descRow.appendChild(descDeleteBtn);
+            childContentFlow.appendChild(descRow);
+          });
+
+          const collapseBtn = document.createElement("button");
+          collapseBtn.type = "button";
+          collapseBtn.className = "move-btn child-collapse-btn";
+          collapseBtn.textContent = "+";
+          let childCollapsed = false;
+          const childBody = document.createElement("div");
+          childBody.className = "child-item-body";
+          childBody.appendChild(childContentFlow);
+          collapseBtn.addEventListener("click", () => {
+            childCollapsed = !childCollapsed;
+            childBody.style.display = childCollapsed ? "none" : "";
+            collapseBtn.textContent = childCollapsed ? "+" : "-";
+          });
+
+          const childActions = document.createElement("div");
+          childActions.className = "child-item-actions";
+          childActions.appendChild(addCheckBtn);
+          childActions.appendChild(addImportantCheckBtn);
+          childActions.appendChild(addDescBtn);
+          childActions.appendChild(addLinkBtn);
+          childActions.appendChild(collapseBtn);
+          childActions.appendChild(childMoveUpBtn);
+          childActions.appendChild(childMoveDownBtn);
+          childActions.appendChild(childDeleteBtn);
+
+          childHeader.appendChild(childTitleInput);
+          childHeader.appendChild(checkStatsEl);
+          childHeader.appendChild(childActions);
+          childItem.appendChild(childHeader);
+          childItem.appendChild(childBody);
+          childItems.appendChild(childItem);
+        });
+
+        const subActions = document.createElement("div");
+        subActions.className = "subitem-actions";
+        subActions.appendChild(addChildBtn);
+        subActions.appendChild(subDeleteBtn);
+
+        subHeader.appendChild(subTitleInput);
+        subHeader.appendChild(subCheckStatsEl);
+        subHeader.appendChild(subActions);
+        subitem.appendChild(subHeader);
+        subitem.appendChild(childItems);
+        subitems.appendChild(subitem);
+        currentSubIndex = subitems.children.length - 1;
+        updateSubitemsView();
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "delete-btn edit-reveal-btn";
+      deleteBtn.textContent = "刪除";
+      deleteBtn.addEventListener("click", () => {
+        cardWrap.remove();
+        scheduleUpdateViewportFocusCard();
+      });
+
+      actions.appendChild(moveUpBtn);
+      actions.appendChild(moveDownBtn);
+      actions.appendChild(addSubBtn);
+      actions.appendChild(deleteBtn);
+      header.appendChild(titleInput);
+      header.appendChild(actions);
+      card.appendChild(header);
+      card.appendChild(subitemsViewport);
+      updateSubitemsView();
+
+      cardWrap.__subApi = {
+        setIndex(i) {
+          currentSubIndex = i;
+          updateSubitemsView();
+        },
+        getIndex() {
+          return currentSubIndex;
+        },
+      };
+
+      cardsContainer.appendChild(cardWrap);
+      scheduleUpdateViewportFocusCard();
+    }
+
+    const toolbarEl = document.querySelector(".toolbar");
+
+    function findBtn(root, label) {
+      return Array.from(root.querySelectorAll("button")).find((b) => b.textContent.trim() === label);
+    }
+
+    function getWorkZoneCode() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("工區") || params.get("zone");
+      if (q) {
+        return q.trim();
+      }
+      const el = document.getElementById("workZoneCode");
+      return el && el.value.trim() ? el.value.trim() : "DEFAULT";
+    }
+
+    function getUsername() {
+      const v = cachedProfileUsername && String(cachedProfileUsername).trim();
+      return v || "anonymous";
+    }
+
+    async function refreshProfileUsername() {
+      const userNameEl = document.getElementById("user-name");
+      cachedProfileUsername = null;
+      if (!userNameEl) {
+        return;
+      }
+      if (!sb) {
+        userNameEl.textContent = "你好，（無法連線 Supabase）";
+        return;
+      }
+      try {
+        const { data: authData, error: authErr } = await sb.auth.getUser();
+        if (authErr) {
+          console.warn(authErr);
+          userNameEl.textContent = "你好，（登入狀態讀取失敗）";
+          return;
+        }
+        const user = authData?.user;
+        if (!user) {
+          userNameEl.textContent = "你好，未登入";
+          return;
+        }
+        const { data: prof, error: profErr } = await sb
+          .from(PROFILE_TABLE)
+          .select("username")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profErr) {
+          console.warn("profiles 讀取失敗", profErr);
+          const fallback = user.email || "未知使用者";
+          cachedProfileUsername = fallback;
+          userNameEl.textContent = `你好，${fallback}`;
+          return;
+        }
+        const displayName =
+          (prof && prof.username && String(prof.username).trim()) || user.email || "未知使用者";
+        cachedProfileUsername = displayName;
+        userNameEl.textContent = `你好，${displayName}`;
+      } catch (e) {
+        console.error(e);
+        userNameEl.textContent = "你好，（名稱讀取錯誤）";
+      }
+    }
+
+    function serializePayload() {
+      const zoneSelect = document.getElementById("toolbarZoneSelect");
+      return {
+        zoneTab: zoneSelect ? zoneSelect.value : "69",
+        cards: Array.from(cardsContainer.querySelectorAll(":scope > .card-with-side-arrows")).map(serializeCardWrap),
+      };
+    }
+
+    function serializeCardWrap(wrap) {
+      const titleInput = wrap.querySelector(".card-title-input");
+      const title = titleInput ? titleInput.value : "";
+      const subs = wrap.querySelectorAll(".subitems > .subitem");
+      let currentSubIndex = 0;
+      subs.forEach((s, i) => {
+        if (s.style.display === "flex") {
+          currentSubIndex = i;
+        }
+      });
+      return {
+        title,
+        currentSubIndex,
+        subitems: Array.from(subs).map(serializeSubitem),
+      };
+    }
+
+    function serializeSubitem(subEl) {
+      const st = subEl.querySelector(".subitem-title-input");
+      const title = st ? st.value : "";
+      return {
+        title,
+        children: Array.from(subEl.querySelectorAll(".child-items > .child-item")).map(serializeChildItem),
+      };
+    }
+
+    function serializeChildItem(ch) {
+      const ct = ch.querySelector(".child-item-title-input");
+      const title = ct ? ct.value : "";
+      const body = ch.querySelector(".child-item-body");
+      const collapsed = !!(body && body.style.display === "none");
+      const flow = [];
+      const flowEl = ch.querySelector(".child-content-flow");
+      if (flowEl) {
+        Array.from(flowEl.children).forEach((row) => {
+          if (row.classList.contains("check-item-row")) {
+            const inp = row.querySelector(".check-item-input");
+            const fw = inp && (inp.style.fontWeight === "700" || inp.style.fontWeight === "bold");
+            flow.push({
+              type: fw ? "check_important" : "check",
+              label: inp ? inp.value : "",
+              checked: !!(row.querySelector(".check-item-checkbox") && row.querySelector(".check-item-checkbox").checked),
+            });
+          } else if (row.classList.contains("desc-item-row")) {
+            const ta = row.querySelector(".desc-item-input");
+            const sel = row.querySelector(".desc-item-style-select");
+            flow.push({
+              type: "desc",
+              text: ta ? ta.value : "",
+              style: sel && sel.value === "bold" ? "bold" : "normal",
+            });
+          } else if (row.classList.contains("link-item-row")) {
+            const a = row.querySelector("a");
+            flow.push({
+              type: "link",
+              text: a ? a.textContent.trim() : "",
+              url: a ? a.getAttribute("href") || "" : "",
+            });
+          }
+        });
+      }
+      return { title, collapsed, flow };
+    }
+
+    function installLinkRow(childContentFlow, text, url) {
+      const linkRow = document.createElement("div");
+      linkRow.className = "link-item-row";
+      const linkAnchor = document.createElement("a");
+      linkAnchor.href = url || "#";
+      linkAnchor.textContent = text || "連結";
+      linkAnchor.target = "_blank";
+      linkAnchor.rel = "noopener noreferrer";
+      const linkEditBtn = document.createElement("button");
+      linkEditBtn.type = "button";
+      linkEditBtn.className = "move-btn edit-reveal-btn";
+      linkEditBtn.textContent = "編輯";
+      linkEditBtn.addEventListener("click", () => {
+        const newText = window.prompt("顯示文字", linkAnchor.textContent || "");
+        if (newText === null) {
+          return;
+        }
+        const newUrl = window.prompt("超連結網址", linkAnchor.href || "");
+        if (newUrl === null) {
+          return;
+        }
+        linkAnchor.textContent = newText || "連結";
+        linkAnchor.href = newUrl;
+        scheduleAutoSave();
+      });
+      const linkMoveUpBtn = document.createElement("button");
+      linkMoveUpBtn.type = "button";
+      linkMoveUpBtn.className = "move-btn edit-reveal-btn";
+      linkMoveUpBtn.textContent = "上移";
+      linkMoveUpBtn.addEventListener("click", () => {
+        const prevRow = linkRow.previousElementSibling;
+        if (prevRow) {
+          childContentFlow.insertBefore(linkRow, prevRow);
+        }
+        scheduleAutoSave();
+      });
+      const linkMoveDownBtn = document.createElement("button");
+      linkMoveDownBtn.type = "button";
+      linkMoveDownBtn.className = "move-btn edit-reveal-btn";
+      linkMoveDownBtn.textContent = "下移";
+      linkMoveDownBtn.addEventListener("click", () => {
+        const nextRow = linkRow.nextElementSibling;
+        if (nextRow) {
+          childContentFlow.insertBefore(nextRow, linkRow);
+        }
+        scheduleAutoSave();
+      });
+      const linkDeleteBtn = document.createElement("button");
+      linkDeleteBtn.type = "button";
+      linkDeleteBtn.className = "delete-btn edit-reveal-btn";
+      linkDeleteBtn.textContent = "刪除";
+      linkDeleteBtn.addEventListener("click", () => {
+        linkRow.remove();
+        scheduleAutoSave();
+      });
+      linkRow.appendChild(linkAnchor);
+      linkRow.appendChild(linkEditBtn);
+      linkRow.appendChild(linkMoveUpBtn);
+      linkRow.appendChild(linkMoveDownBtn);
+      linkRow.appendChild(linkDeleteBtn);
+      childContentFlow.appendChild(linkRow);
+    }
+
+    function applyPayload(payload) {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+      const zoneSelect = document.getElementById("toolbarZoneSelect");
+      if (payload.zoneTab && zoneSelect) {
+        zoneSelect.value = payload.zoneTab;
+      }
+      cardsContainer.innerHTML = "";
+      cardCount = 0;
+      const cards = Array.isArray(payload.cards) ? payload.cards : [];
+      cards.forEach((cardData) => {
+        createCard();
+        const wrap = cardsContainer.lastElementChild;
+        if (!wrap) {
+          return;
+        }
+        const titleInput = wrap.querySelector(".card-title-input");
+        if (titleInput) {
+          titleInput.value = cardData.title || "";
+        }
+        const subsData = cardData.subitems || [];
+        subsData.forEach(() => {
+          findBtn(wrap, "新增次項")?.click();
+        });
+        const subEls = wrap.querySelectorAll(".subitems > .subitem");
+        subsData.forEach((subData, i) => {
+          const subEl = subEls[i];
+          if (!subEl) {
+            return;
+          }
+          const sit = subEl.querySelector(".subitem-title-input");
+          if (sit) {
+            sit.value = subData.title || "";
+          }
+          const childrenData = subData.children || [];
+          childrenData.forEach(() => {
+            findBtn(subEl, "新增子項")?.click();
+          });
+          const childEls = subEl.querySelectorAll(".child-items > .child-item");
+          childrenData.forEach((childData, j) => {
+            const ch = childEls[j];
+            if (!ch) {
+              return;
+            }
+            const cit = ch.querySelector(".child-item-title-input");
+            if (cit) {
+              cit.value = childData.title || "";
+            }
+            const flowRoot = ch.querySelector(".child-content-flow");
+            const addCheck = findBtn(ch, "新增勾選");
+            const addImp = findBtn(ch, "勾選重要");
+            const addDesc = findBtn(ch, "新增說明");
+            (childData.flow || []).forEach((item) => {
+              if (item.type === "check" || item.type === "check_important") {
+                if (item.type === "check_important") {
+                  addImp?.click();
+                } else {
+                  addCheck?.click();
+                }
+                const lastRow = flowRoot && flowRoot.lastElementChild;
+                if (lastRow && lastRow.classList.contains("check-item-row")) {
+                  const cb = lastRow.querySelector(".check-item-checkbox");
+                  const inp = lastRow.querySelector(".check-item-input");
+                  if (inp) {
+                    inp.value = item.label || "";
+                    if (item.type === "check_important") {
+                      inp.style.fontWeight = "700";
+                    }
+                  }
+                  if (cb) {
+                    cb.checked = !!item.checked;
+                    cb.dispatchEvent(new Event("change", { bubbles: true }));
+                  }
+                }
+              } else if (item.type === "desc") {
+                addDesc?.click();
+                const lastRow = flowRoot && flowRoot.lastElementChild;
+                if (lastRow && lastRow.classList.contains("desc-item-row")) {
+                  const ta = lastRow.querySelector(".desc-item-input");
+                  const sel = lastRow.querySelector(".desc-item-style-select");
+                  if (ta) {
+                    ta.value = item.text || "";
+                  }
+                  if (sel) {
+                    sel.value = item.style === "bold" ? "bold" : "normal";
+                    sel.dispatchEvent(new Event("change", { bubbles: true }));
+                  }
+                  ta?.dispatchEvent(new Event("input", { bubbles: true }));
+                }
+              } else if (item.type === "link") {
+                installLinkRow(flowRoot, item.text || "", item.url || "");
+              }
+            });
+            const body = ch.querySelector(".child-item-body");
+            const cbtn = ch.querySelector(".child-collapse-btn");
+            if (childData.collapsed && body && cbtn) {
+              body.style.display = "none";
+              cbtn.textContent = "+";
+            }
+          });
+        });
+        if (wrap.__subApi && typeof cardData.currentSubIndex === "number") {
+          wrap.__subApi.setIndex(cardData.currentSubIndex);
+        }
+      });
+      scheduleUpdateViewportFocusCard();
+    }
+
+    function setActionDataStatus(message, kind) {
+      const el = document.getElementById("action-data-status");
+      if (!el) {
+        return;
+      }
+      if (actionDataStatusFadeTimer) {
+        clearTimeout(actionDataStatusFadeTimer);
+        actionDataStatusFadeTimer = null;
+      }
+      el.classList.remove("is-faded-out");
+      el.textContent = message || "";
+      el.classList.remove("is-loading", "is-ok", "is-warn", "is-error");
+      if (kind === "loading") {
+        el.classList.add("is-loading");
+        return;
+      }
+      if (kind === "ok") {
+        el.classList.add("is-ok");
+      } else if (kind === "warn") {
+        el.classList.add("is-warn");
+      } else if (kind === "error") {
+        el.classList.add("is-error");
+      }
+      actionDataStatusFadeTimer = setTimeout(() => {
+        actionDataStatusFadeTimer = null;
+        el.classList.add("is-faded-out");
+      }, 5000);
+    }
+
+    async function loadFromSupabase() {
+      if (!sb) {
+        return;
+      }
+      setActionDataStatus("資料讀取中…", "loading");
+      const workZone = getWorkZoneCode();
+      const { data, error } = await sb.from("action").select("id,payload,username").eq("工區", workZone).maybeSingle();
+      if (error) {
+        console.error(error);
+        setActionDataStatus("資料載入失敗", "error");
+        return;
+      }
+      if (data) {
+        actionRowId = data.id;
+        applyPayload(data.payload || {});
+        setActionDataStatus("雲端資料已載入", "ok");
+      } else {
+        setActionDataStatus("尚無雲端儲存資料", "warn");
+      }
+    }
+
+    async function saveToSupabase() {
+      if (!sb) {
+        return;
+      }
+      const workZone = getWorkZoneCode();
+      const username = getUsername();
+      const payload = serializePayload();
+      const row = {
+        工區: workZone,
+        payload,
+        username,
+      };
+      const { data, error } = await sb.from("action").upsert(row, { onConflict: "工區" }).select("id").single();
+      if (error) {
+        console.error(error);
+        return;
+      }
+      if (data && data.id) {
+        actionRowId = data.id;
+      }
+    }
+
+    function scheduleAutoSave() {
+      if (!sb) {
+        return;
+      }
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        saveToSupabase();
+      }, 1600);
+    }
+
+    addCardBtn.addEventListener("click", () => {
+      createCard();
+      scheduleAutoSave();
+    });
+
+    document.addEventListener(
+      "input",
+      (e) => {
+        if (toolbarEl.contains(e.target) || cardsContainer.contains(e.target)) {
+          scheduleAutoSave();
+        }
+      },
+      true
+    );
+    document.addEventListener(
+      "change",
+      (e) => {
+        if (toolbarEl.contains(e.target) || cardsContainer.contains(e.target)) {
+          scheduleAutoSave();
+        }
+      },
+      true
+    );
+
+    const paramsInit = new URLSearchParams(window.location.search);
+    const wzParam = paramsInit.get("工區") || paramsInit.get("zone");
+    if (wzParam) {
+      const wzEl = document.getElementById("workZoneCode");
+      if (wzEl) {
+        wzEl.value = wzParam;
+      }
+    }
+
+    (async function initActionPersistence() {
+      if (sb) {
+        await refreshProfileUsername();
+        sb.auth.onAuthStateChange(() => {
+          refreshProfileUsername();
+        });
+        await loadFromSupabase();
+      } else {
+        setActionDataStatus("未連線，無法載入雲端資料", "error");
+      }
+      scheduleUpdateViewportFocusCard();
+    })();
+  </script>
+</body>
+</html>
