@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>俄羅斯方塊 · 雙人對戰（Realtime）</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.92);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #fde047;
+      --danger: #f87171;
+      --ok: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.25rem; margin: 0 0 12px; font-weight: 800; }
+    .room-bar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      padding: 12px 14px; border-radius: 12px; background: rgba(30, 41, 59, 0.85);
+      margin-bottom: 14px; border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .room-bar input[type="text"] {
+      width: 140px; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; color: #f8fafc; font-family: ui-monospace, monospace;
+    }
+    .room-bar button, .btn {
+      padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer;
+      font-weight: 700; background: #334155; color: #f1f5f9;
+    }
+    .room-bar button:hover, .btn:hover { filter: brightness(1.08); }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-danger { background: #b91c1c; color: #fff; }
+    .status-pill {
+      font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #1e293b;
+      color: var(--muted);
+    }
+    .status-pill.ok { color: var(--ok); border: 1px solid rgba(74, 222, 128, 0.35); }
+    .status-pill.warn { color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.35); }
+    .layout { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+    .stage-wrap {
+      position: relative; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+    canvas { display: block; vertical-align: middle; background: #020617; }
+    .side { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 10px; }
+    .panel {
+      background: var(--panel); border-radius: 10px; padding: 10px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .panel h3 { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); font-weight: 700; }
+    .stat { display: flex; justify-content: space-between; font-size: 14px; margin: 4px 0; }
+    .overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 16px; text-align: center;
+      background: rgba(15, 23, 42, 0.9); opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .overlay.is-visible { opacity: 1; pointer-events: auto; }
+    .overlay h2 { margin: 0 0 8px; font-size: 1.2rem; }
+    .overlay p { margin: 0 0 14px; color: #cbd5e1; font-size: 13px; max-width: 280px; line-height: 1.45; }
+    .rules {
+      font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 20px;
+      max-width: 720px;
+    }
+    .rules strong { color: #cbd5e1; }
+    .touch-row {
+      display: none; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px;
+    }
+    .touch-row button {
+      min-width: 52px; padding: 10px 12px; border-radius: 10px; border: none;
+      background: #334155; color: #f8fafc; font-weight: 700; cursor: pointer;
+    }
+    @media (max-width: 720px) { .touch-row { display: flex; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>雙人對戰 · Supabase Realtime</h1>
+    <div class="room-bar">
+      <span class="status-pill" id="netPill">未連線房間</span>
+      <button type="button" id="btnCreateRoom" class="btn-primary">建立房間</button>
+      <label>房間碼 <input type="text" id="roomInput" maxlength="12" placeholder="abcd12" autocomplete="off" /></label>
+      <button type="button" id="btnJoinRoom">加入房間</button>
+      <button type="button" id="btnLeaveRoom" class="btn-danger" hidden>離開房間</button>
+      <span id="presenceLabel" class="status-pill">人數：0</span>
+      <span id="roleLabel" class="status-pill"></span>
+    </div>
+
+    <div class="layout">
+      <div class="stage-wrap" id="stageWrap">
+        <canvas id="board" width="260" height="520" aria-label="我方場地"></canvas>
+        <div class="overlay" id="overlay">
+          <h2 id="ovTitle">連線對戰</h2>
+          <p id="ovText">建立或加入房間後，雙方到齊將由房主送出種子並開始。</p>
+          <button type="button" class="btn btn-primary" id="readyBtn" hidden>我準備好了</button>
+        </div>
+      </div>
+      <div class="side">
+        <div class="panel">
+          <h3>我方</h3>
+          <div class="stat">分數 <span id="scoreEl">0</span></div>
+          <div class="stat">等級 <span id="levelEl">1</span></div>
+          <div class="stat">消行 <span id="linesEl">0</span></div>
+          <div class="stat">待受垃圾 <span id="garbagePendingEl">0</span></div>
+        </div>
+        <div class="panel">
+          <h3>對手</h3>
+          <div class="stat">狀態 <span id="oppStatusEl">—</span></div>
+          <div class="stat">已送來垃圾 <span id="garbageRecvEl">0</span></div>
+        </div>
+        <div class="panel">
+          <h3>下一個</h3>
+          <canvas id="nextCanvas" width="130" height="104"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="touch-row" aria-hidden="true">
+      <button type="button" data-act="left">←</button>
+      <button type="button" data-act="rotate">轉</button>
+      <button type="button" data-act="right">→</button>
+      <button type="button" data-act="soft">↓</button>
+      <button type="button" data-act="hard">落</button>
+    </div>
+
+    <p class="rules">
+      <strong>送垃圾行（簡化 Guideline）</strong>：單消 0 行、雙消 1、三消 2、四消 4。
+      <strong>連擊加成</strong>：連續消行時，自第 2 段連消起，每多一段額外 +1 行送給對手。<br />
+      垃圾行由底部插入，每行隨機一格為空洞；堆疊頂出場地則敗北。需 Supabase 專案啟用 Realtime（Dashboard → Realtime → 開啟）。<br />
+      <a href="tetris.html" style="color:#93c5fd">返回單機版</a>
+    </p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+(function () {
+  const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+
+  let sb = null;
+  try {
+    const g = window.supabase;
+    const createClient =
+      g && typeof g.createClient === "function"
+        ? g.createClient
+        : g && g.default && typeof g.default.createClient === "function"
+          ? g.default.createClient
+          : null;
+    if (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+      sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (e) {
+    console.warn("Supabase 初始化失敗", e);
+  }
+
+  const COLS = 10;
+  const ROWS = 20;
+  const CS = 26;
+  const GARBAGE_COLOR = "#475569";
+
+  const PIECES = {
+    I: {
+      color: "#22d3ee",
+      rotations: [
+        [[0, 1], [1, 1], [2, 1], [3, 1]],
+        [[2, 0], [2, 1], [2, 2], [2, 3]],
+        [[0, 2], [1, 2], [2, 2], [3, 2]],
+        [[1, 0], [1, 1], [1, 2], [1, 3]],
+      ],
+    },
+    O: {
+      color: "#facc15",
+      rotations: [[[0, 0], [1, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [0, 1], [1, 1]]],
+    },
+    T: {
+      color: "#c084fc",
+      rotations: [
+        [[1, 0], [0, 1], [1, 1], [2, 1]],
+        [[1, 0], [1, 1], [2, 1], [1, 2]],
+        [[0, 1], [1, 1], [2, 1], [1, 2]],
+        [[1, 0], [0, 1], [1, 1], [1, 2]],
+      ],
+    },
+    S: {
+      color: "#4ade80",
+      rotations: [
+        [[1, 0], [2, 0], [0, 1], [1, 1]],
+        [[1, 0], [1, 1], [2, 1], [2, 2]],
+        [[1, 1], [2, 1], [0, 2], [1, 2]],
+        [[0, 0], [0, 1], [1, 1], [1, 2]],
+      ],
+    },
+    Z: {
+      color: "#fb7185",
+      rotations: [
+        [[0, 0], [1, 0], [1, 1], [2, 1]],
+        [[2, 0], [1, 1], [2, 1], [1, 2]],
+        [[0, 1], [1, 1], [1, 2], [2, 2]],
+        [[1, 0], [0, 1], [1, 1], [0, 2]],
+      ],
+    },
+    J: {
+      color: "#60a5fa",
+      rotations: [
+        [[0, 0], [0, 1], [1, 1], [2, 1]],
+        [[1, 0], [2, 0], [1, 1], [1, 2]],
+        [[0, 1], [1, 1], [2, 1], [2, 2]],
+        [[1, 0], [1, 1], [0, 2], [1, 2]],
+      ],
+    },
+    L: {
+      color: "#fb923c",
+      rotations: [
+        [[2, 0], [0, 1], [1, 1], [2, 1]],
+        [[1, 0], [1, 1], [2, 1], [1, 2]],
+        [[0, 1], [1, 1], [2, 1], [0, 2]],
+        [[0, 0], [1, 0], [1, 1], [1, 2]],
+      ],
+    },
+  };
+
+  const PIECE_ORDER = ["I", "O", "T", "S", "Z", "J", "L"];
+  const KICKS = [[0, 0], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [0, 1], [-2, 0], [2, 0]];
+
+  function mulberry32(seed) {
+    return function () {
+      let t = (seed += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  let rng = Math.random;
+
+  function garbageLinesToSend(clearedLines, streakAfterClear) {
+    const base = { 1: 0, 2: 1, 3: 2, 4: 4 }[clearedLines] ?? 0;
+    const comboExtra = streakAfterClear >= 2 ? streakAfterClear - 1 : 0;
+    return base + comboExtra;
+  }
+
+  const canvas = document.getElementById("board");
+  const ctx = canvas.getContext("2d");
+  const nextCv = document.getElementById("nextCanvas");
+  const nctx = nextCv.getContext("2d");
+  const stageWrap = document.getElementById("stageWrap");
+  const overlay = document.getElementById("overlay");
+  const ovTitle = document.getElementById("ovTitle");
+  const ovText = document.getElementById("ovText");
+  const readyBtn = document.getElementById("readyBtn");
+  const scoreEl = document.getElementById("scoreEl");
+  const levelEl = document.getElementById("levelEl");
+  const linesEl = document.getElementById("linesEl");
+  const garbagePendingEl = document.getElementById("garbagePendingEl");
+  const garbageRecvEl = document.getElementById("garbageRecvEl");
+  const oppStatusEl = document.getElementById("oppStatusEl");
+  const netPill = document.getElementById("netPill");
+  const presenceLabel = document.getElementById("presenceLabel");
+  const roleLabel = document.getElementById("roleLabel");
+  const roomInput = document.getElementById("roomInput");
+  const btnCreateRoom = document.getElementById("btnCreateRoom");
+  const btnJoinRoom = document.getElementById("btnJoinRoom");
+  const btnLeaveRoom = document.getElementById("btnLeaveRoom");
+
+  const MOVE_DAS_MS = 90;
+  const MOVE_ARR_MS = 50;
+  const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS;
+  const LOCK_DELAY_MS = 300;
+  const DROP_SPEED_MULT = 1.15;
+  function dropMsForLevel(lv) {
+    const raw = 1000 - (lv - 1) * 65;
+    return Math.max(70, raw / DROP_SPEED_MULT);
+  }
+  function comboMultForStreak(streak) {
+    return Math.min(4, 1 + (streak - 1) * 0.3);
+  }
+
+  let board = [];
+  let bag = [];
+  let current = null;
+  let nextType = null;
+  let score = 0;
+  let lines = 0;
+  let level = 1;
+  let running = false;
+  let paused = false;
+  let dropMs = dropMsForLevel(1);
+  let lastDrop = 0;
+  let lastFrameT = 0;
+  let raf = 0;
+  let keyArrowLeft = false;
+  let keyArrowRight = false;
+  let keyArrowDown = false;
+  let lastHorizKey = 0;
+  let horizRepeat = null;
+  let softRepeat = null;
+  let lockGroundedSince = null;
+  let comboChain = 0;
+  let maxComboChain = 0;
+  let pendingGarbage = 0;
+  let garbageReceivedTotal = 0;
+
+  let rtChannel = null;
+  let roomId = "";
+  let isHost = false;
+  let myReady = false;
+  let peerReady = false;
+  let myClientId = "";
+  let gameSeed = 0;
+  let matchStarted = false;
+
+  function emptyBoard() {
+    return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  }
+
+  function cellsFor(type, rot) {
+    return PIECES[type].rotations[rot];
+  }
+
+  function validPosition(type, rot, px, py) {
+    const cells = cellsFor(type, rot);
+    for (let i = 0; i < cells.length; i++) {
+      const x = px + cells[i][0];
+      const y = py + cells[i][1];
+      if (x < 0 || x >= COLS || y >= ROWS) return false;
+      if (y >= 0 && board[y][x]) return false;
+    }
+    return true;
+  }
+
+  function pieceIsGrounded() {
+    if (!current) return false;
+    return !validPosition(current.type, current.rot, current.x, current.y + 1);
+  }
+
+  function refillBag() {
+    bag = PIECE_ORDER.slice();
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = (rng() * (i + 1)) | 0;
+      const t = bag[i];
+      bag[i] = bag[j];
+      bag[j] = t;
+    }
+  }
+
+  function pullFromBag() {
+    if (bag.length === 0) refillBag();
+    return bag.pop();
+  }
+
+  function tryRotate() {
+    if (!current) return;
+    const to = (current.rot + 1) % 4;
+    for (let k = 0; k < KICKS.length; k++) {
+      const kx = KICKS[k][0];
+      const ky = KICKS[k][1];
+      if (validPosition(current.type, to, current.x + kx, current.y + ky)) {
+        current.rot = to;
+        current.x += kx;
+        current.y += ky;
+        lockGroundedSince = pieceIsGrounded() ? performance.now() : null;
+        return;
+      }
+    }
+  }
+
+  function spawnPieceOfType(type) {
+    const rot = 0;
+    let px;
+    if (type === "I") px = (COLS - 4) >> 1;
+    else if (type === "O") px = (COLS - 2) >> 1;
+    else px = (COLS - 3) >> 1;
+    let py = 0;
+    if (!validPosition(type, rot, px, py)) {
+      py = -1;
+      if (!validPosition(type, rot, px, py)) return false;
+    }
+    current = { type, rot, x: px, y: py };
+    return true;
+  }
+
+  function spawnFromQueue() {
+    const type = nextType || pullFromBag();
+    nextType = pullFromBag();
+    return spawnPieceOfType(type);
+  }
+
+  function spawnAfterLock() {
+    const ok = spawnFromQueue();
+    if (ok) lastDrop = performance.now();
+    return ok;
+  }
+
+  function findFullRows() {
+    const r = [];
+    for (let y = 0; y < ROWS; y++) {
+      if (board[y].every((c) => c != null && c !== "")) r.push(y);
+    }
+    return r;
+  }
+
+  function mergePiece() {
+    if (!current) return;
+    const cells = cellsFor(current.type, current.rot);
+    const color = PIECES[current.type].color;
+    for (let i = 0; i < cells.length; i++) {
+      const x = current.x + cells[i][0];
+      const y = current.y + cells[i][1];
+      if (y >= 0 && y < ROWS && x >= 0 && x < COLS) board[y][x] = color;
+    }
+  }
+
+  function updateLockDelay(now) {
+    if (!current) return;
+    if (!pieceIsGrounded()) {
+      lockGroundedSince = null;
+      return;
+    }
+    if (lockGroundedSince == null) lockGroundedSince = now;
+    if (now - lockGroundedSince >= LOCK_DELAY_MS) lockPiece();
+  }
+
+  function broadcastAttack(lines) {
+    if (!rtChannel || lines <= 0) return;
+    rtChannel.send({
+      type: "broadcast",
+      event: "attack",
+      payload: { lines },
+    });
+  }
+
+  function broadcastKo() {
+    if (!rtChannel) return;
+    rtChannel.send({ type: "broadcast", event: "ko", payload: {} });
+  }
+
+  function lockPiece() {
+    if (!current) return;
+    lockGroundedSince = null;
+    mergePiece();
+    current = null;
+
+    while (pendingGarbage > 0) {
+      pendingGarbage--;
+      garbagePendingEl.textContent = String(pendingGarbage);
+      const hole = (rng() * COLS) | 0;
+      const row = [];
+      for (let x = 0; x < COLS; x++) row.push(x === hole ? null : GARBAGE_COLOR);
+      board.shift();
+      board.push(row);
+      garbageReceivedTotal++;
+      garbageRecvEl.textContent = String(garbageReceivedTotal);
+    }
+
+    const rows = findFullRows();
+    if (rows.length) {
+      const streak = comboChain + 1;
+      comboChain = streak;
+      maxComboChain = Math.max(maxComboChain, streak);
+      const nLines = rows.length;
+      const mult = comboMultForStreak(streak);
+      lines += nLines;
+      const table = [0, 100, 300, 500, 800];
+      let pts = (table[nLines] || 0) * level;
+      if (nLines === 4) pts += 400 * level;
+      pts = Math.floor(pts * mult);
+      score += pts;
+      const newLevel = Math.min(15, 1 + ((lines / 10) | 0));
+      if (newLevel > level) level = newLevel;
+      dropMs = dropMsForLevel(level);
+      const sorted = rows.slice().sort((a, b) => b - a);
+      for (const y of sorted) {
+        board.splice(y, 1);
+        board.unshift(Array(COLS).fill(null));
+      }
+      scoreEl.textContent = String(score);
+      linesEl.textContent = String(lines);
+      levelEl.textContent = String(level);
+      const sendN = garbageLinesToSend(nLines, streak);
+      if (sendN > 0) broadcastAttack(sendN);
+    } else {
+      comboChain = 0;
+    }
+
+    if (!spawnAfterLock()) {
+      broadcastKo();
+      endGame(false);
+    }
+  }
+
+  function endGame(won) {
+    running = false;
+    paused = false;
+    cancelAnimationFrame(raf);
+    keyArrowLeft = keyArrowRight = keyArrowDown = false;
+    horizRepeat = softRepeat = null;
+    lockGroundedSince = null;
+    ovTitle.textContent = won ? "你贏了" : "你輸了";
+    ovText.textContent = won ? "對手場地頂出或已斷線。" : "你的場地無法再出塊，或對手達成勝利條件。";
+    readyBtn.hidden = true;
+    overlay.classList.add("is-visible");
+  }
+
+  function horizontalDirFromKeys() {
+    if (keyArrowLeft && keyArrowRight) return lastHorizKey;
+    if (keyArrowLeft) return -1;
+    if (keyArrowRight) return 1;
+    return 0;
+  }
+
+  function move(dx, dy) {
+    if (!running || paused || !current) return;
+    if (validPosition(current.type, current.rot, current.x + dx, current.y + dy)) {
+      current.x += dx;
+      current.y += dy;
+      lockGroundedSince = pieceIsGrounded() ? performance.now() : null;
+      if (dy > 0) {
+        score += 1;
+        scoreEl.textContent = String(score);
+      }
+    } else if (dy > 0) {
+      if (pieceIsGrounded()) lockGroundedSince = performance.now();
+    }
+  }
+
+  function hardDrop() {
+    if (!running || paused || !current) return;
+    while (validPosition(current.type, current.rot, current.x, current.y + 1)) {
+      current.y += 1;
+      score += 2;
+    }
+    scoreEl.textContent = String(score);
+    lockPiece();
+  }
+
+  function drawCell(x, y, color, alpha) {
+    const pad = 1;
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.fillStyle = color;
+    ctx.fillRect(x * CS + pad, y * CS + pad, CS - pad * 2, CS - pad * 2);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMiniPiece(targetCtx, cw, ch, type) {
+    if (!type) return;
+    const cells = cellsFor(type, 0);
+    let minx = 99,
+      miny = 99,
+      maxx = 0,
+      maxy = 0;
+    for (let i = 0; i < cells.length; i++) {
+      minx = Math.min(minx, cells[i][0]);
+      miny = Math.min(miny, cells[i][1]);
+      maxx = Math.max(maxx, cells[i][0]);
+      maxy = Math.max(maxy, cells[i][1]);
+    }
+    const bw = maxx - minx + 1;
+    const bh = maxy - miny + 1;
+    const scale = Math.min(23, Math.floor(ch / Math.max(bw, bh)));
+    const ox = (cw - bw * scale) / 2 - minx * scale;
+    const oy = (ch - bh * scale) / 2 - miny * scale;
+    const col = PIECES[type].color;
+    targetCtx.fillStyle = col;
+    for (let i = 0; i < cells.length; i++) {
+      const x = cells[i][0];
+      const y = cells[i][1];
+      targetCtx.fillRect(ox + x * scale + 1, oy + y * scale + 1, scale - 2, scale - 2);
+    }
+  }
+
+  function drawNext() {
+    nctx.fillStyle = "rgba(0,0,0,0.35)";
+    nctx.fillRect(0, 0, nextCv.width, nextCv.height);
+    if (nextType) drawMiniPiece(nctx, nextCv.width, nextCv.height, nextType);
+  }
+
+  function draw() {
+    ctx.fillStyle = "#020617";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (board[y][x]) drawCell(x, y, board[y][x]);
+      }
+    }
+    if (current) {
+      const cells = cellsFor(current.type, current.rot);
+      const c = PIECES[current.type].color;
+      for (let i = 0; i < cells.length; i++) {
+        const x = current.x + cells[i][0];
+        const y = current.y + cells[i][1];
+        if (y >= 0) drawCell(x, y, c);
+      }
+    }
+    drawNext();
+  }
+
+  function tick(now) {
+    if (!running) return;
+    const dt = lastFrameT ? Math.min(0.05, (now - lastFrameT) / 1000) : 0.016;
+    lastFrameT = now;
+
+    if (!paused && current) {
+      const d = horizontalDirFromKeys();
+      if (d !== 0 && !horizRepeat) horizRepeat = { dir: d, nextAt: now + MOVE_DAS_MS };
+      if (keyArrowDown && !softRepeat) softRepeat = { nextAt: now + MOVE_DAS_MS };
+      if (horizRepeat) {
+        const hd = horizontalDirFromKeys();
+        if (hd === 0) horizRepeat = null;
+        else if (hd !== horizRepeat.dir) {
+          move(hd, 0);
+          horizRepeat = { dir: hd, nextAt: now + MOVE_DAS_MS };
+        } else if (now >= horizRepeat.nextAt) {
+          move(hd, 0);
+          horizRepeat.nextAt = now + MOVE_HORIZ_REPEAT_MS;
+        }
+      }
+      if (softRepeat) {
+        if (!keyArrowDown) softRepeat = null;
+        else if (now >= softRepeat.nextAt) {
+          move(0, 1);
+          softRepeat.nextAt = now + MOVE_ARR_MS;
+        }
+      }
+      if (now - lastDrop >= dropMs) {
+        if (validPosition(current.type, current.rot, current.x, current.y + 1)) {
+          current.y += 1;
+          lockGroundedSince = pieceIsGrounded() ? now : null;
+        }
+        lastDrop = now;
+      }
+      updateLockDelay(now);
+    }
+    draw();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function startLocalGame(seed) {
+    gameSeed = seed >>> 0;
+    rng = mulberry32(gameSeed);
+    board = emptyBoard();
+    bag = [];
+    refillBag();
+    nextType = pullFromBag();
+    current = null;
+    score = 0;
+    lines = 0;
+    level = 1;
+    comboChain = 0;
+    maxComboChain = 0;
+    pendingGarbage = 0;
+    garbageReceivedTotal = 0;
+    garbagePendingEl.textContent = "0";
+    garbageRecvEl.textContent = "0";
+    dropMs = dropMsForLevel(1);
+    if (!spawnAfterLock()) {
+      endGame(false);
+      return;
+    }
+    running = true;
+    paused = false;
+    lastDrop = performance.now();
+    lastFrameT = performance.now();
+    overlay.classList.remove("is-visible");
+    scoreEl.textContent = "0";
+    linesEl.textContent = "0";
+    levelEl.textContent = "1";
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function resetLobbyUi() {
+    running = false;
+    cancelAnimationFrame(raf);
+    overlay.classList.add("is-visible");
+    ovTitle.textContent = "連線對戰";
+    ovText.textContent = "建立或加入房間後，雙方到齊可開始。";
+    readyBtn.hidden = true;
+  }
+
+  function getOrCreateClientId() {
+    try {
+      let id = localStorage.getItem("tetris_vs_client");
+      if (!id) {
+        id = "c_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem("tetris_vs_client", id);
+      }
+      return id;
+    } catch (_) {
+      return "c_" + Math.random().toString(36).slice(2);
+    }
+  }
+
+  function updatePresenceUi() {
+    if (!rtChannel) {
+      presenceLabel.textContent = "人數：0";
+      return;
+    }
+    const state = rtChannel.presenceState();
+    const n = Object.keys(state).length;
+    presenceLabel.textContent = "人數：" + n;
+    peerReady = false;
+    for (const key of Object.keys(state)) {
+      const metas = state[key];
+      if (!metas || !metas.length) continue;
+      for (let i = 0; i < metas.length; i++) {
+        const m = metas[i];
+        if (m && m.clientId && m.clientId !== myClientId && m.ready) peerReady = true;
+      }
+    }
+    readyBtn.hidden = !(n >= 2 && !running && !matchStarted);
+    if (isHost && n >= 2 && myReady && peerReady && !matchStarted && !running) {
+      const seed = (Math.random() * 0xffffffff) >>> 0;
+      rtChannel.send({
+        type: "broadcast",
+        event: "start",
+        payload: { seed },
+      });
+      beginMatch(seed);
+    }
+  }
+
+  function beginMatch(seed) {
+    if (matchStarted || running) return;
+    matchStarted = true;
+    myReady = false;
+    peerReady = false;
+    readyBtn.hidden = true;
+    startLocalGame(seed);
+    oppStatusEl.textContent = "對戰中";
+  }
+
+  function attachChannelHandlers(ch) {
+    ch.on("broadcast", { event: "attack" }, ({ payload }) => {
+      const n = payload && payload.lines != null ? Number(payload.lines) : 0;
+      if (n > 0) {
+        pendingGarbage += n;
+        garbagePendingEl.textContent = String(pendingGarbage);
+      }
+    });
+    ch.on("broadcast", { event: "ko" }, () => {
+      if (running) endGame(true);
+    });
+    ch.on("broadcast", { event: "start" }, ({ payload }) => {
+      if (!payload || payload.seed == null) return;
+      if (!isHost) beginMatch(payload.seed >>> 0);
+    });
+    ch.on("presence", { event: "sync" }, () => updatePresenceUi());
+    ch.on("presence", { event: "join" }, () => updatePresenceUi());
+    ch.on("presence", { event: "leave" }, () => updatePresenceUi());
+  }
+
+  async function leaveRoom() {
+    if (rtChannel) {
+      try {
+        await rtChannel.untrack();
+      } catch (_) {}
+      try {
+        sb.removeChannel(rtChannel);
+      } catch (_) {}
+      rtChannel = null;
+    }
+    roomId = "";
+    isHost = false;
+    myReady = false;
+    peerReady = false;
+    matchStarted = false;
+    netPill.textContent = "未連線房間";
+    netPill.className = "status-pill";
+    roleLabel.textContent = "";
+    btnLeaveRoom.hidden = true;
+    resetLobbyUi();
+    updatePresenceUi();
+  }
+
+  async function joinRoom(id, asHost) {
+    if (!sb) {
+      alert("Supabase 未初始化");
+      return;
+    }
+    await leaveRoom();
+    const clean = String(id || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    if (clean.length < 4) {
+      alert("房間碼至少 4 個英數字");
+      return;
+    }
+    roomId = clean.slice(0, 12);
+    isHost = !!asHost;
+    myClientId = getOrCreateClientId();
+
+    const ch = sb.channel("tetris-vs:" + roomId, {
+      config: {
+        broadcast: { self: false },
+        presence: { key: myClientId },
+      },
+    });
+    attachChannelHandlers(ch);
+
+    await new Promise((resolve, reject) => {
+      ch.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          try {
+            await ch.track({ clientId: myClientId, ready: false });
+          } catch (e) {
+            console.warn(e);
+          }
+          resolve();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          reject(new Error(status));
+        }
+      });
+    }).catch((e) => {
+      console.warn(e);
+      alert("無法訂閱頻道，請確認專案已啟用 Realtime。");
+      leaveRoom();
+      return;
+    });
+
+    rtChannel = ch;
+    netPill.textContent = "已連線 · " + roomId;
+    netPill.className = "status-pill ok";
+    roleLabel.textContent = isHost ? "房主" : "加入者";
+    btnLeaveRoom.hidden = false;
+    roomInput.value = roomId;
+    ovText.textContent = "房間 " + roomId + "。兩人都緒後由房主開始（自動）。";
+    readyBtn.hidden = false;
+    updatePresenceUi();
+  }
+
+  readyBtn.addEventListener("click", async () => {
+    if (!rtChannel) return;
+    myReady = true;
+    try {
+      await rtChannel.track({ clientId: myClientId, ready: true });
+    } catch (e) {
+      console.warn(e);
+    }
+    updatePresenceUi();
+  });
+
+  btnCreateRoom.addEventListener("click", () => {
+    const code =
+      Math.random().toString(36).slice(2, 4) +
+      Math.random().toString(36).slice(2, 4) +
+      Date.now().toString(36).slice(-2);
+    void joinRoom(code.replace(/[^a-z0-9]/g, "").slice(0, 8) || "room" + ((Math.random() * 9999) | 0), true);
+  });
+
+  btnJoinRoom.addEventListener("click", () => {
+    void joinRoom(roomInput.value, false);
+  });
+
+  btnLeaveRoom.addEventListener("click", () => void leaveRoom());
+
+  window.addEventListener("keydown", (e) => {
+    if (overlay.classList.contains("is-visible") && ovTitle.textContent !== "連線對戰") return;
+    if (!running || paused) return;
+    if (e.code === "ArrowLeft") {
+      e.preventDefault();
+      if (e.repeat) return;
+      keyArrowLeft = true;
+      lastHorizKey = -1;
+      move(-1, 0);
+      {
+        const hd = horizontalDirFromKeys();
+        horizRepeat = hd ? { dir: hd, nextAt: performance.now() + MOVE_DAS_MS } : null;
+      }
+    } else if (e.code === "ArrowRight") {
+      e.preventDefault();
+      if (e.repeat) return;
+      keyArrowRight = true;
+      lastHorizKey = 1;
+      move(1, 0);
+      {
+        const hd = horizontalDirFromKeys();
+        horizRepeat = hd ? { dir: hd, nextAt: performance.now() + MOVE_DAS_MS } : null;
+      }
+    } else if (e.code === "ArrowDown") {
+      e.preventDefault();
+      if (e.repeat) return;
+      keyArrowDown = true;
+      move(0, 1);
+      softRepeat = { nextAt: performance.now() + MOVE_DAS_MS };
+    } else if (e.code === "ArrowUp") {
+      tryRotate();
+      e.preventDefault();
+    } else if (e.code === "Space") {
+      hardDrop();
+      e.preventDefault();
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "ArrowLeft") keyArrowLeft = false;
+    else if (e.code === "ArrowRight") keyArrowRight = false;
+    else if (e.code === "ArrowDown") keyArrowDown = false;
+  });
+
+  document.querySelector(".touch-row").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-act]");
+    if (!b || !running || paused) return;
+    const act = b.getAttribute("data-act");
+    if (act === "left") move(-1, 0);
+    else if (act === "right") move(1, 0);
+    else if (act === "soft") move(0, 1);
+    else if (act === "hard") hardDrop();
+    else if (act === "rotate") tryRotate();
+  });
+
+  draw();
+  drawNext();
+})();
+  </script>
+</body>
+</html>
