@@ -2,32 +2,112 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>俄羅斯方塊 · 雙人對戰（Realtime）</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: rgba(15, 23, 42, 0.92);
-      --text: #e2e8f0;
+      --bg: #0f1419;
+      --text: #e7ecf3;
+      --accent: #38bdf8;
+      --panel: rgba(15, 23, 42, 0.75);
       --muted: #94a3b8;
-      --accent: #fde047;
       --danger: #f87171;
       --ok: #4ade80;
+      --layout-gap: 14px;
     }
     * { box-sizing: border-box; }
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 100% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
     body {
       margin: 0;
-      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-      background: var(--bg);
-      color: var(--text);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 12px 24px;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    h1 { font-size: 1.25rem; margin: 0 0 12px; font-weight: 800; }
+    .top-bar {
+      width: 100%;
+      max-width: 1040px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .top-bar h1 {
+      grid-column: 2;
+      justify-self: center;
+      margin: 0;
+      font-size: clamp(1.05rem, 4vw, 1.3rem);
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+    .top-bar__trail {
+      grid-column: 3;
+      justify-self: end;
+      display: flex;
+      align-items: center;
+    }
+    .back-link {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid #57534e;
+      background: #475569;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .back-link:hover { filter: brightness(1.1); }
+    .layout {
+      width: 100%;
+      max-width: 1040px;
+    }
+    /* 與 tetris.html：主欄 flex；榮譽榜在方塊區左側靠上；房間列佔滿寬再換行 */
+    .layout-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: var(--layout-gap);
+      width: 100%;
+    }
+    .leaderboards-wrap {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 0 0 auto;
+      width: min(300px, 100%);
+      max-width: 300px;
+      align-self: flex-start;
+    }
+    .leaderboards-wrap .panel--leaderboard {
+      width: 100%;
+      max-width: none;
+    }
+    .layout-main .room-bar {
+      flex: 1 1 100%;
+      width: 100%;
+    }
     .room-bar {
       display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
       padding: 12px 14px; border-radius: 12px; background: rgba(30, 41, 59, 0.85);
-      margin-bottom: 14px; border: 1px solid rgba(148, 163, 184, 0.2);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    /* 與「建立房間」按鈕之間額外 50px 間距 */
+    .room-bar .room-bar-room-field {
+      margin-left: 50px;
     }
     .room-bar input[type="text"] {
       width: 140px; padding: 8px 10px; border-radius: 8px; border: 1px solid #334155;
@@ -45,101 +125,412 @@
       color: var(--muted);
     }
     .status-pill.ok { color: var(--ok); border: 1px solid rgba(74, 222, 128, 0.35); }
-    .status-pill.warn { color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.35); }
-    .layout { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+    .play-cluster {
+      position: relative;
+      z-index: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: var(--layout-gap);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .stage-stack {
+      position: relative;
+      z-index: 0;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      flex: 0 0 auto;
+      width: min(94vw, 380px);
+    }
     .stage-wrap {
-      position: relative; border-radius: 12px; overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+      z-index: 1;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(148, 163, 184, 0.2),
+        0 16px 40px rgba(0, 0, 0, 0.45);
+      transition: transform 0.05s linear;
     }
-    canvas { display: block; vertical-align: middle; background: #020617; }
-    .side { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 10px; }
+    .stage-wrap:has(.overlay.is-visible),
+    .stage-wrap:has(.countdown-overlay:not([hidden])) {
+      overflow: visible;
+      z-index: 2;
+    }
+    /* 與 tetris.html #board：依視窗縮放，最大寬 380px，高度依比例 */
+    #board {
+      display: block;
+      width: min(94vw, 380px);
+      height: auto;
+      vertical-align: middle;
+      background: #0a0f18;
+    }
+    #nextCanvas,
+    #holdCanvas {
+      display: block;
+      width: 130px;
+      height: 104px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+    }
+    #holdCanvas.is-empty { opacity: 0.65; }
+    .side {
+      position: relative;
+      z-index: 2;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      flex: 0 0 auto;
+      min-width: 156px;
+      max-width: 300px;
+      width: 100%;
+      box-sizing: border-box;
+    }
     .panel {
-      background: var(--panel); border-radius: 10px; padding: 10px 12px;
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      font-size: 14px;
+      font-weight: 700;
     }
-    .panel h3 { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); font-weight: 700; }
-    .stat { display: flex; justify-content: space-between; font-size: 14px; margin: 4px 0; }
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 0.08em;
+    }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat span:last-child {
+      color: var(--accent);
+    }
+    .panel--personal-bests .stat span:last-child {
+      max-width: min(148px, 46vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
+    }
     .overlay {
-      position: absolute; inset: 0; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; padding: 16px; text-align: center;
-      background: rgba(15, 23, 42, 0.9); opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
     }
-    .overlay.is-visible { opacity: 1; pointer-events: auto; }
-    .overlay h2 { margin: 0 0 8px; font-size: 1.2rem; }
-    .overlay p { margin: 0 0 14px; color: #cbd5e1; font-size: 13px; max-width: 280px; line-height: 1.45; }
-    .rules {
-      font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 20px;
-      max-width: 720px;
+    .overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
     }
-    .rules strong { color: #cbd5e1; }
+    .overlay h2 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+    .overlay p {
+      margin: 0 0 18px;
+      max-width: 280px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    .overlay-peer-hint {
+      margin: 0 0 12px !important;
+      font-size: 14px !important;
+      font-weight: 800;
+      color: #4ade80;
+      text-shadow: 0 0 12px rgba(74, 222, 128, 0.45);
+    }
+    .overlay-peer-hint[hidden] {
+      display: none !important;
+    }
+    /* 與 tetris.html「開始遊戲」相同按鈕特效 */
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 26px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      color: #0f172a;
+      background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.35);
+      transition:
+        transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 0.22s ease,
+        box-shadow 0.22s ease;
+    }
+    .btn:hover {
+      transform: scale(1.2);
+      background: #fbbf24;
+      box-shadow:
+        0 6px 16px rgba(251, 191, 36, 0.55),
+        0 0 0 1px rgba(253, 224, 71, 0.45),
+        0 0 18px rgba(251, 191, 36, 0.7),
+        0 0 28px rgba(251, 191, 36, 0.35);
+    }
+    .btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+      transition-duration: 0.08s;
+    }
+    .btn:hover:active {
+      transform: scale(1.08);
+      background: #fbbf24;
+      box-shadow:
+        0 3px 9px rgba(251, 191, 36, 0.45),
+        inset 0 2px 5px rgba(120, 53, 15, 0.28);
+      transition-duration: 0.08s;
+    }
+    .btn:focus-visible {
+      outline: 2px solid #fde047;
+      outline-offset: 3px;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      pointer-events: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .countdown-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(4px);
+      pointer-events: auto;
+    }
+    .countdown-overlay[hidden] {
+      display: none !important;
+    }
+    .countdown-num {
+      font-size: clamp(4rem, 18vw, 6.5rem);
+      font-weight: 900;
+      line-height: 1;
+      color: #fde047;
+      text-shadow:
+        0 0 20px rgba(253, 224, 71, 0.65),
+        0 4px 24px rgba(0, 0, 0, 0.55);
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+    .hint {
+      max-width: 1040px;
+      margin-top: 25px;
+      padding: 0 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #64748b;
+      text-align: center;
+    }
+    .hint strong { color: #cbd5e1; }
     .touch-row {
       display: none; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px;
+      max-width: 1040px;
     }
     .touch-row button {
       min-width: 52px; padding: 10px 12px; border-radius: 10px; border: none;
       background: #334155; color: #f8fafc; font-weight: 700; cursor: pointer;
     }
     @media (max-width: 720px) { .touch-row { display: flex; } }
+
+    /* 與 tetris.html 榮譽榜表格一致 */
+    .leaderboard-table {
+      width: 100%;
+      table-layout: fixed;
+      font-size: 13px;
+      font-weight: 600;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+    .leaderboard-table col.lb-col-rank {
+      width: 17%;
+    }
+    .leaderboard-table col.lb-col-name {
+      width: 53%;
+    }
+    .leaderboard-table col.lb-col-score {
+      width: 30%;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 6px 8px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .leaderboard-table th {
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .leaderboard-table th.col-rank,
+    .leaderboard-table td.col-rank {
+      text-align: center;
+      color: #cbd5e1;
+    }
+    .leaderboard-table th.col-name,
+    .leaderboard-table td.col-name {
+      text-align: center;
+    }
+    .leaderboard-table td.col-name {
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .leaderboard-table th.col-score,
+    .leaderboard-table td.col-score {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .leaderboard-table td.col-score {
+      color: var(--accent);
+    }
+    .leaderboard-loading-cell {
+      text-align: center;
+      color: #64748b;
+      font-weight: 600;
+      padding: 10px 8px !important;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>雙人對戰 · Supabase Realtime</h1>
-    <div class="room-bar">
-      <span class="status-pill" id="netPill">未連線房間</span>
-      <button type="button" id="btnCreateRoom" class="btn-primary">建立房間</button>
-      <label>房間碼 <input type="text" id="roomInput" maxlength="12" placeholder="abcd12" autocomplete="off" /></label>
-      <button type="button" id="btnJoinRoom">加入房間</button>
-      <button type="button" id="btnLeaveRoom" class="btn-danger" hidden>離開房間</button>
-      <span id="presenceLabel" class="status-pill">人數：0</span>
-      <span id="roleLabel" class="status-pill"></span>
+  <div class="top-bar">
+    <h1>雙人對戰 · Realtime</h1>
+    <div class="top-bar__trail">
+      <a class="back-link" href="./tetris.html">↩ 單機版</a>
     </div>
-
-    <div class="layout">
-      <div class="stage-wrap" id="stageWrap">
-        <canvas id="board" width="260" height="520" aria-label="我方場地"></canvas>
-        <div class="overlay" id="overlay">
-          <h2 id="ovTitle">連線對戰</h2>
-          <p id="ovText">建立或加入房間後，雙方到齊將由房主送出種子並開始。</p>
-          <button type="button" class="btn btn-primary" id="readyBtn" hidden>我準備好了</button>
-        </div>
-      </div>
-      <div class="side">
-        <div class="panel">
-          <h3>我方</h3>
-          <div class="stat">分數 <span id="scoreEl">0</span></div>
-          <div class="stat">等級 <span id="levelEl">1</span></div>
-          <div class="stat">消行 <span id="linesEl">0</span></div>
-          <div class="stat">待受垃圾 <span id="garbagePendingEl">0</span></div>
-        </div>
-        <div class="panel">
-          <h3>對手</h3>
-          <div class="stat">狀態 <span id="oppStatusEl">—</span></div>
-          <div class="stat">已送來垃圾 <span id="garbageRecvEl">0</span></div>
-        </div>
-        <div class="panel">
-          <h3>下一個</h3>
-          <canvas id="nextCanvas" width="130" height="104"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="touch-row" aria-hidden="true">
-      <button type="button" data-act="left">←</button>
-      <button type="button" data-act="rotate">轉</button>
-      <button type="button" data-act="right">→</button>
-      <button type="button" data-act="soft">↓</button>
-      <button type="button" data-act="hard">落</button>
-    </div>
-
-    <p class="rules">
-      <strong>送垃圾行（簡化 Guideline）</strong>：單消 0 行、雙消 1、三消 2、四消 4。
-      <strong>連擊加成</strong>：連續消行時，自第 2 段連消起，每多一段額外 +1 行送給對手。<br />
-      垃圾行由底部插入，每行隨機一格為空洞；堆疊頂出場地則敗北。需 Supabase 專案啟用 Realtime（Dashboard → Realtime → 開啟）。<br />
-      <a href="tetris.html" style="color:#93c5fd">返回單機版</a>
-    </p>
   </div>
+
+  <div class="layout">
+    <div class="layout-main">
+      <div class="room-bar">
+        <span class="status-pill" id="netPill">未連線房間</span>
+        <button type="button" id="btnCreateRoom" class="btn-primary">建立房間</button>
+        <label class="room-bar-room-field">房間碼 <input type="text" id="roomInput" maxlength="12" placeholder="輸入對方房號" autocomplete="off" /></label>
+        <button type="button" id="btnJoinRoom">加入房間</button>
+        <button type="button" id="btnLeaveRoom" class="btn-danger" hidden>離開房間</button>
+        <span id="presenceLabel" class="status-pill">人數：0</span>
+        <span id="roleLabel" class="status-pill"></span>
+      </div>
+
+      <div class="leaderboards-wrap">
+        <div class="panel panel--leaderboard">
+          <h3>榮譽榜</h3>
+          <table class="leaderboard-table" aria-label="雙人對戰勝場前五名">
+            <colgroup>
+              <col class="lb-col-rank" />
+              <col class="lb-col-name" />
+              <col class="lb-col-score" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col" class="col-rank">名次</th>
+                <th scope="col" class="col-name">使用者</th>
+                <th scope="col" class="col-score">勝利次數</th>
+              </tr>
+            </thead>
+            <tbody id="winLeaderboardBody">
+              <tr class="leaderboard-loading">
+                <td colspan="3" class="leaderboard-loading-cell">載入中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel panel--personal-bests">
+          <h3>個人紀錄</h3>
+          <div class="stat">使用者 <span id="pvpPersonalUsernameEl">—</span></div>
+          <div class="stat">勝場 <span id="pvpPersonalWinEl">—</span></div>
+          <div class="stat">總對戰數 <span id="pvpPersonalGameEl">—</span></div>
+          <div class="stat">勝率 <span id="pvpPersonalRateEl">—</span></div>
+        </div>
+      </div>
+
+      <div class="play-cluster">
+        <div class="stage-stack">
+          <div class="stage-wrap" id="stageWrap">
+            <canvas id="board" width="400" height="800" aria-label="遊戲區域"></canvas>
+            <div class="overlay" id="overlay">
+              <h2 id="ovTitle">連線對戰</h2>
+              <p id="ovText">建立或加入房間後，雙方到齊將由房主送出種子並開始。</p>
+              <p id="ovPeerHint" class="overlay-peer-hint" hidden aria-live="polite"></p>
+              <button type="button" class="btn" id="readyBtn" hidden>我準備好了</button>
+              <button type="button" class="btn" id="rematchBtn" hidden>約戰！</button>
+            </div>
+            <div class="countdown-overlay" id="countdownOverlay" hidden aria-live="assertive">
+              <span class="countdown-num" id="countdownNum">3</span>
+            </div>
+          </div>
+        </div>
+        <div class="side">
+          <div class="panel">
+            <h3>下一個</h3>
+            <canvas id="nextCanvas" width="130" height="104"></canvas>
+          </div>
+          <div class="panel">
+            <h3>保留(shift)</h3>
+            <canvas id="holdCanvas" width="130" height="104" aria-label="保留區"></canvas>
+          </div>
+          <div class="panel">
+            <h3>計分板</h3>
+            <div class="stat">等級 <span id="levelEl">1</span></div>
+            <div class="stat">分數 <span id="scoreEl">0</span></div>
+            <div class="stat">消行 <span id="linesEl">0</span></div>
+            <div class="stat">最高連擊 <span id="maxComboEl">0</span></div>
+          </div>
+          <div class="panel">
+            <h3>對戰</h3>
+            <div class="stat">對手 <span id="oppStatusEl">—</span></div>
+            <div class="stat">待受垃圾 <span id="garbagePendingEl">0</span></div>
+            <div class="stat">已送來垃圾 <span id="garbageRecvEl">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="touch-row" aria-hidden="true">
+    <button type="button" data-act="left">←</button>
+    <button type="button" data-act="rotate">轉</button>
+    <button type="button" data-act="right">→</button>
+    <button type="button" data-act="soft">↓</button>
+    <button type="button" data-act="hard">落</button>
+    <button type="button" data-act="hold">留</button>
+  </div>
+
+  <p class="hint">
+    鍵盤：← →、↑ 旋轉、↓ 軟降、空白鍵硬降、<strong>Shift 保留</strong>（每落一塊僅一次）。<br />
+    <strong>送垃圾行</strong>：單消 0、雙消 1、三消 2、四消 4；連擊自第 2 段起每段 +1 行送對手。垃圾由底部插入、隨機空洞。<br />
+    需 Supabase 啟用 Realtime（Dashboard → Realtime → 開啟）。
+  </p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
@@ -161,6 +552,18 @@
     }
   } catch (e) {
     console.warn("Supabase 初始化失敗", e);
+  }
+
+  const PROFILE_TABLE = "profiles";
+  const TETRIS_SCORES_TABLE = "tetris_scores";
+
+  function describeTetrisWriteError(err) {
+    if (!err) return "未知錯誤";
+    const m = err.message || String(err);
+    if (/row-level security|RLS|policy|42501/i.test(m)) {
+      return "寫入被拒（RLS）：請在 Supabase 執行 SQL/tetris_scores.sql，含 INSERT 與 UPDATE policy。";
+    }
+    return m;
   }
 
   const COLS = 10;
@@ -251,6 +654,10 @@
 
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
+  canvas.width = COLS * CS;
+  canvas.height = ROWS * CS;
+  const holdCv = document.getElementById("holdCanvas");
+  const hctx = holdCv.getContext("2d");
   const nextCv = document.getElementById("nextCanvas");
   const nctx = nextCv.getContext("2d");
   const stageWrap = document.getElementById("stageWrap");
@@ -258,9 +665,14 @@
   const ovTitle = document.getElementById("ovTitle");
   const ovText = document.getElementById("ovText");
   const readyBtn = document.getElementById("readyBtn");
+  const rematchBtn = document.getElementById("rematchBtn");
+  const ovPeerHint = document.getElementById("ovPeerHint");
+  const countdownOverlay = document.getElementById("countdownOverlay");
+  const countdownNum = document.getElementById("countdownNum");
   const scoreEl = document.getElementById("scoreEl");
   const levelEl = document.getElementById("levelEl");
   const linesEl = document.getElementById("linesEl");
+  const maxComboEl = document.getElementById("maxComboEl");
   const garbagePendingEl = document.getElementById("garbagePendingEl");
   const garbageRecvEl = document.getElementById("garbageRecvEl");
   const oppStatusEl = document.getElementById("oppStatusEl");
@@ -271,6 +683,7 @@
   const btnCreateRoom = document.getElementById("btnCreateRoom");
   const btnJoinRoom = document.getElementById("btnJoinRoom");
   const btnLeaveRoom = document.getElementById("btnLeaveRoom");
+  const winLeaderboardBody = document.getElementById("winLeaderboardBody");
 
   const MOVE_DAS_MS = 90;
   const MOVE_ARR_MS = 50;
@@ -307,6 +720,8 @@
   let lockGroundedSince = null;
   let comboChain = 0;
   let maxComboChain = 0;
+  let holdType = null;
+  let canHold = true;
   let pendingGarbage = 0;
   let garbageReceivedTotal = 0;
 
@@ -318,6 +733,224 @@
   let myClientId = "";
   let gameSeed = 0;
   let matchStarted = false;
+  /** 上一局已結束，顯示「約戰！」 */
+  let postGame = false;
+  let myRematch = false;
+  let peerRematch = false;
+
+  function winLeaderboardRankDisplay(indexZero) {
+    const r = indexZero + 1;
+    if (r === 1) return "🥇";
+    if (r === 2) return "🥈";
+    if (r === 3) return "🥉";
+    return String(r);
+  }
+
+  async function loadWinLeaderboard() {
+    if (!winLeaderboardBody) return;
+    if (!sb) {
+      winLeaderboardBody.innerHTML =
+        '<tr><td colspan="3" class="leaderboard-loading-cell">Supabase 未初始化</td></tr>';
+      return;
+    }
+    winLeaderboardBody.innerHTML =
+      '<tr class="leaderboard-loading"><td colspan="3" class="leaderboard-loading-cell">載入中…</td></tr>';
+    try {
+      const { data, error } = await sb
+        .from(TETRIS_SCORES_TABLE)
+        .select("username, win")
+        .order("win", { ascending: false })
+        .order("username", { ascending: true })
+        .limit(5);
+      if (error) throw error;
+      winLeaderboardBody.innerHTML = "";
+      if (!data || data.length === 0) {
+        winLeaderboardBody.innerHTML =
+          '<tr><td colspan="3" class="leaderboard-loading-cell">尚無紀錄</td></tr>';
+        return;
+      }
+      data.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        const tdRank = document.createElement("td");
+        tdRank.className = "col-rank";
+        tdRank.textContent = winLeaderboardRankDisplay(i);
+        tdRank.title = "第 " + (i + 1) + " 名";
+        tdRank.setAttribute("aria-label", "第 " + (i + 1) + " 名");
+        const tdName = document.createElement("td");
+        tdName.className = "col-name";
+        const name =
+          row.username != null && String(row.username).trim() !== "" ? String(row.username) : "—";
+        tdName.textContent = name;
+        tdName.title = name;
+        const tdWin = document.createElement("td");
+        tdWin.className = "col-score";
+        const w = row.win != null ? Number(row.win) : 0;
+        tdWin.textContent = String(w);
+        tr.appendChild(tdRank);
+        tr.appendChild(tdName);
+        tr.appendChild(tdWin);
+        winLeaderboardBody.appendChild(tr);
+      });
+    } catch (e) {
+      console.warn("loadWinLeaderboard", e);
+      winLeaderboardBody.innerHTML =
+        '<tr><td colspan="3" class="leaderboard-loading-cell">載入失敗</td></tr>';
+    }
+  }
+
+  async function loadPvpPersonalStats() {
+    const usernameEl = document.getElementById("pvpPersonalUsernameEl");
+    const winEl = document.getElementById("pvpPersonalWinEl");
+    const gameEl = document.getElementById("pvpPersonalGameEl");
+    const rateEl = document.getElementById("pvpPersonalRateEl");
+    const set = (el, text) => {
+      if (el) el.textContent = text;
+    };
+    if (!usernameEl || !winEl || !gameEl || !rateEl) return;
+    if (!sb) {
+      set(usernameEl, "—");
+      set(winEl, "—");
+      set(gameEl, "—");
+      set(rateEl, "—");
+      return;
+    }
+    try {
+      const {
+        data: { session },
+        error: sessErr,
+      } = await sb.auth.getSession();
+      if (sessErr) console.warn("getSession", sessErr);
+      const user = session?.user;
+      if (!user) {
+        set(usernameEl, "請先登入");
+        set(winEl, "—");
+        set(gameEl, "—");
+        set(rateEl, "—");
+        return;
+      }
+      const [profRes, scoreRes] = await Promise.all([
+        sb.from(PROFILE_TABLE).select("username").eq("id", user.id).maybeSingle(),
+        sb.from(TETRIS_SCORES_TABLE).select("win, game").eq("user_id", user.id).maybeSingle(),
+      ]);
+      if (profRes.error) console.warn("profiles（個人紀錄）", profRes.error);
+      if (scoreRes.error) console.warn("tetris_scores（個人紀錄）", scoreRes.error);
+      const uname =
+        (profRes.data && profRes.data.username && String(profRes.data.username).trim()) ||
+        user.email ||
+        "—";
+      set(usernameEl, uname);
+      if (scoreRes.error) {
+        set(winEl, "—");
+        set(gameEl, "—");
+        set(rateEl, "—");
+        return;
+      }
+      const row = scoreRes.data;
+      const w = row ? Number(row.win) || 0 : 0;
+      const g = row ? Number(row.game) || 0 : 0;
+      set(winEl, String(w));
+      set(gameEl, String(g));
+      if (g <= 0) set(rateEl, "—");
+      else set(rateEl, ((w / g) * 100).toFixed(1) + "%");
+    } catch (e) {
+      console.warn("loadPvpPersonalStats", e);
+      set(usernameEl, "—");
+      set(winEl, "—");
+      set(gameEl, "—");
+      set(rateEl, "—");
+    }
+  }
+
+  function isCountdownVisible() {
+    return countdownOverlay && !countdownOverlay.hidden;
+  }
+
+  async function showCountdown321() {
+    if (!countdownOverlay || !countdownNum) return;
+    countdownOverlay.hidden = false;
+    for (let n = 3; n >= 1; n--) {
+      countdownNum.textContent = String(n);
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    countdownOverlay.hidden = true;
+  }
+
+  function syncPeerHints() {
+    if (!ovPeerHint) return;
+    if (!rtChannel || running || matchStarted || isCountdownVisible()) {
+      ovPeerHint.hidden = true;
+      return;
+    }
+    if (peerReady && !myReady && !postGame) {
+      ovPeerHint.textContent = "對手已準備好了！";
+      ovPeerHint.hidden = false;
+    } else if (peerRematch && !myRematch && postGame) {
+      ovPeerHint.textContent = "對手已按下「約戰！」";
+      ovPeerHint.hidden = false;
+    } else {
+      ovPeerHint.hidden = true;
+    }
+  }
+
+  /**
+   * 每場雙人對戰結束：game +1；勝利時 win +1。需登入；不覆寫既有 score／combo。
+   */
+  async function submitPvpStats(won) {
+    if (!sb) return;
+    try {
+      const {
+        data: { session },
+        error: sessErr,
+      } = await sb.auth.getSession();
+      if (sessErr) console.warn("getSession", sessErr);
+      const user = session?.user;
+      if (!user) {
+        console.warn("submitPvpStats：未登入，略過上傳");
+        return;
+      }
+      const { data: prof, error: profErr } = await sb
+        .from(PROFILE_TABLE)
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profErr) console.warn("profiles 讀取失敗", profErr);
+      const uname =
+        (prof && prof.username && String(prof.username).trim()) || user.email || "玩家";
+      const { data: existing, error: selErr } = await sb
+        .from(TETRIS_SCORES_TABLE)
+        .select("score, combo, win, game")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (selErr) {
+        console.warn("tetris_scores 讀取失敗", selErr, describeTetrisWriteError(selErr));
+        return;
+      }
+      const prevWin = existing ? Number(existing.win) || 0 : 0;
+      const prevGame = existing ? Number(existing.game) || 0 : 0;
+      const newGame = prevGame + 1;
+      const newWin = prevWin + (won ? 1 : 0);
+      const patch = { username: uname, win: newWin, game: newGame };
+      if (existing) {
+        const { error: upErr } = await sb
+          .from(TETRIS_SCORES_TABLE)
+          .update(patch)
+          .eq("user_id", user.id);
+        if (upErr) console.warn("tetris_scores update", upErr, describeTetrisWriteError(upErr));
+      } else {
+        const { error: insErr } = await sb.from(TETRIS_SCORES_TABLE).insert({
+          user_id: user.id,
+          username: uname,
+          score: 0,
+          combo: 0,
+          win: newWin,
+          game: newGame,
+        });
+        if (insErr) console.warn("tetris_scores insert", insErr, describeTetrisWriteError(insErr));
+      }
+    } catch (e) {
+      console.warn("submitPvpStats", e);
+    }
+  }
 
   function emptyBoard() {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -397,8 +1030,37 @@
 
   function spawnAfterLock() {
     const ok = spawnFromQueue();
-    if (ok) lastDrop = performance.now();
+    if (ok) {
+      lastDrop = performance.now();
+      canHold = true;
+    }
     return ok;
+  }
+
+  function doHold() {
+    if (!running || paused || !current || !canHold) return;
+    canHold = false;
+    const t = current.type;
+    current = null;
+    if (holdType == null) {
+      holdType = t;
+      if (!spawnFromQueue()) {
+        broadcastKo();
+        endGame(false);
+        return;
+      }
+    } else {
+      const sw = holdType;
+      holdType = t;
+      if (!spawnPieceOfType(sw)) {
+        broadcastKo();
+        endGame(false);
+        return;
+      }
+    }
+    lastDrop = performance.now();
+    lockGroundedSince = null;
+    draw();
   }
 
   function findFullRows() {
@@ -486,6 +1148,7 @@
       scoreEl.textContent = String(score);
       linesEl.textContent = String(lines);
       levelEl.textContent = String(level);
+      if (maxComboEl) maxComboEl.textContent = String(maxComboChain);
       const sendN = garbageLinesToSend(nLines, streak);
       if (sendN > 0) broadcastAttack(sendN);
     } else {
@@ -501,6 +1164,10 @@
   function endGame(won) {
     running = false;
     paused = false;
+    matchStarted = false;
+    postGame = true;
+    myReady = false;
+    myRematch = false;
     cancelAnimationFrame(raf);
     keyArrowLeft = keyArrowRight = keyArrowDown = false;
     horizRepeat = softRepeat = null;
@@ -508,7 +1175,22 @@
     ovTitle.textContent = won ? "你贏了" : "你輸了";
     ovText.textContent = won ? "對手場地頂出或已斷線。" : "你的場地無法再出塊，或對手達成勝利條件。";
     readyBtn.hidden = true;
+    rematchBtn.hidden = true;
+    if (ovPeerHint) ovPeerHint.hidden = true;
     overlay.classList.add("is-visible");
+    if (rtChannel) {
+      try {
+        void rtChannel.track({ clientId: myClientId, ready: false, rematch: false });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    if (oppStatusEl) oppStatusEl.textContent = "待約戰";
+    updatePresenceUi();
+    void submitPvpStats(won).finally(() => {
+      void loadWinLeaderboard();
+      void loadPvpPersonalStats();
+    });
   }
 
   function horizontalDirFromKeys() {
@@ -548,6 +1230,9 @@
     ctx.globalAlpha = alpha == null ? 1 : alpha;
     ctx.fillStyle = color;
     ctx.fillRect(x * CS + pad, y * CS + pad, CS - pad * 2, CS - pad * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x * CS + pad, y * CS + pad, CS - pad * 2, CS - pad * 2);
     ctx.globalAlpha = 1;
   }
 
@@ -584,8 +1269,26 @@
     if (nextType) drawMiniPiece(nctx, nextCv.width, nextCv.height, nextType);
   }
 
+  function drawHoldPreview() {
+    hctx.textAlign = "left";
+    hctx.textBaseline = "alphabetic";
+    hctx.fillStyle = "rgba(0,0,0,0.35)";
+    hctx.fillRect(0, 0, holdCv.width, holdCv.height);
+    holdCv.classList.toggle("is-empty", !holdType);
+    if (holdType) {
+      drawMiniPiece(hctx, holdCv.width, holdCv.height, holdType);
+    } else {
+      hctx.fillStyle = "rgba(148,163,184,0.35)";
+      hctx.font = "600 14px Segoe UI, Noto Sans TC, sans-serif";
+      hctx.textAlign = "center";
+      hctx.textBaseline = "middle";
+      hctx.fillText("—", holdCv.width / 2, holdCv.height / 2);
+    }
+  }
+
   function draw() {
-    ctx.fillStyle = "#020617";
+    /* 與 tetris.html 主場地底色 */
+    ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
@@ -598,10 +1301,20 @@
       for (let i = 0; i < cells.length; i++) {
         const x = current.x + cells[i][0];
         const y = current.y + cells[i][1];
-        if (y >= 0) drawCell(x, y, c);
+        if (y >= 0 && y < ROWS) drawCell(x, y, c);
+      }
+      let gy = current.y;
+      while (validPosition(current.type, current.rot, current.x, gy + 1)) gy++;
+      if (gy !== current.y) {
+        for (let i = 0; i < cells.length; i++) {
+          const x = current.x + cells[i][0];
+          const y = gy + cells[i][1];
+          if (y >= 0 && y < ROWS) drawCell(x, y, c, 0.22);
+        }
       }
     }
     drawNext();
+    drawHoldPreview();
   }
 
   function tick(now) {
@@ -657,6 +1370,8 @@
     level = 1;
     comboChain = 0;
     maxComboChain = 0;
+    holdType = null;
+    canHold = true;
     pendingGarbage = 0;
     garbageReceivedTotal = 0;
     garbagePendingEl.textContent = "0";
@@ -674,17 +1389,25 @@
     scoreEl.textContent = "0";
     linesEl.textContent = "0";
     levelEl.textContent = "1";
+    if (maxComboEl) maxComboEl.textContent = "0";
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
   }
 
   function resetLobbyUi() {
     running = false;
+    postGame = false;
+    myRematch = false;
+    peerRematch = false;
+    matchStarted = false;
+    if (countdownOverlay) countdownOverlay.hidden = true;
     cancelAnimationFrame(raf);
     overlay.classList.add("is-visible");
     ovTitle.textContent = "連線對戰";
     ovText.textContent = "建立或加入房間後，雙方到齊可開始。";
     readyBtn.hidden = true;
+    rematchBtn.hidden = true;
+    if (ovPeerHint) ovPeerHint.hidden = true;
   }
 
   function getOrCreateClientId() {
@@ -703,38 +1426,83 @@
   function updatePresenceUi() {
     if (!rtChannel) {
       presenceLabel.textContent = "人數：0";
+      readyBtn.hidden = true;
+      rematchBtn.hidden = true;
+      if (ovPeerHint) ovPeerHint.hidden = true;
       return;
     }
     const state = rtChannel.presenceState();
     const n = Object.keys(state).length;
     presenceLabel.textContent = "人數：" + n;
     peerReady = false;
+    peerRematch = false;
     for (const key of Object.keys(state)) {
       const metas = state[key];
       if (!metas || !metas.length) continue;
       for (let i = 0; i < metas.length; i++) {
         const m = metas[i];
-        if (m && m.clientId && m.clientId !== myClientId && m.ready) peerReady = true;
+        if (!m || !m.clientId || m.clientId === myClientId) continue;
+        if (m.ready) peerReady = true;
+        if (m.rematch) peerRematch = true;
       }
     }
-    readyBtn.hidden = !(n >= 2 && !running && !matchStarted);
-    if (isHost && n >= 2 && myReady && peerReady && !matchStarted && !running) {
+    const canLobby = n >= 2 && !running && !matchStarted;
+    readyBtn.hidden = !(canLobby && !postGame);
+    rematchBtn.hidden = !(canLobby && postGame);
+    syncPeerHints();
+    if (
+      isHost &&
+      n >= 2 &&
+      !matchStarted &&
+      !running &&
+      !postGame &&
+      myReady &&
+      peerReady
+    ) {
       const seed = (Math.random() * 0xffffffff) >>> 0;
       rtChannel.send({
         type: "broadcast",
         event: "start",
         payload: { seed },
       });
-      beginMatch(seed);
+      void beginMatch(seed);
+    } else if (
+      isHost &&
+      n >= 2 &&
+      !matchStarted &&
+      !running &&
+      postGame &&
+      myRematch &&
+      peerRematch
+    ) {
+      const seed = (Math.random() * 0xffffffff) >>> 0;
+      rtChannel.send({
+        type: "broadcast",
+        event: "start",
+        payload: { seed },
+      });
+      void beginMatch(seed);
     }
   }
 
-  function beginMatch(seed) {
+  async function beginMatch(seed) {
     if (matchStarted || running) return;
     matchStarted = true;
+    postGame = false;
     myReady = false;
-    peerReady = false;
+    myRematch = false;
     readyBtn.hidden = true;
+    rematchBtn.hidden = true;
+    if (ovPeerHint) ovPeerHint.hidden = true;
+    if (rtChannel) {
+      try {
+        await rtChannel.track({ clientId: myClientId, ready: false, rematch: false });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    overlay.classList.remove("is-visible");
+    await showCountdown321();
     startLocalGame(seed);
     oppStatusEl.textContent = "對戰中";
   }
@@ -752,7 +1520,7 @@
     });
     ch.on("broadcast", { event: "start" }, ({ payload }) => {
       if (!payload || payload.seed == null) return;
-      if (!isHost) beginMatch(payload.seed >>> 0);
+      if (!isHost) void beginMatch(payload.seed >>> 0);
     });
     ch.on("presence", { event: "sync" }, () => updatePresenceUi());
     ch.on("presence", { event: "join" }, () => updatePresenceUi());
@@ -772,7 +1540,10 @@
     roomId = "";
     isHost = false;
     myReady = false;
+    myRematch = false;
     peerReady = false;
+    peerRematch = false;
+    postGame = false;
     matchStarted = false;
     netPill.textContent = "未連線房間";
     netPill.className = "status-pill";
@@ -812,7 +1583,7 @@
       ch.subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           try {
-            await ch.track({ clientId: myClientId, ready: false });
+            await ch.track({ clientId: myClientId, ready: false, rematch: false });
           } catch (e) {
             console.warn(e);
           }
@@ -835,7 +1606,6 @@
     btnLeaveRoom.hidden = false;
     roomInput.value = roomId;
     ovText.textContent = "房間 " + roomId + "。兩人都緒後由房主開始（自動）。";
-    readyBtn.hidden = false;
     updatePresenceUi();
   }
 
@@ -843,7 +1613,18 @@
     if (!rtChannel) return;
     myReady = true;
     try {
-      await rtChannel.track({ clientId: myClientId, ready: true });
+      await rtChannel.track({ clientId: myClientId, ready: true, rematch: false });
+    } catch (e) {
+      console.warn(e);
+    }
+    updatePresenceUi();
+  });
+
+  rematchBtn.addEventListener("click", async () => {
+    if (!rtChannel) return;
+    myRematch = true;
+    try {
+      await rtChannel.track({ clientId: myClientId, ready: false, rematch: true });
     } catch (e) {
       console.warn(e);
     }
@@ -865,8 +1646,14 @@
   btnLeaveRoom.addEventListener("click", () => void leaveRoom());
 
   window.addEventListener("keydown", (e) => {
+    if (isCountdownVisible()) return;
     if (overlay.classList.contains("is-visible") && ovTitle.textContent !== "連線對戰") return;
     if (!running || paused) return;
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+      doHold();
+      e.preventDefault();
+      return;
+    }
     if (e.code === "ArrowLeft") {
       e.preventDefault();
       if (e.repeat) return;
@@ -910,17 +1697,28 @@
 
   document.querySelector(".touch-row").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-act]");
-    if (!b || !running || paused) return;
+    if (!b || !running || paused || isCountdownVisible()) return;
     const act = b.getAttribute("data-act");
     if (act === "left") move(-1, 0);
     else if (act === "right") move(1, 0);
     else if (act === "soft") move(0, 1);
     else if (act === "hard") hardDrop();
     else if (act === "rotate") tryRotate();
+    else if (act === "hold") doHold();
   });
 
   draw();
   drawNext();
+  drawHoldPreview();
+
+  void loadWinLeaderboard();
+  void loadPvpPersonalStats();
+  if (sb && sb.auth && typeof sb.auth.onAuthStateChange === "function") {
+    sb.auth.onAuthStateChange(() => {
+      void loadWinLeaderboard();
+      void loadPvpPersonalStats();
+    });
+  }
 })();
   </script>
 </body>
