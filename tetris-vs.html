@@ -120,6 +120,22 @@
     .room-bar button:hover, .btn:hover { filter: brightness(1.08); }
     .btn-primary { background: #2563eb; color: #fff; }
     .btn-danger { background: #b91c1c; color: #fff; }
+    /* 房間操作鈕：hover 增亮＋放大 10%，active 點擊回饋 */
+    .room-bar .room-action-btn {
+      transform-origin: center;
+      transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+    }
+    .room-bar .room-action-btn:hover {
+      transform: scale(1.1);
+      filter: brightness(1.22);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .room-bar .room-action-btn:active {
+      transform: scale(1.04);
+      filter: brightness(1.05);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      transition-duration: 0.08s;
+    }
     .status-pill {
       font-size: 14px; padding: 4px 10px; border-radius: 999px; background: #1e293b;
       color: var(--muted);
@@ -508,10 +524,10 @@
     <div class="layout-main">
       <div class="room-bar">
         <span class="status-pill" id="netPill">未連線房間</span>
-        <button type="button" id="btnCreateRoom" class="btn-primary">建立房間</button>
+        <button type="button" id="btnCreateRoom" class="btn-primary room-action-btn">建立房間</button>
         <label class="room-bar-room-field">房間碼 <input type="text" id="roomInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="輸入對方房號" autocomplete="off" /></label>
-        <button type="button" id="btnJoinRoom">加入房間</button>
-        <button type="button" id="btnLeaveRoom" class="btn-danger" hidden>離開房間</button>
+        <button type="button" id="btnJoinRoom" class="room-action-btn">加入房間</button>
+        <button type="button" id="btnLeaveRoom" class="btn-danger room-action-btn" hidden>離開房間</button>
         <span id="presenceLabel" class="status-pill">人數：0</span>
         <span id="roleLabel" class="status-pill"></span>
       </div>
@@ -1988,6 +2004,20 @@
     const state = rtChannel.presenceState();
     const n = Object.keys(state).length;
     presenceLabel.textContent = "人數：" + n;
+    if (
+      !running &&
+      !matchStarted &&
+      !postGame &&
+      overlay.classList.contains("is-visible") &&
+      ovTitle.textContent === "連線對戰"
+    ) {
+      if (n >= 2) {
+        ovText.textContent =
+          "連線成功! (" + roomId + ") 兩人都緒後將自動開始。";
+      } else {
+        ovText.textContent = "已連線（" + roomId + "），等待對方加入房間…";
+      }
+    }
     if (n < 2 && (matchStarted || running) && !postGame) {
       endGame(true, "disconnect");
       return;
@@ -2194,7 +2224,6 @@
     roleLabel.textContent = isHost ? "房主" : "加入者";
     btnLeaveRoom.hidden = false;
     roomInput.value = roomId;
-    ovText.textContent = "連線成功! (" + roomId + ") 兩人都緒後將自動開始。";
     updatePresenceUi();
   }
 
