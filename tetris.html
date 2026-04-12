@@ -110,7 +110,7 @@
       max-width: none;
     }
 
-    /* 遊戲區 + 保留／下一個／計分板 綁在一起，避免 flex 換行時側欄單獨掉到下一列底部 */
+    /* 遊戲區 + 下一個／保留／計分板 綁在一起，避免 flex 換行時側欄單獨掉到下一列底部 */
     .play-cluster {
       position: relative;
       z-index: 0;
@@ -554,7 +554,41 @@
       max-width: 260px;
       line-height: 1.5;
       color: #cbd5e1;
+    }
+
+    .overlay p:not(.overlay-congrats) {
       font-size: 13px;
+    }
+
+    /* 須高於 .overlay p，否則字級會被 13px 蓋掉 */
+    .overlay p.overlay-congrats {
+      margin: 0 0 10px;
+      max-width: min(960px, 96vw);
+      font-size: clamp(25px, 15vw, 30px);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: #fde047;
+      line-height: 1.35;
+      white-space: pre-line;
+      text-wrap: balance;
+      animation: overlay-congrats-glow 0.95s ease-in-out infinite alternate;
+    }
+
+    @keyframes overlay-congrats-glow {
+      from {
+        text-shadow:
+          0 0 5px rgba(253, 224, 71, 0.275),
+          0 0 12px rgba(253, 224, 71, 0.175),
+          0 0 2px rgba(253, 224, 71, 0.4);
+        filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.225));
+      }
+      to {
+        text-shadow:
+          0 0 10px rgba(253, 224, 71, 0.475),
+          0 0 51px rgba(250, 204, 21, 0.25),
+          0 0 3px rgba(255, 251, 235, 0.425);
+        filter: drop-shadow(0 0 18px rgba(253, 224, 71, 0.425));
+      }
     }
 
     .countdown-overlay {
@@ -863,6 +897,7 @@
             <canvas id="board" width="400" height="800" aria-label="遊戲區域"></canvas>
             <div class="overlay is-visible" id="overlay" role="dialog" aria-labelledby="ovTitle">
               <h2 id="ovTitle">俄羅斯方塊</h2>
+              <p id="ovCongrats" class="overlay-congrats" hidden aria-live="polite"></p>
               <p id="ovText">
                 消行得分；連續消行有倍率加成。<br />一次消四行有額外獎分。<br />Shift 保留方塊（每落一塊僅一次）。
               </p>
@@ -881,12 +916,12 @@
 
         <div class="side">
           <div class="panel">
-            <h3>保留(shift)</h3>
-            <canvas id="holdCanvas" width="130" height="104" aria-label="保留區"></canvas>
-          </div>
-          <div class="panel">
             <h3>下一個</h3>
             <canvas id="nextCanvas" width="130" height="104"></canvas>
+          </div>
+          <div class="panel">
+            <h3>保留(shift)</h3>
+            <canvas id="holdCanvas" width="130" height="104" aria-label="保留區"></canvas>
           </div>
           <div class="panel">
             <h3>計分板</h3>
@@ -919,7 +954,8 @@
     鍵盤：移動：← →、旋轉：↑、速落：↓、硬降：空白鍵、保留：Shift、暫停：P。
     　連續消行可提高得分倍率（未消行則歸零）。<br />
     觸控裝置可使用下方按鈕（保留）。<br />
-    月榮譽榜冠軍授予🎖️獎章、月英雄榜冠軍授予🏅獎章、月雙冠軍授予🏆獎盃
+    月榮譽榜冠軍授予🎖️獎章、月英雄榜冠軍授予🏅獎章、月雙冠軍授予🏆獎盃<br />
+    <a href="./tetris-vs.html" style="color:#93c5fd">雙人對戰（Realtime）</a>
   </p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1036,6 +1072,7 @@
       const countdownNum = document.getElementById("countdownNum");
       const pauseOverlay = document.getElementById("pauseOverlay");
       const ovTitle = document.getElementById("ovTitle");
+      const ovCongrats = document.getElementById("ovCongrats");
       const ovText = document.getElementById("ovText");
       const startBtn = document.getElementById("startBtn");
       const scoreEl = document.getElementById("scoreEl");
@@ -1135,9 +1172,14 @@
       }
 
       const STORAGE_KEY = "tetrisBest_v1";
+      const STORAGE_KEY_COMBO = "tetrisBestCombo_v1";
       let best = 0;
+      let comboBest = 0;
       try {
         best = Math.max(0, parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0);
+      } catch (_) {}
+      try {
+        comboBest = Math.max(0, parseInt(localStorage.getItem(STORAGE_KEY_COMBO) || "0", 10) || 0);
       } catch (_) {}
 
       const CS = 26;
@@ -1145,6 +1187,17 @@
       canvas.height = ROWS * CS;
 
       const DROP_SPEED_MULT = 1.15;
+      /** 方向鍵長按：進入連發前的等待（DAS）與連發間隔（ARR）；為常見手感約 167ms / 33ms 的 50% */
+      const MOVE_DAS_MS = 90;
+      /** 長按 ↓ 軟降時，每下移一格的間隔 */
+      const MOVE_ARR_MS = 50;
+      /**
+       * 長按 ←／→ 「連續橫移」時，橫向每移一格的間隔（毫秒）。
+       * 此處為在與 MOVE_ARR_MS 相同基底下，橫向移動再快 50%（間隔 ÷1.5，格／秒 ×1.5）。
+       */
+      const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS / 1;
+      /** 方塊底部著地後，經過此時間才鎖定 */
+      const LOCK_DELAY_MS = 300;
       function dropMsForLevel(lv) {
         const raw = 1000 - (lv - 1) * 65;
         return Math.max(70, raw / DROP_SPEED_MULT);
@@ -1167,6 +1220,15 @@
       let lastDrop = 0;
       let lastFrameT = 0;
       let raf = 0;
+      let keyArrowLeft = false;
+      let keyArrowRight = false;
+      let keyArrowDown = false;
+      /** 同時按左右時以最後一次按下的方向為準 */
+      let lastHorizKey = 0;
+      let horizRepeat = null;
+      let softRepeat = null;
+      /** 著地狀態下開始計時的時間戳；非著地時為 null */
+      let lockGroundedSince = null;
       let holdType = null;
       let canHold = true;
       let lineClearAnim = null;
@@ -1217,6 +1279,25 @@
         return true;
       }
 
+      function pieceIsGrounded() {
+        if (!current) return false;
+        return !validPosition(current.type, current.rot, current.x, current.y + 1);
+      }
+
+      function updateLockDelay(now) {
+        if (!current || lineClearAnim) return;
+        if (!pieceIsGrounded()) {
+          lockGroundedSince = null;
+          return;
+        }
+        if (lockGroundedSince == null) {
+          lockGroundedSince = now;
+        }
+        if (now - lockGroundedSince >= LOCK_DELAY_MS) {
+          lockPiece();
+        }
+      }
+
       function tryRotate() {
         if (!current || lineClearAnim) return;
         const from = current.rot;
@@ -1228,6 +1309,7 @@
             current.rot = to;
             current.x += kx;
             current.y += ky;
+            lockGroundedSince = pieceIsGrounded() ? performance.now() : null;
             return;
           }
         }
@@ -1263,6 +1345,7 @@
         if (ok) {
           canHold = true;
           lastDrop = performance.now();
+          lockGroundedSince = null;
         }
         return ok;
       }
@@ -1347,7 +1430,7 @@
       }
 
       /**
-       * 僅在本局「最高連擊」超過資料庫中個人最佳連擊時寫入（並一併更新較高之分數）。
+       * 本局分數或連擊任一優於資料庫個人紀錄時寫入（分數、連擊取與本局及舊資料之最大值）。
        * @returns {Promise<{ ok: boolean; message?: string }>}
        */
       async function submitTetrisScore(finalScore, gameMaxCombo) {
@@ -1387,22 +1470,31 @@
           }
           const prevScore = existing ? Number(existing.score) || 0 : 0;
           const prevCombo = existing ? (existing.combo != null ? Number(existing.combo) : 0) : 0;
-          if (gCombo <= prevCombo) {
+          const newScore = Math.max(prevScore, finalScore);
+          const newCombo = Math.max(prevCombo, gCombo);
+          if (newScore === prevScore && newCombo === prevCombo) {
             return { ok: true };
           }
-          const newScore = Math.max(prevScore, finalScore);
           const row = {
             username: uname,
             score: newScore,
-            combo: gCombo,
+            combo: newCombo,
           };
+          let hintMsg = "已更新榮譽榜個人紀錄。";
+          if (newScore > prevScore && newCombo > prevCombo) {
+            hintMsg = "已更新個人最高分與最高連擊至榮譽榜。";
+          } else if (newScore > prevScore) {
+            hintMsg = "已更新個人最高分至榮譽榜。";
+          } else if (newCombo > prevCombo) {
+            hintMsg = "已更新個人最高連擊至榮譽榜。";
+          }
           if (existing) {
             const { error: upErr } = await sb.from(TETRIS_SCORES_TABLE).update(row).eq("user_id", user.id);
             if (upErr) {
               console.error("tetris_scores update", upErr);
               return { ok: false, message: describeTetrisWriteError(upErr) };
             }
-            return { ok: true, message: "已更新個人最佳連擊至榮譽榜。" };
+            return { ok: true, message: hintMsg };
           }
           const { error: insErr } = await sb.from(TETRIS_SCORES_TABLE).insert({
             user_id: user.id,
@@ -1412,7 +1504,7 @@
             console.error("tetris_scores insert", insErr);
             return { ok: false, message: describeTetrisWriteError(insErr) };
           }
-          return { ok: true, message: "已更新個人最佳連擊至榮譽榜。" };
+          return { ok: true, message: hintMsg };
         } catch (e) {
           console.warn(e);
           return { ok: false, message: String(e && e.message ? e.message : e) };
@@ -1572,6 +1664,80 @@
         })();
       }
 
+      /**
+       * 與榮譽榜／英雄榜「前三名」門檻比對：本局數值是否達得進前 3 名。
+       * 不依賴是否已寫入資料庫，以本局分數／連擊與現有榜單列比較。
+       */
+      function rowQualifiesTop3(value, rows, key) {
+        const v = Number(value) || 0;
+        if (v <= 0) return false;
+        const vals = rows.map((r) => Number(r[key]) || 0);
+        if (vals.length === 0) return true;
+        if (vals.length < 3) return true;
+        return v >= vals[2];
+      }
+
+      async function checkLeaderboardTop3(finalScore, gameCombo) {
+        if (!sb) return { scoreTop3: false, comboTop3: false };
+        try {
+          const [scoreRes, comboRes] = await Promise.all([
+            sb.from(TETRIS_SCORES_TABLE).select("score").order("score", { ascending: false }).limit(3),
+            sb
+              .from(TETRIS_SCORES_TABLE)
+              .select("combo")
+              .order("combo", { ascending: false })
+              .order("score", { ascending: false })
+              .limit(3),
+          ]);
+          if (scoreRes.error || comboRes.error) {
+            if (scoreRes.error) console.warn(scoreRes.error);
+            if (comboRes.error) console.warn(comboRes.error);
+            return { scoreTop3: false, comboTop3: false };
+          }
+          const sRows = scoreRes.data || [];
+          const cRows = comboRes.data || [];
+          return {
+            scoreTop3: rowQualifiesTop3(finalScore, sRows, "score"),
+            comboTop3: rowQualifiesTop3(gameCombo, cRows, "combo"),
+          };
+        } catch (e) {
+          console.warn(e);
+          return { scoreTop3: false, comboTop3: false };
+        }
+      }
+
+      /**
+       * @param {{ personalScore: boolean; personalCombo: boolean; honorTop3: boolean; heroTop3: boolean }} f
+       * @returns {string} 無任一條件時回傳空字串
+       */
+      function buildCongratsMessage(f) {
+        const bits = [];
+        if (f.personalScore && f.personalCombo) {
+          bits.push("刷新個人最高分與最高連擊");
+        } else {
+          if (f.personalScore) bits.push("刷新個人最高分");
+          if (f.personalCombo) bits.push("刷新個人最高連擊");
+        }
+        if (f.honorTop3 && f.heroTop3) {
+          bits.push("同時躍入榮譽榜與英雄榜前三名");
+        } else {
+          if (f.honorTop3) bits.push("躍入榮譽榜前三名");
+          if (f.heroTop3) bits.push("躍入英雄榜前三名");
+        }
+        if (bits.length === 0) return "";
+        return "恭喜\n" + bits.join("，") + "！";
+      }
+
+      function setOverlayCongrats(show, message) {
+        if (!ovCongrats) return;
+        ovCongrats.hidden = !show;
+        if (!show) {
+          ovCongrats.textContent = "";
+          return;
+        }
+        if (message != null && message !== "") ovCongrats.textContent = message;
+      }
+
       loadLeaderboards();
       void refreshPersonalStats();
 
@@ -1648,6 +1814,7 @@
           }
         }
         lastDrop = performance.now();
+        lockGroundedSince = null;
         draw();
       }
 
@@ -1666,6 +1833,7 @@
 
       function lockPiece() {
         if (lineClearAnim || !current) return;
+        lockGroundedSince = null;
         mergePiece();
         current = null;
         const rows = findFullRows();
@@ -1705,6 +1873,11 @@
       function endGame() {
         running = false;
         paused = false;
+        keyArrowLeft = keyArrowRight = keyArrowDown = false;
+        lastHorizKey = 0;
+        horizRepeat = null;
+        softRepeat = null;
+        lockGroundedSince = null;
         if (pauseOverlay) pauseOverlay.hidden = true;
         cancelAnimationFrame(raf);
         lineClearAnim = null;
@@ -1714,20 +1887,47 @@
         comboToast = null;
         stageWrap.classList.remove("is-shake", "is-shake-hard");
         const isNewRecord = score > best;
+        const isNewComboRecord = maxComboChain > comboBest && maxComboChain > 0;
         if (isNewRecord) {
           best = score;
           try {
             localStorage.setItem(STORAGE_KEY, String(best));
           } catch (_) {}
         }
+        if (maxComboChain > comboBest) {
+          comboBest = maxComboChain;
+          try {
+            localStorage.setItem(STORAGE_KEY_COMBO, String(comboBest));
+          } catch (_) {}
+        }
         ovTitle.textContent = "遊戲結束";
         ovText.textContent =
           "本次得分 " + score + " 分。" + (isNewRecord && score > 0 ? " 新紀錄！" : " 再挑戰一次。");
         startBtn.textContent = "再玩一次";
+        const congratsFlagsBase = {
+          personalScore: isNewRecord,
+          personalCombo: isNewComboRecord,
+          honorTop3: false,
+          heroTop3: false,
+        };
+        const msgLocal = buildCongratsMessage(congratsFlagsBase);
+        if (msgLocal) setOverlayCongrats(true, msgLocal);
+        else setOverlayCongrats(false);
         overlay.classList.add("is-visible");
         setLeaderboardHint("");
         void (async () => {
-          const r = await submitTetrisScore(score, maxComboChain);
+          const [r, lb] = await Promise.all([
+            submitTetrisScore(score, maxComboChain),
+            checkLeaderboardTop3(score, maxComboChain),
+          ]);
+          const msgFull = buildCongratsMessage({
+            personalScore: isNewRecord,
+            personalCombo: isNewComboRecord,
+            honorTop3: lb.scoreTop3,
+            heroTop3: lb.comboTop3,
+          });
+          if (msgFull) setOverlayCongrats(true, msgFull);
+          else setOverlayCongrats(false);
           loadLeaderboards();
           await refreshPersonalStats();
           if (r && r.message) {
@@ -1756,14 +1956,41 @@
         }
 
         if (!paused && current) {
+          const d = horizontalDirFromKeys();
+          if (d !== 0 && !horizRepeat) {
+            horizRepeat = { dir: d, nextAt: now + MOVE_DAS_MS };
+          }
+          if (keyArrowDown && !softRepeat) {
+            softRepeat = { nextAt: now + MOVE_DAS_MS };
+          }
+          if (horizRepeat) {
+            const hd = horizontalDirFromKeys();
+            if (hd === 0) {
+              horizRepeat = null;
+            } else if (hd !== horizRepeat.dir) {
+              move(hd, 0);
+              horizRepeat = { dir: hd, nextAt: now + MOVE_DAS_MS };
+            } else if (now >= horizRepeat.nextAt) {
+              move(hd, 0);
+              horizRepeat.nextAt = now + MOVE_HORIZ_REPEAT_MS;
+            }
+          }
+          if (softRepeat) {
+            if (!keyArrowDown) {
+              softRepeat = null;
+            } else if (now >= softRepeat.nextAt) {
+              move(0, 1);
+              softRepeat.nextAt = now + MOVE_ARR_MS;
+            }
+          }
           if (now - lastDrop >= dropMs) {
             if (validPosition(current.type, current.rot, current.x, current.y + 1)) {
               current.y += 1;
-            } else {
-              lockPiece();
+              lockGroundedSince = pieceIsGrounded() ? now : null;
             }
             lastDrop = now;
           }
+          updateLockDelay(now);
         }
         draw(now);
         raf = requestAnimationFrame(tick);
@@ -2035,6 +2262,7 @@
 
       function startGame() {
         overlay.classList.remove("is-visible");
+        setOverlayCongrats(false);
         if (pauseOverlay) pauseOverlay.hidden = true;
         board = emptyBoard();
         score = 0;
@@ -2063,10 +2291,22 @@
         }
         running = true;
         paused = false;
+        keyArrowLeft = keyArrowRight = keyArrowDown = false;
+        lastHorizKey = 0;
+        horizRepeat = null;
+        softRepeat = null;
+        lockGroundedSince = null;
         lastDrop = performance.now();
         lastFrameT = performance.now();
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(tick);
+      }
+
+      function horizontalDirFromKeys() {
+        if (keyArrowLeft && keyArrowRight) return lastHorizKey;
+        if (keyArrowLeft) return -1;
+        if (keyArrowRight) return 1;
+        return 0;
       }
 
       function move(dx, dy) {
@@ -2074,13 +2314,14 @@
         if (validPosition(current.type, current.rot, current.x + dx, current.y + dy)) {
           current.x += dx;
           current.y += dy;
+          lockGroundedSince = pieceIsGrounded() ? performance.now() : null;
           if (dy > 0) {
             score += 1;
             scoreEl.textContent = String(score);
           }
           draw();
         } else if (dy > 0) {
-          lockPiece();
+          if (pieceIsGrounded()) lockGroundedSince = performance.now();
         }
       }
 
@@ -2110,6 +2351,8 @@
             void runResumeCountdown();
           } else {
             paused = true;
+            horizRepeat = null;
+            softRepeat = null;
             if (pauseOverlay) pauseOverlay.hidden = false;
           }
           e.preventDefault();
@@ -2122,14 +2365,31 @@
         }
         if (!running || paused) return;
         if (e.code === "ArrowLeft") {
+          e.preventDefault();
+          if (e.repeat) return;
+          keyArrowLeft = true;
+          lastHorizKey = -1;
           move(-1, 0);
-          e.preventDefault();
+          {
+            const hd = horizontalDirFromKeys();
+            horizRepeat = hd ? { dir: hd, nextAt: performance.now() + MOVE_DAS_MS } : null;
+          }
         } else if (e.code === "ArrowRight") {
+          e.preventDefault();
+          if (e.repeat) return;
+          keyArrowRight = true;
+          lastHorizKey = 1;
           move(1, 0);
-          e.preventDefault();
+          {
+            const hd = horizontalDirFromKeys();
+            horizRepeat = hd ? { dir: hd, nextAt: performance.now() + MOVE_DAS_MS } : null;
+          }
         } else if (e.code === "ArrowDown") {
-          move(0, 1);
           e.preventDefault();
+          if (e.repeat) return;
+          keyArrowDown = true;
+          move(0, 1);
+          softRepeat = { nextAt: performance.now() + MOVE_DAS_MS };
         } else if (e.code === "ArrowUp") {
           tryRotate();
           draw();
@@ -2138,6 +2398,19 @@
           hardDrop();
           e.preventDefault();
         }
+      });
+
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "ArrowLeft") keyArrowLeft = false;
+        else if (e.code === "ArrowRight") keyArrowRight = false;
+        else if (e.code === "ArrowDown") keyArrowDown = false;
+      });
+
+      window.addEventListener("blur", () => {
+        keyArrowLeft = keyArrowRight = keyArrowDown = false;
+        lastHorizKey = 0;
+        horizRepeat = null;
+        softRepeat = null;
       });
 
       document.querySelector(".touch-row").addEventListener("click", (e) => {

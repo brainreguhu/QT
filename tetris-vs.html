@@ -161,6 +161,29 @@
       overflow: visible;
       z-index: 2;
     }
+    .stage-wrap.is-shake {
+      animation: board-shake 0.42s ease-out;
+    }
+    .stage-wrap.is-shake-hard {
+      animation: board-shake-hard 0.52s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+    @keyframes board-shake {
+      0% { transform: translate(0, 0); }
+      10% { transform: translate(-4px, 2px); }
+      25% { transform: translate(5px, -3px); }
+      40% { transform: translate(-3px, 3px); }
+      55% { transform: translate(4px, -2px); }
+      70% { transform: translate(-2px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+    @keyframes board-shake-hard {
+      0% { transform: translate(0, 0) scale(1); }
+      15% { transform: translate(-7px, 4px) scale(1.01); }
+      30% { transform: translate(8px, -5px) scale(1); }
+      45% { transform: translate(-5px, 5px) scale(1.005); }
+      60% { transform: translate(6px, -3px) scale(1); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
     /* 與 tetris.html #board：依視窗縮放，最大寬 380px，高度依比例 */
     #board {
       display: block;
@@ -250,6 +273,26 @@
       font-size: 1.35rem;
       font-weight: 900;
     }
+    /* 遊戲結束「你贏了」：約 +25% 字級、琥珀色、微光暈跳動 */
+    .overlay h2#ovTitle.overlay-title--win {
+      font-size: 1.6875rem;
+      color: #fbbf24;
+      animation: overlay-win-title-glow 1.15s ease-in-out infinite alternate;
+    }
+    @keyframes overlay-win-title-glow {
+      from {
+        text-shadow:
+          0 0 6px rgba(251, 191, 36, 0.45),
+          0 0 14px rgba(251, 191, 36, 0.28);
+        filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
+      }
+      to {
+        text-shadow:
+          0 0 12px rgba(251, 191, 36, 0.75),
+          0 0 26px rgba(245, 158, 11, 0.38);
+        filter: drop-shadow(0 0 11px rgba(251, 191, 36, 0.6));
+      }
+    }
     .overlay p {
       margin: 0 0 18px;
       max-width: 280px;
@@ -259,7 +302,7 @@
     }
     .overlay-peer-hint {
       margin: 0 0 12px !important;
-      font-size: 14px !important;
+      font-size: 21px !important;
       font-weight: 800;
       color: #4ade80;
       text-shadow: 0 0 12px rgba(74, 222, 128, 0.45);
@@ -435,7 +478,7 @@
       <div class="room-bar">
         <span class="status-pill" id="netPill">未連線房間</span>
         <button type="button" id="btnCreateRoom" class="btn-primary">建立房間</button>
-        <label class="room-bar-room-field">房間碼 <input type="text" id="roomInput" maxlength="12" placeholder="輸入對方房號" autocomplete="off" /></label>
+        <label class="room-bar-room-field">房間碼 <input type="text" id="roomInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="輸入對方房號" autocomplete="off" /></label>
         <button type="button" id="btnJoinRoom">加入房間</button>
         <button type="button" id="btnLeaveRoom" class="btn-danger" hidden>離開房間</button>
         <span id="presenceLabel" class="status-pill">人數：0</span>
@@ -540,7 +583,7 @@
 
   let sb = null;
   try {
-    const g = window.supabase;
+    const g = typeof window !== "undefined" ? window.supabase : null;
     const createClient =
       g && typeof g.createClient === "function"
         ? g.createClient
@@ -548,7 +591,13 @@
           ? g.default.createClient
           : null;
     if (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      });
     }
   } catch (e) {
     console.warn("Supabase 初始化失敗", e);
@@ -564,6 +613,34 @@
       return "寫入被拒（RLS）：請在 Supabase 執行 SQL/tetris_scores.sql，含 INSERT 與 UPDATE policy。";
     }
     return m;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function describeTetrisLeaderboardError(err) {
+    if (!err) return "載入失敗";
+    const m = (err.message || "") + " " + (err.details || "") + " " + (err.hint || "");
+    const code = err.code != null ? String(err.code) : "";
+    if (/column.*\bwin\b|42703|PGRST204|does not exist|schema cache/i.test(m) || code === "42703") {
+      return "資料庫缺少 win 欄位，請在 Supabase SQL Editor 執行 SQL/tetris_scores_pvp_win_game.sql";
+    }
+    if (/row-level security|RLS|42501|JWT|permission/i.test(m)) {
+      return "無法讀取榮譽榜（權限或連線）。請確認 tetris_scores 的 SELECT policy。";
+    }
+    const t = (err.message || String(err)).trim();
+    return t || "載入失敗";
+  }
+
+  function isMissingTetrisPvpColumnError(err) {
+    if (!err) return false;
+    const m = (err.message || "") + " " + (err.details || "");
+    const code = err.code != null ? String(err.code) : "";
+    return /column.*\b(win|game)\b|42703|does not exist|PGRST204/i.test(m) || code === "42703";
   }
 
   const COLS = 10;
@@ -625,7 +702,7 @@
       color: "#fb923c",
       rotations: [
         [[2, 0], [0, 1], [1, 1], [2, 1]],
-        [[1, 0], [1, 1], [2, 1], [1, 2]],
+        [[1, 0], [1, 1], [1, 2], [2, 2]],
         [[0, 1], [1, 1], [2, 1], [0, 2]],
         [[0, 0], [1, 0], [1, 1], [1, 2]],
       ],
@@ -633,7 +710,17 @@
   };
 
   const PIECE_ORDER = ["I", "O", "T", "S", "Z", "J", "L"];
-  const KICKS = [[0, 0], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [0, 1], [-2, 0], [2, 0]];
+  const KICKS = [
+    [0, 0],
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [-1, -1],
+    [1, -1],
+    [0, 1],
+    [-2, 0],
+    [2, 0],
+  ];
 
   function mulberry32(seed) {
     return function () {
@@ -661,6 +748,9 @@
   const nextCv = document.getElementById("nextCanvas");
   const nctx = nextCv.getContext("2d");
   const stageWrap = document.getElementById("stageWrap");
+  stageWrap.addEventListener("animationend", () => {
+    stageWrap.classList.remove("is-shake", "is-shake-hard");
+  });
   const overlay = document.getElementById("overlay");
   const ovTitle = document.getElementById("ovTitle");
   const ovText = document.getElementById("ovText");
@@ -698,7 +788,7 @@
     return Math.min(4, 1 + (streak - 1) * 0.3);
   }
 
-  let board = [];
+  let board = emptyBoard();
   let bag = [];
   let current = null;
   let nextType = null;
@@ -724,6 +814,12 @@
   let canHold = true;
   let pendingGarbage = 0;
   let garbageReceivedTotal = 0;
+  let lineClearAnim = null;
+  const lineParticles = [];
+  const lineSparks = [];
+  let comboToast = null;
+  const COMBO_TOAST_HOLD_MS = 1000;
+  const COMBO_TOAST_FADE_MS = 750;
 
   let rtChannel = null;
   let roomId = "";
@@ -737,7 +833,6 @@
   let postGame = false;
   let myRematch = false;
   let peerRematch = false;
-
   function winLeaderboardRankDisplay(indexZero) {
     const r = indexZero + 1;
     if (r === 1) return "🥇";
@@ -755,21 +850,15 @@
     }
     winLeaderboardBody.innerHTML =
       '<tr class="leaderboard-loading"><td colspan="3" class="leaderboard-loading-cell">載入中…</td></tr>';
-    try {
-      const { data, error } = await sb
-        .from(TETRIS_SCORES_TABLE)
-        .select("username, win")
-        .order("win", { ascending: false })
-        .order("username", { ascending: true })
-        .limit(5);
-      if (error) throw error;
+
+    const renderRows = (rows) => {
       winLeaderboardBody.innerHTML = "";
-      if (!data || data.length === 0) {
+      if (!rows || rows.length === 0) {
         winLeaderboardBody.innerHTML =
           '<tr><td colspan="3" class="leaderboard-loading-cell">尚無紀錄</td></tr>';
         return;
       }
-      data.forEach((row, i) => {
+      rows.forEach((row, i) => {
         const tr = document.createElement("tr");
         const tdRank = document.createElement("td");
         tdRank.className = "col-rank";
@@ -791,10 +880,55 @@
         tr.appendChild(tdWin);
         winLeaderboardBody.appendChild(tr);
       });
+    };
+
+    try {
+      const sortLocalTop5 = (rows) =>
+        rows
+          .slice()
+          .sort((a, b) => {
+            const dw = (Number(b.win) || 0) - (Number(a.win) || 0);
+            if (dw !== 0) return dw;
+            return String(a.username || "").localeCompare(String(b.username || ""), "zh-Hant");
+          })
+          .slice(0, 5);
+
+      let rows = null;
+
+      const r1 = await sb
+        .from(TETRIS_SCORES_TABLE)
+        .select("username, win")
+        .order("win", { ascending: false })
+        .order("username", { ascending: true })
+        .limit(5);
+
+      if (!r1.error && r1.data) {
+        rows = r1.data;
+      } else {
+        if (r1.error) console.warn("loadWinLeaderboard r1", r1.error);
+        const r2 = await sb
+          .from(TETRIS_SCORES_TABLE)
+          .select("username, win")
+          .order("win", { ascending: false })
+          .limit(5);
+        if (!r2.error && r2.data) {
+          rows = r2.data;
+        } else {
+          if (r2.error) console.warn("loadWinLeaderboard r2", r2.error);
+          const r3 = await sb.from(TETRIS_SCORES_TABLE).select("username, win").limit(2000);
+          if (r3.error) {
+            throw r3.error;
+          }
+          rows = sortLocalTop5(r3.data || []);
+        }
+      }
+
+      renderRows(rows);
     } catch (e) {
       console.warn("loadWinLeaderboard", e);
+      const hint = describeTetrisLeaderboardError(e);
       winLeaderboardBody.innerHTML =
-        '<tr><td colspan="3" class="leaderboard-loading-cell">載入失敗</td></tr>';
+        '<tr><td colspan="3" class="leaderboard-loading-cell">' + escapeHtml(hint) + "</td></tr>";
     }
   }
 
@@ -814,6 +948,10 @@
       set(rateEl, "—");
       return;
     }
+    set(usernameEl, "載入中…");
+    set(winEl, "—");
+    set(gameEl, "—");
+    set(rateEl, "—");
     try {
       const {
         data: { session },
@@ -828,14 +966,28 @@
         set(rateEl, "—");
         return;
       }
-      const [profRes, scoreRes] = await Promise.all([
-        sb.from(PROFILE_TABLE).select("username").eq("id", user.id).maybeSingle(),
-        sb.from(TETRIS_SCORES_TABLE).select("win, game").eq("user_id", user.id).maybeSingle(),
-      ]);
+      const profRes = await sb.from(PROFILE_TABLE).select("username").eq("id", user.id).maybeSingle();
       if (profRes.error) console.warn("profiles（個人紀錄）", profRes.error);
+
+      let scoreRes = await sb
+        .from(TETRIS_SCORES_TABLE)
+        .select("win, game")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (scoreRes.error && isMissingTetrisPvpColumnError(scoreRes.error)) {
+        scoreRes = await sb
+          .from(TETRIS_SCORES_TABLE)
+          .select("username, score, combo")
+          .eq("user_id", user.id)
+          .maybeSingle();
+      }
+
       if (scoreRes.error) console.warn("tetris_scores（個人紀錄）", scoreRes.error);
+      const row = scoreRes.data;
       const uname =
         (profRes.data && profRes.data.username && String(profRes.data.username).trim()) ||
+        (row && row.username && String(row.username).trim()) ||
         user.email ||
         "—";
       set(usernameEl, uname);
@@ -845,7 +997,6 @@
         set(rateEl, "—");
         return;
       }
-      const row = scoreRes.data;
       const w = row ? Number(row.win) || 0 : 0;
       const g = row ? Number(row.game) || 0 : 0;
       set(winEl, String(w));
@@ -854,7 +1005,7 @@
       else set(rateEl, ((w / g) * 100).toFixed(1) + "%");
     } catch (e) {
       console.warn("loadPvpPersonalStats", e);
-      set(usernameEl, "—");
+      set(usernameEl, "讀取失敗");
       set(winEl, "—");
       set(gameEl, "—");
       set(rateEl, "—");
@@ -885,7 +1036,7 @@
       ovPeerHint.textContent = "對手已準備好了！";
       ovPeerHint.hidden = false;
     } else if (peerRematch && !myRematch && postGame) {
-      ovPeerHint.textContent = "對手已按下「約戰！」";
+      ovPeerHint.textContent = "對手已發出續戰邀請";
       ovPeerHint.hidden = false;
     } else {
       ovPeerHint.hidden = true;
@@ -992,7 +1143,7 @@
   }
 
   function tryRotate() {
-    if (!current) return;
+    if (!current || lineClearAnim) return;
     const to = (current.rot + 1) % 4;
     for (let k = 0; k < KICKS.length; k++) {
       const kx = KICKS[k][0];
@@ -1033,12 +1184,13 @@
     if (ok) {
       lastDrop = performance.now();
       canHold = true;
+      lockGroundedSince = null;
     }
     return ok;
   }
 
   function doHold() {
-    if (!running || paused || !current || !canHold) return;
+    if (!running || paused || lineClearAnim || !current || !canHold) return;
     canHold = false;
     const t = current.type;
     current = null;
@@ -1066,9 +1218,135 @@
   function findFullRows() {
     const r = [];
     for (let y = 0; y < ROWS; y++) {
-      if (board[y].every((c) => c != null && c !== "")) r.push(y);
+      const row = board[y];
+      if (!row || row.length !== COLS) continue;
+      if (row.every((c) => c != null && c !== "")) r.push(y);
     }
     return r;
+  }
+
+  function spawnLineClearParticles(rows, streak, nLines) {
+    lineParticles.length = 0;
+    lineSparks.length = 0;
+    const density = 1 + streak * 0.28 + nLines * 0.12;
+    rows.forEach((y) => {
+      for (let x = 0; x < COLS; x++) {
+        const col = board[y][x];
+        if (!col) continue;
+        const cx = x * CS + CS * 0.5;
+        const cy = y * CS + CS * 0.5;
+        const nBurst = Math.ceil((rows.length >= 4 ? 5 : 3) * density);
+        for (let n = 0; n < nBurst; n++) {
+          lineParticles.push({
+            x: cx,
+            y: cy,
+            vx: (Math.random() - 0.5) * 480,
+            vy: -320 - Math.random() * 420,
+            color: col,
+            alpha: 1,
+            size: 2.5 + Math.random() * 5,
+            spin: (Math.random() - 0.5) * 12,
+          });
+        }
+        for (let s = 0; s < Math.ceil(2 * density); s++) {
+          const ang = Math.random() * Math.PI * 2;
+          const sp = 180 + Math.random() * 360;
+          lineSparks.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(ang) * sp,
+            vy: Math.sin(ang) * sp - 120,
+            alpha: 1,
+            size: 1.2 + Math.random() * 2.2,
+            life: 0.55 + Math.random() * 0.25,
+          });
+        }
+      }
+    });
+  }
+
+  function updateLineParticles(dt) {
+    const g = 2200;
+    for (let i = lineParticles.length - 1; i >= 0; i--) {
+      const p = lineParticles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += g * dt;
+      p.vx *= 0.985;
+      p.alpha -= dt * 1.35;
+      p.size *= 0.985;
+      if (p.alpha <= 0.02) lineParticles.splice(i, 1);
+    }
+    for (let i = lineSparks.length - 1; i >= 0; i--) {
+      const s = lineSparks[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += 1400 * dt;
+      s.vx *= 0.99;
+      s.alpha -= dt * 2.2;
+      s.size *= 0.99;
+      if (s.alpha <= 0.02) lineSparks.splice(i, 1);
+    }
+  }
+
+  function applyVsLineScore(cleared) {
+    comboChain++;
+    const streak = comboChain;
+    maxComboChain = Math.max(maxComboChain, streak);
+    const mult = comboMultForStreak(streak);
+    lines += cleared;
+    const table = [0, 100, 300, 500, 800];
+    let pts = (table[cleared] || 0) * level;
+    if (cleared === 4) pts += 400 * level;
+    pts = Math.floor(pts * mult);
+    score += pts;
+    const newLevel = Math.min(15, 1 + ((lines / 10) | 0));
+    if (newLevel > level) level = newLevel;
+    dropMs = dropMsForLevel(level);
+    linesEl.textContent = String(lines);
+    levelEl.textContent = String(level);
+    scoreEl.textContent = String(score);
+    if (maxComboEl) maxComboEl.textContent = String(maxComboChain);
+  }
+
+  function finishLineClearAnim() {
+    if (!lineClearAnim) return;
+    const clearedRows = [...new Set(lineClearAnim.rows)].filter((y) => y >= 0 && y < ROWS);
+    const cleared = clearedRows.length;
+    if (cleared === 0) {
+      lineClearAnim = null;
+      lineParticles.length = 0;
+      lineSparks.length = 0;
+      if (!spawnAfterLock()) {
+        broadcastKo();
+        endGame(false);
+      }
+      return;
+    }
+    const remove = new Set(clearedRows);
+    const kept = [];
+    for (let y = 0; y < ROWS; y++) {
+      if (!remove.has(y)) kept.push(board[y]);
+    }
+    for (let i = 0; i < cleared; i++) {
+      kept.unshift(Array(COLS).fill(null));
+    }
+    for (let y = 0; y < ROWS; y++) {
+      board[y] = kept[y];
+    }
+    applyVsLineScore(cleared);
+    const streak = comboChain;
+    const sendN = garbageLinesToSend(cleared, streak);
+    if (sendN > 0) broadcastAttack(sendN);
+
+    lineClearAnim = null;
+    lineParticles.length = 0;
+    lineSparks.length = 0;
+
+    if (!spawnAfterLock()) {
+      broadcastKo();
+      endGame(false);
+    }
   }
 
   function mergePiece() {
@@ -1083,7 +1361,7 @@
   }
 
   function updateLockDelay(now) {
-    if (!current) return;
+    if (!current || lineClearAnim) return;
     if (!pieceIsGrounded()) {
       lockGroundedSince = null;
       return;
@@ -1107,7 +1385,7 @@
   }
 
   function lockPiece() {
-    if (!current) return;
+    if (lineClearAnim || !current) return;
     lockGroundedSince = null;
     mergePiece();
     current = null;
@@ -1127,33 +1405,29 @@
     const rows = findFullRows();
     if (rows.length) {
       const streak = comboChain + 1;
-      comboChain = streak;
-      maxComboChain = Math.max(maxComboChain, streak);
-      const nLines = rows.length;
       const mult = comboMultForStreak(streak);
-      lines += nLines;
-      const table = [0, 100, 300, 500, 800];
-      let pts = (table[nLines] || 0) * level;
-      if (nLines === 4) pts += 400 * level;
-      pts = Math.floor(pts * mult);
-      score += pts;
-      const newLevel = Math.min(15, 1 + ((lines / 10) | 0));
-      if (newLevel > level) level = newLevel;
-      dropMs = dropMsForLevel(level);
-      const sorted = rows.slice().sort((a, b) => b - a);
-      for (const y of sorted) {
-        board.splice(y, 1);
-        board.unshift(Array(COLS).fill(null));
-      }
-      scoreEl.textContent = String(score);
-      linesEl.textContent = String(lines);
-      levelEl.textContent = String(level);
-      if (maxComboEl) maxComboEl.textContent = String(maxComboChain);
-      const sendN = garbageLinesToSend(nLines, streak);
-      if (sendN > 0) broadcastAttack(sendN);
-    } else {
-      comboChain = 0;
+      const nLines = rows.length;
+      const isTetris = nLines >= 4;
+      const duration = (isTetris ? 520 : 380) + Math.min(140, streak * 28) + (isTetris ? 50 : 0);
+      const tStart = performance.now();
+      spawnLineClearParticles(rows, streak, nLines);
+      comboToast = { t0: tStart, streak, mult };
+      lineClearAnim = {
+        rows,
+        t0: tStart,
+        duration,
+        streak,
+        mult,
+        cleared: nLines,
+      };
+      stageWrap.classList.remove("is-shake", "is-shake-hard");
+      void stageWrap.offsetWidth;
+      if (isTetris || streak >= 3) stageWrap.classList.add("is-shake-hard");
+      else stageWrap.classList.add("is-shake");
+      lastDrop = performance.now();
+      return;
     }
+    comboChain = 0;
 
     if (!spawnAfterLock()) {
       broadcastKo();
@@ -1169,10 +1443,17 @@
     myReady = false;
     myRematch = false;
     cancelAnimationFrame(raf);
+    lineClearAnim = null;
+    lineParticles.length = 0;
+    lineSparks.length = 0;
+    comboToast = null;
+    stageWrap.classList.remove("is-shake", "is-shake-hard");
     keyArrowLeft = keyArrowRight = keyArrowDown = false;
     horizRepeat = softRepeat = null;
     lockGroundedSince = null;
     ovTitle.textContent = won ? "你贏了" : "你輸了";
+    ovTitle.classList.remove("overlay-title--win");
+    if (won) ovTitle.classList.add("overlay-title--win");
     ovText.textContent = won ? "對手場地頂出或已斷線。" : "你的場地無法再出塊，或對手達成勝利條件。";
     readyBtn.hidden = true;
     rematchBtn.hidden = true;
@@ -1188,8 +1469,7 @@
     if (oppStatusEl) oppStatusEl.textContent = "待約戰";
     updatePresenceUi();
     void submitPvpStats(won).finally(() => {
-      void loadWinLeaderboard();
-      void loadPvpPersonalStats();
+      refreshPvpSidebars();
     });
   }
 
@@ -1201,7 +1481,7 @@
   }
 
   function move(dx, dy) {
-    if (!running || paused || !current) return;
+    if (!running || paused || lineClearAnim || !current) return;
     if (validPosition(current.type, current.rot, current.x + dx, current.y + dy)) {
       current.x += dx;
       current.y += dy;
@@ -1216,13 +1496,14 @@
   }
 
   function hardDrop() {
-    if (!running || paused || !current) return;
+    if (!running || paused || lineClearAnim || !current) return;
     while (validPosition(current.type, current.rot, current.x, current.y + 1)) {
       current.y += 1;
       score += 2;
     }
     scoreEl.textContent = String(score);
     lockPiece();
+    draw();
   }
 
   function drawCell(x, y, color, alpha) {
@@ -1286,15 +1567,80 @@
     }
   }
 
-  function draw() {
-    /* 與 tetris.html 主場地底色 */
+  function draw(now) {
+    const t = now == null ? performance.now() : now;
+    let shakeX = 0;
+    let shakeY = 0;
+    if (lineClearAnim) {
+      const elapsed = t - lineClearAnim.t0;
+      const decay = 1 - elapsed / lineClearAnim.duration;
+      const streakBoost = 1 + (lineClearAnim.streak - 1) * 0.12;
+      const mag =
+        Math.max(0, decay) * (lineClearAnim.rows.length >= 4 ? 5.5 : 3.5) * streakBoost;
+      shakeX = (Math.random() - 0.5) * mag;
+      shakeY = (Math.random() - 0.5) * mag;
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
     ctx.fillStyle = "#0f172a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(-8, -8, canvas.width + 16, canvas.height + 16);
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         if (board[y][x]) drawCell(x, y, board[y][x]);
       }
     }
+
+    if (lineClearAnim) {
+      const elapsed = t - lineClearAnim.t0;
+      const dur = lineClearAnim.duration;
+      const pulse = 0.4 + 0.6 * Math.sin((elapsed / dur) * Math.PI);
+      const tetrisBoost = lineClearAnim.rows.length >= 4 ? 1.2 : 1;
+      const cx = COLS * CS * 0.5;
+      const rowMin = Math.min.apply(null, lineClearAnim.rows);
+      const rowMax = Math.max.apply(null, lineClearAnim.rows);
+      const midRy = ((rowMin + rowMax) * 0.5 + 0.5) * CS;
+      const rg = ctx.createRadialGradient(cx, midRy, 0, cx, midRy, COLS * CS * 0.72);
+      rg.addColorStop(0, "rgba(255,255,255," + 0.22 * pulse * tetrisBoost + ")");
+      rg.addColorStop(0.45, "rgba(253,224,71," + 0.08 * pulse + ")");
+      rg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, COLS * CS, ROWS * CS);
+
+      const sweep = ((elapsed / dur) * 2.8 - 0.4) * COLS * CS;
+      const swGrad = ctx.createLinearGradient(sweep - 80, 0, sweep + 80, 0);
+      swGrad.addColorStop(0, "rgba(255,255,255,0)");
+      swGrad.addColorStop(0.5, "rgba(255,255,255," + 0.35 * pulse + ")");
+      swGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = swGrad;
+      lineClearAnim.rows.forEach((rowY) => {
+        ctx.fillRect(0, rowY * CS, COLS * CS, CS);
+      });
+
+      lineClearAnim.rows.forEach((rowY) => {
+        const gy1 = rowY * CS;
+        const g = ctx.createLinearGradient(0, gy1, 0, gy1 + CS);
+        g.addColorStop(0, "rgba(255,255,255," + 0.14 * pulse * tetrisBoost + ")");
+        g.addColorStop(0.45, "rgba(253,224,71," + 0.55 * pulse * tetrisBoost + ")");
+        g.addColorStop(0.55, "rgba(96,165,250," + 0.35 * pulse * tetrisBoost + ")");
+        g.addColorStop(1, "rgba(255,255,255," + 0.1 * pulse * tetrisBoost + ")");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, gy1, COLS * CS, CS);
+        ctx.strokeStyle = "rgba(255,255,255," + 0.45 * pulse + ")";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, gy1 + 1, COLS * CS - 2, CS - 2);
+        ctx.fillStyle = "rgba(255,255,255," + 0.08 * pulse + ")";
+        for (let sx = 0; sx < COLS; sx += 2) {
+          ctx.fillRect(sx * CS, gy1, CS * 0.55, CS);
+        }
+        ctx.strokeStyle = "rgba(251,191,36," + 0.5 * pulse + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(CS * COLS * 0.5, gy1 + CS * 0.5, CS * (0.55 + 0.25 * pulse), 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    }
+
     if (current) {
       const cells = cellsFor(current.type, current.rot);
       const c = PIECES[current.type].color;
@@ -1313,14 +1659,85 @@
         }
       }
     }
+
+    lineParticles.forEach((p) => {
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.rect(p.x - p.size * 0.5, p.y - p.size * 0.5, p.size, p.size);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    lineSparks.forEach((s) => {
+      ctx.globalAlpha = Math.max(0, s.alpha);
+      ctx.fillStyle = "#fffef0";
+      ctx.shadowColor = "rgba(253,224,71,0.9)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    });
+
+    ctx.restore();
+
+    drawComboToast(t);
+
     drawNext();
     drawHoldPreview();
+  }
+
+  function drawComboToast(t) {
+    if (!comboToast) return;
+    const elapsed = t - comboToast.t0;
+    const totalMs = COMBO_TOAST_HOLD_MS + COMBO_TOAST_FADE_MS;
+    if (elapsed >= totalMs) return;
+    let alpha = 1;
+    if (elapsed > COMBO_TOAST_HOLD_MS) {
+      alpha = 1 - (elapsed - COMBO_TOAST_HOLD_MS) / COMBO_TOAST_FADE_MS;
+    }
+    if (alpha <= 0) return;
+    const cx = canvas.width * 0.5;
+    const cy = canvas.height * 0.5;
+    const streak = comboToast.streak;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = "900 " + Math.min(34, 20 + streak * 2) + "px Segoe UI, Noto Sans TC, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "rgba(15,23,42,0.92)";
+    const lab = "連擊 ×" + streak + "  ·  " + comboToast.mult.toFixed(1) + " 倍";
+    ctx.strokeText(lab, cx, cy);
+    ctx.fillStyle = "#fde047";
+    ctx.shadowColor = "rgba(253,224,71,0.55)";
+    ctx.shadowBlur = 16;
+    ctx.fillText(lab, cx, cy);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   function tick(now) {
     if (!running) return;
     const dt = lastFrameT ? Math.min(0.05, (now - lastFrameT) / 1000) : 0.016;
     lastFrameT = now;
+
+    if (comboToast && now - comboToast.t0 >= COMBO_TOAST_HOLD_MS + COMBO_TOAST_FADE_MS) {
+      comboToast = null;
+    }
+
+    if (lineClearAnim) {
+      updateLineParticles(dt);
+      if (now - lineClearAnim.t0 >= lineClearAnim.duration) {
+        finishLineClearAnim();
+      }
+      draw(now);
+      raf = requestAnimationFrame(tick);
+      return;
+    }
 
     if (!paused && current) {
       const d = horizontalDirFromKeys();
@@ -1353,7 +1770,7 @@
       }
       updateLockDelay(now);
     }
-    draw();
+    draw(now);
     raf = requestAnimationFrame(tick);
   }
 
@@ -1370,6 +1787,11 @@
     level = 1;
     comboChain = 0;
     maxComboChain = 0;
+    lineClearAnim = null;
+    lineParticles.length = 0;
+    lineSparks.length = 0;
+    comboToast = null;
+    stageWrap.classList.remove("is-shake", "is-shake-hard");
     holdType = null;
     canHold = true;
     pendingGarbage = 0;
@@ -1404,6 +1826,7 @@
     cancelAnimationFrame(raf);
     overlay.classList.add("is-visible");
     ovTitle.textContent = "連線對戰";
+    ovTitle.classList.remove("overlay-title--win");
     ovText.textContent = "建立或加入房間後，雙方到齊可開始。";
     readyBtn.hidden = true;
     rematchBtn.hidden = true;
@@ -1559,15 +1982,12 @@
       return;
     }
     await leaveRoom();
-    const clean = String(id || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
-    if (clean.length < 4) {
-      alert("房間碼至少 4 個英數字");
+    const digits = String(id || "").replace(/\D/g, "");
+    if (digits.length < 4) {
+      alert("房間碼須為 4 位數字（0000～9999）");
       return;
     }
-    roomId = clean.slice(0, 12);
+    roomId = digits.slice(0, 4);
     isHost = !!asHost;
     myClientId = getOrCreateClientId();
 
@@ -1611,9 +2031,9 @@
 
   readyBtn.addEventListener("click", async () => {
     if (!rtChannel) return;
-    myReady = true;
+    myReady = !myReady;
     try {
-      await rtChannel.track({ clientId: myClientId, ready: true, rematch: false });
+      await rtChannel.track({ clientId: myClientId, ready: myReady, rematch: false });
     } catch (e) {
       console.warn(e);
     }
@@ -1622,9 +2042,9 @@
 
   rematchBtn.addEventListener("click", async () => {
     if (!rtChannel) return;
-    myRematch = true;
+    myRematch = !myRematch;
     try {
-      await rtChannel.track({ clientId: myClientId, ready: false, rematch: true });
+      await rtChannel.track({ clientId: myClientId, ready: false, rematch: myRematch });
     } catch (e) {
       console.warn(e);
     }
@@ -1632,11 +2052,8 @@
   });
 
   btnCreateRoom.addEventListener("click", () => {
-    const code =
-      Math.random().toString(36).slice(2, 4) +
-      Math.random().toString(36).slice(2, 4) +
-      Date.now().toString(36).slice(-2);
-    void joinRoom(code.replace(/[^a-z0-9]/g, "").slice(0, 8) || "room" + ((Math.random() * 9999) | 0), true);
+    const code = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+    void joinRoom(code, true);
   });
 
   btnJoinRoom.addEventListener("click", () => {
@@ -1711,14 +2128,60 @@
   drawNext();
   drawHoldPreview();
 
-  void loadWinLeaderboard();
-  void loadPvpPersonalStats();
-  if (sb && sb.auth && typeof sb.auth.onAuthStateChange === "function") {
-    sb.auth.onAuthStateChange(() => {
-      void loadWinLeaderboard();
-      void loadPvpPersonalStats();
-    });
+  function refreshPvpSidebars() {
+    void loadWinLeaderboard();
+    void loadPvpPersonalStats();
   }
+
+  /**
+   * 開啟頁面（未進房前）：
+   * - 榮譽榜為公開讀取，可立刻請求。
+   * - 個人紀錄依賴 Auth：需在 session 從 storage 還原後再請求，否則常誤顯示「請先登入」。
+   * 側欄仍僅於「初次載入」與「對戰結束」完整刷新（見 endGame）。
+   */
+  void (async function loadPvpSidebarsOnPageOpen() {
+    if (!sb) {
+      refreshPvpSidebars();
+      return;
+    }
+
+    void loadWinLeaderboard();
+
+    let personalDone = false;
+    const runPersonalOnce = () => {
+      if (personalDone) return;
+      personalDone = true;
+      void loadPvpPersonalStats();
+    };
+
+    let authSubscription = null;
+    if (sb.auth && typeof sb.auth.onAuthStateChange === "function") {
+      const ret = sb.auth.onAuthStateChange((event) => {
+        if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+          runPersonalOnce();
+        }
+      });
+      authSubscription = ret && ret.data ? ret.data.subscription : null;
+    }
+
+    try {
+      const {
+        data: { session },
+        error: sessErr,
+      } = await sb.auth.getSession();
+      if (sessErr) console.warn("getSession（側欄初次載入）", sessErr);
+      if (session) runPersonalOnce();
+    } catch (e) {
+      console.warn("getSession（側欄初次載入）", e);
+    }
+
+    runPersonalOnce();
+    if (authSubscription) {
+      try {
+        authSubscription.unsubscribe();
+      } catch (_) {}
+    }
+  })();
 })();
   </script>
 </body>
