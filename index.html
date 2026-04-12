@@ -176,6 +176,48 @@
       background: rgba(61, 139, 253, 0.12);
       color: #fff;
     }
+    .tetris-btn-wrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .link-btn--tetris {
+      width: 100%;
+      max-width: min(92vw, 400px);
+      text-align: center;
+      border-color: rgba(255, 170, 60, 0.45);
+      background: rgba(40, 28, 12, 0.45);
+      color: #fff;
+      animation: tetris-outer-glow 2.8s ease-in-out infinite;
+    }
+    .link-btn--tetris:hover {
+      border-color: rgba(255, 200, 90, 0.85);
+      background: rgba(55, 38, 10, 0.55);
+      color: #fff;
+    }
+    @keyframes tetris-outer-glow {
+      0%,
+      100% {
+        box-shadow:
+          0 0 0 1px rgba(255, 160, 50, 0.35),
+          0 0 14px rgba(255, 170, 50, 0.35),
+          0 0 28px rgba(255, 130, 30, 0.2);
+      }
+      50% {
+        box-shadow:
+          0 0 0 1px rgba(255, 200, 80, 0.55),
+          0 0 22px rgba(255, 190, 70, 0.55),
+          0 0 40px rgba(255, 150, 40, 0.38);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .link-btn--tetris {
+        animation: none;
+        box-shadow:
+          0 0 0 1px rgba(255, 170, 50, 0.4),
+          0 0 16px rgba(255, 160, 50, 0.35);
+      }
+    }
     .notice-panel {
       --notice-bg: linear-gradient(165deg, rgba(35, 55, 88, 0.65) 0%, rgba(18, 24, 38, 0.95) 100%);
       margin-bottom: 15px;
@@ -332,6 +374,9 @@
           rel="noopener noreferrer"
           >業績地圖</a>
         <a class="link-btn" href="">員工守則🚧</a>
+      </div>
+      <div class="tetris-btn-wrap">
+        <a class="link-btn link-btn--tetris" href="./tetris.html">俄羅斯方塊</a>
       </div>
     </div>
     </div>
