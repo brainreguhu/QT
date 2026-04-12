@@ -36,6 +36,10 @@
       display: flex;
       align-items: center;
       gap: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* 參考 sumit.html：.toolbar-actions 置右；此處返回鍵在最右，左側主區 flex:1 */
@@ -74,8 +78,8 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      flex: 1;
-      min-width: 0;
+      flex: 1 0 auto;
+      min-width: min-content;
     }
 
     .toolbar-zone-row {
@@ -258,10 +262,16 @@
       justify-content: space-between;
       align-items: center;
       gap: 2px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     .card-title-input {
       width: 300px;
+      flex-shrink: 0;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
       padding: 1px 8px;
@@ -280,6 +290,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      flex-shrink: 0;
     }
 
     .move-btn {
@@ -542,11 +553,13 @@
       width: 100%;
       flex: 1 1 auto;
       min-height: 0;
-      overflow-x: hidden;
+      min-width: 0;
+      overflow-x: auto;
       overflow-y: auto;
       border-radius: 8px;
       scroll-behavior: smooth;
       isolation: isolate;
+      -webkit-overflow-scrolling: touch;
     }
 
     .subitems-viewport.subitems-viewport--tick::after {
@@ -576,6 +589,7 @@
 
     .subitem {
       width: 100%;
+      min-width: min-content;
       box-sizing: border-box;
       border: 0px solid #d1d5db;
       border-radius: 8px;
@@ -624,19 +638,26 @@
       display: flex;
       align-items: center;
       gap: 2px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     .subitem-actions {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       justify-content: flex-end;
       gap: 5px;
       margin-left: auto;
+      flex-shrink: 0;
     }
 
     .subitem-title-input {
       width: 205px;
+      flex-shrink: 0;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
       padding: 4px 8px 0px 8px;
@@ -679,15 +700,21 @@
       align-items: center;
       margin: 1px 0;
       gap: 2px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     .child-item-actions {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       justify-content: flex-end;
       gap: 5px;
       margin-left: auto;
+      flex-shrink: 0;
     }
 
     .child-item-body {
@@ -698,6 +725,7 @@
 
     .child-item-title-input {
       width: 180px;
+      flex-shrink: 0;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
       padding: 1px 8px;
