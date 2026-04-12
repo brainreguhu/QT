@@ -273,24 +273,24 @@
       font-size: 1.35rem;
       font-weight: 900;
     }
-    /* 遊戲結束「你贏了」：約 +25% 字級、琥珀色、微光暈跳動 */
+    /* 遊戲結束「你贏了」：原勝利字級再放大 30%、琥珀色、較弱光暈跳動 */
     .overlay h2#ovTitle.overlay-title--win {
-      font-size: 1.6875rem;
+      font-size: calc(1.6875rem * 1.3);
       color: #fbbf24;
       animation: overlay-win-title-glow 1.15s ease-in-out infinite alternate;
     }
     @keyframes overlay-win-title-glow {
       from {
         text-shadow:
-          0 0 6px rgba(251, 191, 36, 0.45),
-          0 0 14px rgba(251, 191, 36, 0.28);
-        filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
+          0 0 6px rgba(251, 191, 36, 0.225),
+          0 0 14px rgba(251, 191, 36, 0.14);
+        filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.2));
       }
       to {
         text-shadow:
-          0 0 12px rgba(251, 191, 36, 0.75),
-          0 0 26px rgba(245, 158, 11, 0.38);
-        filter: drop-shadow(0 0 11px rgba(251, 191, 36, 0.6));
+          0 0 12px rgba(251, 191, 36, 0.375),
+          0 0 26px rgba(245, 158, 11, 0.19);
+        filter: drop-shadow(0 0 11px rgba(251, 191, 36, 0.3));
       }
     }
     .overlay p {
@@ -612,7 +612,8 @@
     <strong>送垃圾行</strong>：單消 0、雙消 1、三消 2、四消 4<br />連擊自第 2 段起每段 +1 行送對手。垃圾由底部插入、隨機空洞。<br />
     需 Supabase 啟用 Realtime（Dashboard → Realtime → 開啟）。
     <br />
-    <a href="./tetris.html" style="color:#93c5fd">Tetris Game(單人)</a>
+    <a href="./tetris.html" style="color:#93c5fd">Tetris Game(單人)</a><br />
+    © Reguhu 2026
   </p>
   
 
@@ -821,11 +822,20 @@
   const btnLeaveRoom = document.getElementById("btnLeaveRoom");
   const winLeaderboardBody = document.getElementById("winLeaderboardBody");
 
-  const MOVE_DAS_MS = 90;
-  const MOVE_ARR_MS = 50;
-  const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS;
-  const LOCK_DELAY_MS = 300;
   const DROP_SPEED_MULT = 1.15;
+  /** 方向鍵長按：進入連發前的等待（DAS）與連發間隔（ARR）；為常見手感約 167ms / 33ms 的 50% */
+  const MOVE_DAS_MS = 100;
+  /** 長按 ↓ 軟降時，每下移一格的間隔 */
+  const MOVE_ARR_MS = 50;
+  /**
+   * 長按 ←／→ 「連續橫移」時，橫向每移一格的間隔（毫秒）。
+   * 此處為在與 MOVE_ARR_MS 相同基底下，橫向移動再快 50%（間隔 ÷1.5，格／秒 ×1.5）。
+   */
+  const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS / 0.75;
+  /** 方塊底部著地後，經過此時間才鎖定 */
+  const LOCK_DELAY_MS = 400;
+  /** 長按 ↑ 時，阻擋系統鍵盤連發過快；僅限 e.repeat，單次點按仍立即旋轉 */
+  const ROTATE_KEY_REPEAT_MIN_MS = 165;
   function dropMsForLevel(lv) {
     const raw = 1000 - (lv - 1) * 65;
     return Math.max(70, raw / DROP_SPEED_MULT);
@@ -853,6 +863,7 @@
   let lastHorizKey = 0;
   let horizRepeat = null;
   let softRepeat = null;
+  let lastArrowUpRotateAt = 0;
   let lockGroundedSince = null;
   let comboChain = 0;
   let maxComboChain = 0;
@@ -875,11 +886,16 @@
   let myClientId = "";
   let gameSeed = 0;
   let matchStarted = false;
+  /** 遞增以作廢進行中的倒數／開局（斷線、結束、離房） */
+  let matchSessionId = 0;
   /** 上一局已結束，顯示「約戰！」 */
   let postGame = false;
   let myRematch = false;
   let peerRematch = false;
   let peerHintFlashTimer = null;
+  /** broadcast 比 presence 先抵達時，提示用此覆寫；與 presence 一致後清除 */
+  let peerHintOverrideReady = null;
+  let peerHintOverrideRematch = null;
 
   function syncLobbyButtonStates() {
     if (readyBtn) {
@@ -905,6 +921,19 @@
       peerHintFlashTimer = null;
       syncPeerHints();
     }, 2800);
+  }
+
+  /** 對戰中離開時廣播，比 presence 更快讓對方判勝 */
+  function broadcastPeerLeftIfActiveMatch() {
+    if (!rtChannel) return;
+    if (postGame || (!matchStarted && !running)) return;
+    try {
+      rtChannel.send({
+        type: "broadcast",
+        event: "peer_left",
+        payload: {},
+      });
+    } catch (_) {}
   }
 
   function winLeaderboardRankDisplay(indexZero) {
@@ -1106,10 +1135,12 @@
       ovPeerHint.hidden = true;
       return;
     }
-    if (peerReady && !myReady && !postGame) {
+    const effReady = peerHintOverrideReady !== null ? peerHintOverrideReady : peerReady;
+    const effRematch = peerHintOverrideRematch !== null ? peerHintOverrideRematch : peerRematch;
+    if (effReady && !myReady && !postGame) {
       ovPeerHint.textContent = "對手已準備好了！";
       ovPeerHint.hidden = false;
-    } else if (peerRematch && !myRematch && postGame) {
+    } else if (effRematch && !myRematch && postGame) {
       ovPeerHint.textContent = "對手已發出續戰邀請";
       ovPeerHint.hidden = false;
     } else {
@@ -1118,9 +1149,11 @@
   }
 
   /**
-   * 每場雙人對戰結束：game +1；勝利時 win +1。需登入；不覆寫既有 score／combo。
+   * 每場雙人對戰結束：game +1；真正勝利（非對手離線判勝）時 win +1。需登入；不覆寫既有 score／combo。
+   * @param {boolean} won
+   * @param {"disconnect"|"ko"|undefined} winReason 與 endGame 相同；disconnect 勝不增加 win
    */
-  async function submitPvpStats(won) {
+  async function submitPvpStats(won, winReason) {
     if (!sb) return;
     try {
       const {
@@ -1153,7 +1186,8 @@
       const prevWin = existing ? Number(existing.win) || 0 : 0;
       const prevGame = existing ? Number(existing.game) || 0 : 0;
       const newGame = prevGame + 1;
-      const newWin = prevWin + (won ? 1 : 0);
+      const countWin = won && winReason !== "disconnect";
+      const newWin = prevWin + (countWin ? 1 : 0);
       const patch = { username: uname, win: newWin, game: newGame };
       if (existing) {
         const { error: upErr } = await sb
@@ -1509,7 +1543,12 @@
     }
   }
 
-  function endGame(won) {
+  /**
+   * @param {boolean} won
+   * @param {"disconnect"|"ko"|undefined} winReason 僅在 won 時有效：對手離線 vs 對手頂出
+   */
+  function endGame(won, winReason) {
+    matchSessionId++;
     running = false;
     paused = false;
     matchStarted = false;
@@ -1529,7 +1568,15 @@
     ovTitle.textContent = won ? "你贏了" : "你輸了";
     ovTitle.classList.remove("overlay-title--win");
     if (won) ovTitle.classList.add("overlay-title--win");
-    ovText.textContent = won ? "對手場地頂出或已斷線。" : "你的場地無法再出塊，或對手達成勝利條件。";
+    if (won) {
+      ovText.textContent =
+        winReason === "disconnect"
+          ? "對手已離場（中斷連線），你獲勝。"
+          : "對手場地已頂出，你獲勝。";
+    } else {
+      ovText.textContent = "你的場地無法再出塊，或對手達成勝利條件。";
+    }
+    if (countdownOverlay) countdownOverlay.hidden = true;
     syncBoardIdleHint();
     readyBtn.hidden = true;
     rematchBtn.hidden = true;
@@ -1544,7 +1591,7 @@
     }
     if (oppStatusEl) oppStatusEl.textContent = "待約戰";
     updatePresenceUi();
-    void submitPvpStats(won).finally(() => {
+    void submitPvpStats(won, winReason).finally(() => {
       refreshPvpSidebars();
     });
   }
@@ -1897,6 +1944,8 @@
       clearTimeout(peerHintFlashTimer);
       peerHintFlashTimer = null;
     }
+    peerHintOverrideReady = null;
+    peerHintOverrideRematch = null;
     running = false;
     postGame = false;
     myRematch = false;
@@ -1939,6 +1988,10 @@
     const state = rtChannel.presenceState();
     const n = Object.keys(state).length;
     presenceLabel.textContent = "人數：" + n;
+    if (n < 2 && (matchStarted || running) && !postGame) {
+      endGame(true, "disconnect");
+      return;
+    }
     peerReady = false;
     peerRematch = false;
     for (const key of Object.keys(state)) {
@@ -1950,6 +2003,12 @@
         if (m.ready) peerReady = true;
         if (m.rematch) peerRematch = true;
       }
+    }
+    if (peerHintOverrideReady !== null && peerReady === peerHintOverrideReady) {
+      peerHintOverrideReady = null;
+    }
+    if (peerHintOverrideRematch !== null && peerRematch === peerHintOverrideRematch) {
+      peerHintOverrideRematch = null;
     }
     const canLobby = n >= 2 && !running && !matchStarted;
     readyBtn.hidden = !(canLobby && !postGame);
@@ -1993,6 +2052,10 @@
 
   async function beginMatch(seed) {
     if (matchStarted || running) return;
+    peerHintOverrideReady = null;
+    peerHintOverrideRematch = null;
+    matchSessionId++;
+    const session = matchSessionId;
     matchStarted = true;
     postGame = false;
     myReady = false;
@@ -2010,6 +2073,7 @@
     }
     overlay.classList.remove("is-visible");
     await showCountdown321();
+    if (session !== matchSessionId) return;
     startLocalGame(seed);
     oppStatusEl.textContent = "對戰中";
   }
@@ -2023,7 +2087,11 @@
       }
     });
     ch.on("broadcast", { event: "ko" }, () => {
-      if (running) endGame(true);
+      if (running) endGame(true, "ko");
+    });
+    ch.on("broadcast", { event: "peer_left" }, () => {
+      if (postGame) return;
+      if (matchStarted || running) endGame(true, "disconnect");
     });
     ch.on("broadcast", { event: "start" }, ({ payload }) => {
       if (!payload || payload.seed == null) return;
@@ -2032,9 +2100,13 @@
     ch.on("broadcast", { event: "lobby_toggle" }, ({ payload }) => {
       if (!payload || running || matchStarted || isCountdownVisible()) return;
       if (!postGame) {
+        peerHintOverrideReady = !!payload.ready;
+        peerHintOverrideRematch = null;
         flashPeerLobbyHint(payload.ready ? "對手已準備好" : "對手已取消準備");
       } else {
-        flashPeerLobbyHint(payload.rematch ? "對手已發出約戰邀請" : "對手已取消約戰");
+        peerHintOverrideRematch = !!payload.rematch;
+        peerHintOverrideReady = null;
+        flashPeerLobbyHint(payload.rematch ? "對手已發出續戰邀請" : "對手已取消約戰");
       }
     });
     ch.on("presence", { event: "sync" }, () => updatePresenceUi());
@@ -2044,6 +2116,11 @@
 
   async function leaveRoom() {
     if (rtChannel) {
+      try {
+        broadcastPeerLeftIfActiveMatch();
+      } catch (_) {}
+      matchSessionId++;
+      if (countdownOverlay) countdownOverlay.hidden = true;
       try {
         await rtChannel.untrack();
       } catch (_) {}
@@ -2166,6 +2243,23 @@
 
   btnLeaveRoom.addEventListener("click", () => void leaveRoom());
 
+  window.addEventListener("pagehide", () => {
+    if (!rtChannel) return;
+    try {
+      broadcastPeerLeftIfActiveMatch();
+      matchSessionId++;
+      if (countdownOverlay) countdownOverlay.hidden = true;
+      void rtChannel.untrack();
+    } catch (_) {}
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (!rtChannel) return;
+    try {
+      broadcastPeerLeftIfActiveMatch();
+    } catch (_) {}
+  });
+
   window.addEventListener("keydown", (e) => {
     if (isCountdownVisible()) return;
     if (overlay.classList.contains("is-visible") && ovTitle.textContent !== "連線對戰") return;
@@ -2202,8 +2296,12 @@
       move(0, 1);
       softRepeat = { nextAt: performance.now() + MOVE_DAS_MS };
     } else if (e.code === "ArrowUp") {
-      tryRotate();
       e.preventDefault();
+      const now = performance.now();
+      if (e.repeat && now - lastArrowUpRotateAt < ROTATE_KEY_REPEAT_MIN_MS) return;
+      lastArrowUpRotateAt = now;
+      tryRotate();
+      draw();
     } else if (e.code === "Space") {
       hardDrop();
       e.preventDefault();

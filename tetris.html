@@ -846,7 +846,7 @@
       <div class="leaderboards-wrap">
         <div class="panel panel--leaderboard">
           <h3>榮譽榜</h3>
-          <table class="leaderboard-table" aria-label="榮譽榜前10名">
+          <table class="leaderboard-table" aria-label="榮譽榜前10名（依最高分排序）">
             <colgroup>
               <col class="lb-col-rank" />
               <col class="lb-col-name" />
@@ -957,7 +957,8 @@
     　連續消行可提高得分倍率（未消行則歸零）。<br />
     觸控裝置可使用下方按鈕（保留）。<br />
     月榮譽榜冠軍授予🎖️獎章、月英雄榜冠軍授予🏅獎章、月雙冠軍授予🏆獎盃<br />
-    <a href="./tetris-vs.html" style="color:#93c5fd">雙人對戰 · Realtime</a>
+    <a href="./tetris-vs.html" style="color:#93c5fd">雙人對戰 · Realtime</a><br />
+    © Reguhu 2026
   </p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1190,16 +1191,18 @@
 
       const DROP_SPEED_MULT = 1.15;
       /** 方向鍵長按：進入連發前的等待（DAS）與連發間隔（ARR）；為常見手感約 167ms / 33ms 的 50% */
-      const MOVE_DAS_MS = 90;
+      const MOVE_DAS_MS = 100;
       /** 長按 ↓ 軟降時，每下移一格的間隔 */
       const MOVE_ARR_MS = 50;
       /**
        * 長按 ←／→ 「連續橫移」時，橫向每移一格的間隔（毫秒）。
        * 此處為在與 MOVE_ARR_MS 相同基底下，橫向移動再快 50%（間隔 ÷1.5，格／秒 ×1.5）。
        */
-      const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS / 1;
+      const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS / 0.75;
       /** 方塊底部著地後，經過此時間才鎖定 */
-      const LOCK_DELAY_MS = 300;
+      const LOCK_DELAY_MS = 400;
+      /** 長按 ↑ 時，阻擋系統鍵盤連發過快；僅限 e.repeat，單次點按仍立即旋轉 */
+      const ROTATE_KEY_REPEAT_MIN_MS = 165;
       function dropMsForLevel(lv) {
         const raw = 1000 - (lv - 1) * 65;
         return Math.max(70, raw / DROP_SPEED_MULT);
@@ -1229,6 +1232,8 @@
       let lastHorizKey = 0;
       let horizRepeat = null;
       let softRepeat = null;
+      /** 上次因 ↑ 旋轉的時間（用於長按節流） */
+      let lastArrowUpRotateAt = 0;
       /** 著地狀態下開始計時的時間戳；非著地時為 null */
       let lockGroundedSince = null;
       let holdType = null;
@@ -1667,8 +1672,7 @@
       }
 
       /**
-       * 與榮譽榜／英雄榜「前三名」門檻比對：本局數值是否達得進前 3 名。
-       * 不依賴是否已寫入資料庫，以本局分數／連擊與現有榜單列比較。
+       * 與榮譽榜／英雄榜「前三名」門檻比對：本局分數／連擊與現有榜單列比較。
        */
       function rowQualifiesTop3(value, rows, key) {
         const v = Number(value) || 0;
@@ -2393,9 +2397,12 @@
           move(0, 1);
           softRepeat = { nextAt: performance.now() + MOVE_DAS_MS };
         } else if (e.code === "ArrowUp") {
+          e.preventDefault();
+          const now = performance.now();
+          if (e.repeat && now - lastArrowUpRotateAt < ROTATE_KEY_REPEAT_MIN_MS) return;
+          lastArrowUpRotateAt = now;
           tryRotate();
           draw();
-          e.preventDefault();
         } else if (e.code === "Space") {
           hardDrop();
           e.preventDefault();
