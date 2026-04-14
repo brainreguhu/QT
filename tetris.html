@@ -1718,20 +1718,12 @@
        */
       function buildCongratsMessage(f) {
         const bits = [];
-        if (f.personalScore && f.personalCombo) {
-          bits.push("刷新個人最高分與最高連擊");
-        } else {
-          if (f.personalScore) bits.push("刷新個人最高分");
-          if (f.personalCombo) bits.push("刷新個人最高連擊");
-        }
-        if (f.honorTop3 && f.heroTop3) {
-          bits.push("同時躍入榮譽榜與英雄榜前三名");
-        } else {
-          if (f.honorTop3) bits.push("躍入榮譽榜前三名");
-          if (f.heroTop3) bits.push("躍入英雄榜前三名");
-        }
+        if (f.personalScore) bits.push("突破個人最高分");
+        if (f.personalCombo) bits.push("突破個人連擊數");
+        if (f.honorTop3) bits.push("進入榮譽榜前三名");
+        if (f.heroTop3) bits.push("進入英雄榜前三名");
         if (bits.length === 0) return "";
-        return "恭喜\n" + bits.join("，") + "！";
+        return "恭喜\n" + bits.join("\n");
       }
 
       function setOverlayCongrats(show, message) {
@@ -1892,8 +1884,12 @@
         comboChain = 0;
         comboToast = null;
         stageWrap.classList.remove("is-shake", "is-shake-hard");
+        const displayedPersonalBestCombo = personalBestComboEl
+          ? Math.max(0, parseInt(personalBestComboEl.textContent || "0", 10) || 0)
+          : 0;
+        const comboRecordBaseline = Math.max(comboBest, displayedPersonalBestCombo);
         const isNewRecord = score > best;
-        const isNewComboRecord = maxComboChain > comboBest && maxComboChain > 0;
+        const isNewComboRecord = maxComboChain > comboRecordBaseline && maxComboChain > 0;
         if (isNewRecord) {
           best = score;
           try {
