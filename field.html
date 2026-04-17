@@ -50,18 +50,23 @@
       margin-bottom: 16px;
     }
 
+    .upload-card {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
     h1 {
       margin-top: 0;
-      margin-bottom: 8px;
+      margin-bottom: 0;
       font-size: 1.6rem;
     }
 
     .title-area {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
 
     .title-row {
@@ -76,10 +81,57 @@
       margin: 0;
     }
 
+    .title-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 33px;
+      flex-shrink: 0;
+    }
+
     .form-grid {
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    .upload-toggle-btn {
+      margin-bottom: 0;
+      min-width: 128px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #57534e;
+      background: #475569;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .upload-toggle-btn:hover {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      background: #5b6b7d;
+      border-color: #64748b;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+      color: #fff;
+    }
+
+    .upload-panel.is-collapsed {
+      display: none;
     }
 
     .upload-row {
@@ -285,10 +337,13 @@
     }
 
     .toolbar-back-link {
+      margin-bottom: 0;
       flex-shrink: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      transform-origin: center center;
+      will-change: transform;
       padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid #57534e;
@@ -301,16 +356,25 @@
       white-space: nowrap;
       cursor: pointer;
       transition:
+        transform 0.2s ease,
         filter 0.2s ease,
         background-color 0.2s ease,
-        border-color 0.2s ease;
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .upload-toggle-btn:hover,
+    .toolbar-back-link:hover {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      background: #5b6b7d;
+      border-color: #64748b;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+      color: #fff;
     }
 
     .toolbar-back-link:hover {
-      filter: brightness(1.08);
-      background: #5b6b7d;
-      border-color: #64748b;
-      color: #fff;
+      transform: scale(1.1) !important;
     }
 
     .toolbar {
@@ -370,6 +434,14 @@
       flex: unset;
     }
 
+    @media (max-width: 720px) {
+      .time-range-wrap {
+        grid-template-columns: 1fr;
+        min-width: 0;
+        flex: 1 1 100%;
+      }
+    }
+
     .stats {
       font-size: 0.9rem;
       color: var(--subtle);
@@ -388,27 +460,41 @@
       background: rgba(15, 20, 25, 0.45);
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: 6px;
     }
 
     .item.is-pinned {
       border: 3px solid #fde047;
     }
 
-    /* 左欄：檔名／meta／標籤上下相連，避免與右側高按鈕區之間出現大片空白 */
-    .item-head {
+    .item-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .item-left {
+    .item-row-1 {
+      flex-wrap: nowrap;
+    }
+
+    .item-row-2 {
+      align-items: center;
+    }
+
+    .item-row-3 {
+      gap: 8px;
+    }
+
+    .item-row-4 {
+      justify-content: flex-start;
+    }
+
+    .file-name-wrap,
+    .meta-wrap {
       flex: 1;
       min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
     }
 
     .file-name {
@@ -427,6 +513,19 @@
       margin-top: 0;
     }
 
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .row-line-share {
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
     .chips {
       display: flex;
       flex-wrap: wrap;
@@ -440,6 +539,16 @@
       gap: 8px;
       flex-wrap: wrap;
       margin-top: 0;
+    }
+
+    .chip-primary-wrap,
+    .op-log-wrap {
+      display: inline-flex;
+      align-items: center;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0;
     }
 
     .op-log {
@@ -471,6 +580,16 @@
       line-height: 1.2;
     }
 
+    .row-actions button {
+      box-sizing: border-box;
+      min-height: 30px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+
     .empty {
       color: var(--subtle);
       text-align: center;
@@ -482,6 +601,7 @@
 
     .user-info {
       margin-top: 0;
+      margin-bottom: 0;
       color: var(--subtle);
       font-size: 0.9rem;
     }
@@ -641,16 +761,19 @@
 </head>
 <body>
   <div class="container">
-    <div class="card">
+    <div class="card upload-card">
       <div class="title-area">
         <div class="title-row">
           <h1>資料管理系統</h1>
           <div id="userInfo" class="user-info">目前使用者：讀取中...</div>
         </div>
-        <a href="./index.html" class="toolbar-back-link" title="返回功能選單">↩ 返回</a>
+        <div class="title-actions">
+          <button id="toggleUploadPanelBtn" class="secondary upload-toggle-btn" type="button" aria-expanded="false" aria-controls="uploadPanel">展開上傳</button>
+          <a href="./index.html" class="toolbar-back-link" title="返回功能選單">↩ 返回</a>
+        </div>
       </div>
       <form id="uploadForm">
-        <div class="form-grid">
+        <div id="uploadPanel" class="form-grid upload-panel is-collapsed">
           <div class="upload-row">
             <div class="field-group">
               <label for="fileInput">選擇檔案</label>
@@ -798,6 +921,8 @@
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const uploadForm = document.getElementById("uploadForm");
+    const toggleUploadPanelBtn = document.getElementById("toggleUploadPanelBtn");
+    const uploadPanel = document.getElementById("uploadPanel");
     const fileInput = document.getElementById("fileInput");
     const zoneInput = document.getElementById("zoneInput");
     const orgTypeInput = document.getElementById("orgTypeInput");
@@ -830,6 +955,13 @@
     let editingRecordId = null;
     let deleteModalTimer = null;
     let pendingDeleteId = null;
+
+    function setUploadPanelExpanded(expanded) {
+      if (!toggleUploadPanelBtn || !uploadPanel) return;
+      uploadPanel.classList.toggle("is-collapsed", !expanded);
+      toggleUploadPanelBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggleUploadPanelBtn.textContent = expanded ? "隱藏上傳" : "展開上傳";
+    }
 
     function formatSize(bytes) {
       if (bytes < 1024) return `${bytes} B`;
@@ -1181,12 +1313,21 @@
         throw error || new Error("無法取得下載連結");
       }
 
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) {
+        throw new Error("下載檔案失敗，請稍後再試。");
+      }
+      const fileBlob = await response.blob();
+      const blobUrl = URL.createObjectURL(fileBlob);
+      const downloadName = String(record.fileName || "").trim() || "download";
+
       const anchor = document.createElement("a");
-      anchor.href = data.signedUrl;
-      anchor.download = record.fileName || "download";
+      anchor.href = blobUrl;
+      anchor.download = downloadName;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+      URL.revokeObjectURL(blobUrl);
     }
 
     async function shareToLine(id) {
@@ -1279,44 +1420,61 @@
         const editTagBtn = (id) =>
           `<button class="secondary chip-edit-btn" type="button" data-action="edit-tag" data-id="${id}" aria-label="編輯標籤" title="編輯標籤">編輯</button>`;
 
-        const chipsParts = [];
-        if (item.zone) chipsParts.push(`<span class="chip">${escapeHtml(`工區：${item.zone}`)}</span>`);
+        const primaryChips = [];
+        if (item.zone) primaryChips.push(`<span class="chip">${escapeHtml(`工區：${item.zone}`)}</span>`);
         if (item.orgType) {
-          chipsParts.push(`<span class="chip">${escapeHtml(`分類：${item.orgType}`)}</span>`);
-          if (canEditTag) chipsParts.push(editTagBtn(item.id));
+          primaryChips.push(`<span class="chip">${escapeHtml(`分類：${item.orgType}`)}</span>`);
+          if (canEditTag) primaryChips.push(editTagBtn(item.id));
         } else if (canEditTag) {
-          chipsParts.push(editTagBtn(item.id));
+          primaryChips.push(editTagBtn(item.id));
         }
-        if (approvalLabel && canManage) chipsParts.push(`<span class="chip">${escapeHtml(approvalLabel)}</span>`);
-        if (item.pendingZone) chipsParts.push(`<span class="chip">${escapeHtml(`待核准工區：${item.pendingZone}`)}</span>`);
-        if (item.pendingOrgType) chipsParts.push(`<span class="chip">${escapeHtml(`待核准分類：${item.pendingOrgType}`)}</span>`);
-        if (isLocked && canManage) chipsParts.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
-        const tagHtml = chipsParts.join("");
+        const extraChips = [];
+        if (approvalLabel && canManage) extraChips.push(`<span class="chip">${escapeHtml(approvalLabel)}</span>`);
+        if (item.pendingZone) extraChips.push(`<span class="chip">${escapeHtml(`待核准工區：${item.pendingZone}`)}</span>`);
+        if (item.pendingOrgType) extraChips.push(`<span class="chip">${escapeHtml(`待核准分類：${item.pendingOrgType}`)}</span>`);
+        if (isLocked && canManage) extraChips.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
+        const primaryTagHtml = primaryChips.join("");
+        const extraTagHtml = extraChips.join("");
 
         const leadingActionButtons =
           canManage && !item.approved
             ? `<button class="success" type="button" data-action="approve" data-id="${item.id}">批准</button>`
             : "";
+        const row1ActionButtons = [
+          leadingActionButtons,
+          `<button class="secondary" type="button" data-action="download" data-id="${item.id}" ${blockedDownload ? "disabled" : ""}>下載</button>`,
+          canManage ? `<button class="${isPinned ? "success" : "secondary"}" type="button" data-action="pin" data-id="${item.id}">置頂</button>` : "",
+          canDown && canEdit ? `<button class="${isLocked ? "success" : "secondary"}" type="button" data-action="down" data-id="${item.id}">下架</button>` : "",
+          canManage ? `<button class="danger" type="button" data-action="delete" data-id="${item.id}">刪除</button>` : "",
+        ].filter(Boolean).join("");
 
         return `
           <div class="item ${isPinned ? "is-pinned" : ""}">
-            <div class="item-head">
-              <div class="item-left">
+            <div class="item-row item-row-1">
+              <div class="file-name-wrap">
                 <div class="file-name ${isLocked ? "is-locked" : ""}">${escapeHtml(item.fileName)}${isLocked ? "（下架）" : ""}</div>
-                <div class="meta">大小：${formatSize(item.fileSize)} ｜ 上傳者：${escapeHtml(item.username || "未知")} ｜ 上傳時間：${item.createdAt ? formatDateTime(item.createdAt) : "-"}</div>
-                <div class="chips-row"><div class="chips">${tagHtml}</div>${actionInline ? `<div class="op-log">${escapeHtml(actionInline)}</div>` : ""}</div>
               </div>
-              <div class="actions"><div class="actions-cluster">${leadingActionButtons}<div class="actions-file-block"><div class="actions-file-row">
-                    <button class="secondary" type="button" data-action="download" data-id="${item.id}" ${blockedDownload ? "disabled" : ""}>下載</button>
-                    ${canManage ? `<button class="${isPinned ? "success" : "secondary"}" type="button" data-action="pin" data-id="${item.id}">置頂</button>` : ""}
-                    ${canDown && canEdit ? `<button class="${isLocked ? "success" : "secondary"}" type="button" data-action="down" data-id="${item.id}">下架</button>` : ""}
-                    ${canManage ? `<button class="danger" type="button" data-action="delete" data-id="${item.id}">刪除</button>` : ""}
-                  </div><div class="actions-line-row">
-                    <button class="icon-btn line-share-btn" type="button" data-action="line-share" data-id="${item.id}" aria-label="分享 LINE" title="分享 LINE">
-                      <img class="line-share-img" src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" alt="用 LINE 傳送">
-                    </button>
-                  </div></div></div></div>
+              <div class="row-actions">${row1ActionButtons}</div>
             </div>
+            <div class="item-row item-row-2">
+              <div class="meta-wrap">
+                <div class="meta">大小：${formatSize(item.fileSize)} ｜ 上傳者：${escapeHtml(item.username || "未知")} ｜ 上傳時間：${item.createdAt ? formatDateTime(item.createdAt) : "-"}</div>
+              </div>
+              <div class="row-line-share">
+                <button class="icon-btn line-share-btn" type="button" data-action="line-share" data-id="${item.id}" aria-label="分享 LINE" title="分享 LINE">
+                  <img class="line-share-img" src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" alt="用 LINE 傳送">
+                </button>
+              </div>
+            </div>
+            <div class="item-row item-row-3">
+              <div class="chip-primary-wrap"><div class="chips">${primaryTagHtml}</div></div>
+              ${extraTagHtml ? `<div class="chips">${extraTagHtml}</div>` : ""}
+            </div>
+            ${actionInline
+              ? `<div class="item-row item-row-4">
+              <div class="op-log-wrap"><div class="op-log">${escapeHtml(actionInline)}</div></div>
+            </div>`
+              : ""}
           </div>
         `;
       }).join("");
@@ -1475,9 +1633,20 @@
       renderList();
     });
 
+    if (toggleUploadPanelBtn && uploadPanel) {
+      setUploadPanelExpanded(false);
+      toggleUploadPanelBtn.addEventListener("click", event => {
+        event.preventDefault();
+        const isCollapsed = uploadPanel.classList.contains("is-collapsed");
+        setUploadPanelExpanded(isCollapsed);
+      });
+    }
+
     listEl.addEventListener("click", async event => {
-      const target = event.target;
-      if (!(target instanceof HTMLButtonElement)) return;
+      const rawTarget = event.target;
+      if (!(rawTarget instanceof Element)) return;
+      const target = rawTarget.closest("button[data-action][data-id]");
+      if (!(target instanceof HTMLButtonElement) || !listEl.contains(target)) return;
 
       const id = target.dataset.id;
       if (!id) return;

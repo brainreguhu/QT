@@ -216,6 +216,17 @@
       background: rgba(15, 40, 58, 0.6);
       color: #fff;
     }
+    .link-btn--field {
+      border-color: rgba(244, 114, 182, 0.48);
+      background: rgba(60, 18, 45, 0.5);
+      color: #fff;
+      animation: field-outer-glow 1.4s ease-in-out infinite;
+    }
+    .link-btn--field:hover {
+      border-color: rgba(249, 168, 212, 0.9);
+      background: rgba(78, 22, 58, 0.58);
+      color: #fff;
+    }
     @keyframes tetris-outer-glow {
       0%,
       100% {
@@ -246,7 +257,28 @@
           0 0 40px rgba(45, 212, 191, 0.28);
       }
     }
+    @keyframes field-outer-glow {
+      0%,
+      100% {
+        box-shadow:
+          0 0 0 1px rgba(244, 114, 182, 0.5),
+          0 0 20px rgba(244, 114, 182, 0.48),
+          0 0 38px rgba(236, 72, 153, 0.34);
+      }
+      50% {
+        box-shadow:
+          0 0 0 1px rgba(251, 207, 232, 0.8),
+          0 0 30px rgba(244, 114, 182, 0.72),
+          0 0 54px rgba(236, 72, 153, 0.5);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
+      .link-btn--field {
+        animation: none;
+        box-shadow:
+          0 0 0 1px rgba(244, 114, 182, 0.42),
+          0 0 16px rgba(236, 72, 153, 0.34);
+      }
       .link-btn--tetris {
         animation: none;
         box-shadow:
@@ -389,7 +421,7 @@
     <div class="function-zone">
     <h1>請選擇功能</h1>
     <div class="links">
-      <a class="link-btn" href="./field.html">資料管理系統🖥️</a>
+      <a class="link-btn link-btn--field" href="./field.html">資料管理系統🖥️</a>
       <div class="links-row-two">
         <a class="link-btn" href="./action.html">進度總覽🖥️</a>
         <a class="link-btn" href="./sumit.html">進度回報🖥️</a>
