@@ -241,7 +241,7 @@
     }
 
     /* 「批准」與 下載 等文字鈕同高 */
-    .actions-cluster > button:not(.line-share-btn),
+    .actions-cluster > button,
     .actions .actions-file-row button {
       box-sizing: border-box;
       min-height: 30px;
@@ -313,30 +313,6 @@
       justify-content: center;
       gap: 6px;
       padding: 2px 8px 3px 8px;
-    }
-
-    /* LINE 圖片鈕：透明底、無框線、完整 168×40（須在通用 button 之後） */
-    button.icon-btn.line-share-btn {
-      background: transparent;
-      border: none;
-      padding: 0;
-      box-shadow: none;
-      color: inherit;
-    }
-
-    button.icon-btn.line-share-btn:hover {
-      background: transparent;
-      box-shadow: none;
-      transform: scale(1.1);
-      transform-origin: center center;
-      filter: brightness(1.12);
-    }
-
-    button.icon-btn.line-share-btn .line-share-img {
-      width: 168px;
-      height: 40px;
-      display: block;
-      object-fit: contain;
     }
 
     button.success {
@@ -1423,23 +1399,6 @@
       return { shareText, shareUrl };
     }
 
-    async function shareToLine(id) {
-      const record = records.find(item => item.id === id);
-      if (!record) return;
-
-      const popup = window.open("about:blank", "_blank", "noopener,noreferrer");
-      if (!popup) {
-        alert("瀏覽器已封鎖分享視窗，請允許彈出視窗後再試。");
-        return;
-      }
-
-      const { shareText, shareUrl } = await resolveSharePayload(record);
-
-      // Ref: https://www.techcoke.com/2017/01/line-share-button-mobile-desktop-app.html
-      const lineUrl = `https://lineit.line.me/share/ui?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-      popup.location.href = lineUrl;
-    }
-
     async function shareRecord(id) {
       const record = records.find(item => item.id === id);
       if (!record) return;
@@ -1573,9 +1532,6 @@
               </div>
               <div class="row-line-share">
                 <button class="secondary mini-share-btn" type="button" data-action="share" data-id="${item.id}" aria-label="分享" title="分享">分享</button>
-                <button class="icon-btn line-share-btn" type="button" data-action="line-share" data-id="${item.id}" aria-label="分享 LINE" title="分享 LINE">
-                  <img class="line-share-img" src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" alt="用 LINE 傳送">
-                </button>
               </div>
             </div>
             <div class="item-row item-row-3">
@@ -1794,10 +1750,6 @@
       try {
         if (action === "download") {
           await downloadRecord(id);
-          return;
-        }
-        if (action === "line-share") {
-          await shareToLine(id);
           return;
         }
         if (action === "share") {
