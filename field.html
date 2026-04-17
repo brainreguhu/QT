@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>資料管理系統</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: rgba(255, 255, 255, 0.1);
+      --text: #e7ecf3;
+      --subtle: #94a3b8;
+      --primary: #2563eb;
+      --secondary: #475569;
+      --danger: #6b2f2f;
+      --border: #475569;
+      --input-bg: #9ca3af;
+      --chip-bg: #334155;
+      --chip-text: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 100% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 10px;
+      box-shadow: none;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.6rem;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+
+    .title-row h1 {
+      margin: 0;
+    }
+
+    .form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .upload-row {
+      display: grid;
+      gap: 12px;
+      align-items: end;
+      grid-template-columns: 1fr auto;
+    }
+
+    .upload-row.secondary {
+      align-items: start;
+      grid-template-columns: minmax(160px, 220px) minmax(160px, 220px) auto;
+    }
+
+    @media (max-width: 720px) {
+      .upload-row,
+      .upload-row.secondary {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-submit-wrap {
+        margin-left: 0;
+      }
+    }
+
+    .field-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+      color: #cbd5e1;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    input[type="datetime-local"],
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.95rem;
+      background: var(--input-bg);
+      color: #1e293b;
+    }
+
+    input[type="text"]::placeholder {
+      color: #475569;
+    }
+
+    .actions {
+      display: flex;
+      flex-shrink: 0;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+
+    /* 將「批准」與檔案操作區鎖成一塊，避免換行時與下載鈕分開或中間假空隙 */
+    .actions-cluster {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      gap: 5px;
+      max-width: 100%;
+    }
+
+    /* 下載／置頂／下架／刪除 與 LINE 分兩列，LINE 在下方靠右（紅框區） */
+    .actions-file-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .actions-file-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: flex-end;
+    }
+
+    .actions-line-row {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    /* 「批准」與 下載 等文字鈕同高 */
+    .actions-cluster > button:not(.line-share-btn),
+    .actions .actions-file-row button {
+      box-sizing: border-box;
+      min-height: 30px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .radio-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      padding: 0px 0px;
+      border-radius: 999px;
+      border: 0px solid rgba(148, 163, 184, 0.45);
+      color: #e2e8f0;
+      font-size: 1.02rem;
+    }
+
+    .radio-item input {
+      accent-color: #2563eb;
+      transform: scale(1.45);
+      transform-origin: center;
+      margin-right: 6px;
+    }
+
+    .radio-item span {
+      display: inline-block;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 2px 5px 3px 5px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      color: #fff;
+      background: var(--primary);
+      transform-origin: center center;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+    }
+
+    button.secondary {
+      background: var(--secondary);
+    }
+
+    button.icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 2px 8px 3px 8px;
+    }
+
+    /* LINE 圖片鈕：透明底、無框線、完整 168×40（須在通用 button 之後） */
+    button.icon-btn.line-share-btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      box-shadow: none;
+      color: inherit;
+    }
+
+    button.icon-btn.line-share-btn:hover {
+      background: transparent;
+      box-shadow: none;
+      transform: scale(1.1);
+      transform-origin: center center;
+      filter: brightness(1.12);
+    }
+
+    button.icon-btn.line-share-btn .line-share-img {
+      width: 168px;
+      height: 40px;
+      display: block;
+      object-fit: contain;
+    }
+
+    button.success {
+      background: #15803d;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    .upload-submit-btn {
+      padding: 6px;
+    }
+
+    .upload-submit-wrap {
+      margin-left: 0px;
+      display: flex;
+      align-items: flex-end;
+      align-self: end;
+    }
+
+    .toolbar-back-link {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #57534e;
+      background: #475569;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      transition:
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .toolbar-back-link:hover {
+      filter: brightness(1.08);
+      background: #5b6b7d;
+      border-color: #64748b;
+      color: #fff;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toolbar-row .field-group {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .text-filter-group {
+      width: 220px;
+      min-width: 220px;
+      flex: 0 0 220px;
+    }
+
+    .clear-filter-wrap {
+      margin-left: 5px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    #textFilter {
+      height: 34px;
+    }
+
+    #clearFilterBtn {
+      height: 34px;
+      padding: 0 12px;
+    }
+
+    .time-range-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: transparent;
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 280px;
+      flex: 2;
+    }
+
+    .time-range-wrap .field-group {
+      min-width: 0;
+      flex: unset;
+    }
+
+    .stats {
+      font-size: 0.9rem;
+      color: var(--subtle);
+      margin-bottom: 12px;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .item {
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(15, 20, 25, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .item.is-pinned {
+      border: 3px solid #fde047;
+    }
+
+    /* 左欄：檔名／meta／標籤上下相連，避免與右側高按鈕區之間出現大片空白 */
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .item-left {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .file-name {
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .file-name.is-locked {
+      text-decoration: line-through;
+      opacity: 0.75;
+    }
+
+    .meta {
+      font-size: 0.85rem;
+      color: var(--subtle);
+      margin-top: 0;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chips-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 0;
+    }
+
+    .op-log {
+      margin-left: 0;
+      font-size: 0.82rem;
+      color: var(--subtle);
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    .chip {
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+    }
+
+    .chips .chip-edit-btn {
+      box-sizing: border-box;
+      min-height: 26px;
+      padding: 2px 10px;
+      font-size: 0.82rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+
+    .empty {
+      color: var(--subtle);
+      text-align: center;
+      padding: 18px 0;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      background: rgba(15, 20, 25, 0.35);
+    }
+
+    .user-info {
+      margin-top: 0;
+      color: var(--subtle);
+      font-size: 0.9rem;
+    }
+
+    dialog {
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      background: #1f2937;
+      color: #e7ecf3;
+      width: min(520px, calc(100vw - 24px));
+      padding: 16px;
+    }
+
+    dialog::backdrop {
+      background: rgba(15, 20, 25, 0.7);
+    }
+
+    .dialog-title {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(10, 14, 20, 0.72);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.is-open {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 380px;
+      background: #1f2937;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 12px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .modal-box h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #e7ecf3;
+    }
+
+    .modal-box p {
+      margin: 0 0 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+
+    .modal-box .modal-target {
+      color: #e7ecf3;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .modal-actions button {
+      min-width: 96px;
+      padding: 2px 5px 3px 5px;
+    }
+
+    #delete-modal-confirm {
+      transform-origin: center center;
+      border: 1px solid #f87171;
+      background: transparent;
+      color: #f87171;
+      font-size:14px;
+      padding: 8px 12px;
+      transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        font-weight 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    #delete-modal-confirm:disabled {
+      background: #64748b;
+      border-color: rgba(148, 163, 184, 0.55);
+      color: rgba(241, 245, 249, 0.85);
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+      box-shadow: none;
+    }
+
+    #delete-modal-confirm:hover:not(:disabled) {
+      transform: scale(1.1);
+      background: #b91c1c;
+      border-color: #f87171;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(185, 28, 28, 0.45);
+    }
+
+    #delete-modal-confirm:active:not(:disabled) {
+      transform: scale(1.05);
+      background: #991b1b;
+    }
+
+    #delete-modal-cancel {
+      transform-origin: center center;
+      background: #15803d;
+      border-color: rgba(134, 239, 172, 0.55);
+      color: #fff;
+      font-size:14px;
+      font-weight: 600;
+      padding: 2px 5px 3px 5px;
+      transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    #delete-modal-cancel:hover {
+      transform: scale(1.1);
+      background: #16a34a;
+      border-color: #86efac;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.42);
+    }
+
+    #delete-modal-cancel:active {
+      transform: scale(1.05);
+      background: #14532d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="title-area">
+        <div class="title-row">
+          <h1>資料管理系統</h1>
+          <div id="userInfo" class="user-info">目前使用者：讀取中...</div>
+        </div>
+        <a href="./index.html" class="toolbar-back-link" title="返回功能選單">↩ 返回</a>
+      </div>
+      <form id="uploadForm">
+        <div class="form-grid">
+          <div class="upload-row">
+            <div class="field-group">
+              <label for="fileInput">選擇檔案</label>
+              <input id="fileInput" type="file" required>
+            </div>
+          </div>
+          <div class="upload-row secondary">
+            <div class="field-group">
+              <label for="zoneInput">工區</label>
+              <select id="zoneInput" required>
+                <option value="">請選擇工區</option>
+                <option value="69">69</option>
+                <option value="70">70</option>
+                <option value="71">71</option>
+                <option value="全體">全體</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="orgTypeInput">分類</label>
+              <select id="orgTypeInput" required>
+                <option value="">請選擇分類</option>
+                <option value="機關">機關</option>
+                <option value="業主">業主</option>
+                <option value="公司">公司</option>
+                <option value="合約">合約</option>
+                <option value="SOP">SOP</option>
+                <option value="聯絡單">聯絡單</option>
+                <option value="工區文書圖檔">工區文書圖檔</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="upload-submit-wrap">
+              <button type="submit" class="upload-submit-btn">上傳資料</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-row">
+          <div class="field-group">
+            <label for="zoneFilter">依工區篩選</label>
+            <select id="zoneFilter">
+              <option value="">全部工區</option>
+              <option value="69">69</option>
+              <option value="70">70</option>
+              <option value="71">71</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="orgTypeFilter">依分類篩選</label>
+            <select id="orgTypeFilter">
+              <option value="">全部類別</option>
+              <option value="機關">機關</option>
+              <option value="業主">業主</option>
+              <option value="公司">公司</option>
+              <option value="合約">合約</option>
+              <option value="SOP">SOP</option>
+              <option value="聯絡單">聯絡單</option>
+              <option value="工區文書圖檔">工區文書圖檔</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="time-range-wrap">
+            <div class="field-group">
+              <label for="dateFromFilter">起始時間</label>
+              <input id="dateFromFilter" type="datetime-local">
+            </div>
+            <div class="field-group">
+              <label for="dateToFilter">結束時間</label>
+              <input id="dateToFilter" type="datetime-local">
+            </div>
+          </div>
+        </div>
+        <div class="toolbar-row">
+          <div class="field-group text-filter-group">
+            <input id="textFilter" type="text" placeholder="輸入檔名、上傳者等關鍵字">
+          </div>
+          <div class="clear-filter-wrap">
+            <button id="clearFilterBtn" class="secondary" type="button">清除篩選</button>
+          </div>
+        </div>
+      </div>
+      <div id="stats" class="stats"></div>
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+
+  <dialog id="editTagDialog">
+    <form id="editTagForm" method="dialog">
+      <h2 class="dialog-title">編輯標籤</h2>
+      <div class="field-group">
+        <label for="editZoneInput">工區</label>
+        <select id="editZoneInput" required>
+          <option value="">請選擇工區</option>
+          <option value="69">69</option>
+          <option value="70">70</option>
+          <option value="71">71</option>
+          <option value="全體">71</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label for="editOrgTypeInput">分類</label>
+        <select id="editOrgTypeInput" required>
+          <option value="">請選擇分類</option>
+          <option value="機關">機關</option>
+          <option value="業主">業主</option>
+          <option value="公司">公司</option>
+          <option value="合約">合約</option>
+          <option value="SOP">SOP</option>
+          <option value="聯絡單">聯絡單</option>
+          <option value="工區文書圖檔">工區文書圖檔</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="editTagCancelBtn">取消</button>
+        <button type="submit">儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="delete-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" aria-hidden="true">
+    <div class="modal-box">
+      <h2 id="delete-modal-title">確認刪除</h2>
+      <p>確定要刪除資料 <span id="delete-modal-label" class="modal-target"></span> 嗎？此動作無法復原。</p>
+      <div class="modal-actions">
+        <button type="button" id="delete-modal-cancel" class="secondary">取消</button>
+        <button type="button" id="delete-modal-confirm" class="danger" disabled>確認刪除（5）</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+    const FIELD_UPLOADS_TABLE = "field_uploads";
+    const FIELD_FILES_BUCKET = "field-files";
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const uploadForm = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const zoneInput = document.getElementById("zoneInput");
+    const orgTypeInput = document.getElementById("orgTypeInput");
+    const zoneFilter = document.getElementById("zoneFilter");
+    const orgTypeFilter = document.getElementById("orgTypeFilter");
+    const textFilter = document.getElementById("textFilter");
+    const dateFromFilter = document.getElementById("dateFromFilter");
+    const dateToFilter = document.getElementById("dateToFilter");
+    const clearFilterBtn = document.getElementById("clearFilterBtn");
+    const listEl = document.getElementById("list");
+    const statsEl = document.getElementById("stats");
+    const userInfoEl = document.getElementById("userInfo");
+    const editTagDialog = document.getElementById("editTagDialog");
+    const editTagForm = document.getElementById("editTagForm");
+    const editZoneInput = document.getElementById("editZoneInput");
+    const editOrgTypeInput = document.getElementById("editOrgTypeInput");
+    const editTagCancelBtn = document.getElementById("editTagCancelBtn");
+    const deleteModalEl = document.getElementById("delete-modal");
+    const deleteModalLabelEl = document.getElementById("delete-modal-label");
+    const deleteModalConfirmBtn = document.getElementById("delete-modal-confirm");
+    const deleteModalCancelBtn = document.getElementById("delete-modal-cancel");
+    const DELETE_CONFIRM_COUNTDOWN_SEC = 5;
+
+    let records = [];
+    let currentUserId = "";
+    let currentUsername = "";
+    let currentPermissionLevel = null;
+    let currentUserZone = "";
+    let currentProfileApproved = true;
+    let editingRecordId = null;
+    let deleteModalTimer = null;
+    let pendingDeleteId = null;
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "";
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(date);
+    }
+
+    function canManageRestrictedActions() {
+      return Number(currentPermissionLevel) === 0 && currentProfileApproved === true;
+    }
+
+    function canDownRestrictedActions() {
+      const level = Number(currentPermissionLevel);
+      return (level === 0 || level === 1) && currentProfileApproved === true;
+    }
+
+    function canEditRecord(record) {
+      if (canManageRestrictedActions()) return true;
+      const zone = String(record?.zone || "").trim();
+      const userZone = String(currentUserZone || "").trim();
+      return !!userZone && (zone === userZone || zone === "全體");
+    }
+
+    function canEditTagRecord(_record) {
+      return true;
+    }
+
+    function hasPendingEdit(record) {
+      const pendingZone = String(record?.pendingZone || "").trim();
+      const pendingOrgType = String(record?.pendingOrgType || "").trim();
+      return !!pendingZone || !!pendingOrgType;
+    }
+
+    function isDownloadBlocked(record) {
+      return !record?.approved;
+    }
+
+    function getApprovalLabel(record) {
+      if (record?.approved) return "";
+      return hasPendingEdit(record) ? "待批准（編輯）" : "待批准";
+    }
+
+    function closeDeleteModal() {
+      if (deleteModalTimer != null) {
+        clearInterval(deleteModalTimer);
+        deleteModalTimer = null;
+      }
+      pendingDeleteId = null;
+      deleteModalEl.classList.remove("is-open");
+      deleteModalEl.setAttribute("aria-hidden", "true");
+      deleteModalConfirmBtn.disabled = true;
+      deleteModalConfirmBtn.textContent = `確認刪除（${DELETE_CONFIRM_COUNTDOWN_SEC}）`;
+    }
+
+    function openDeleteModal(id, label) {
+      if (deleteModalTimer != null) {
+        clearInterval(deleteModalTimer);
+        deleteModalTimer = null;
+      }
+      pendingDeleteId = id;
+      deleteModalLabelEl.textContent = label || id;
+      deleteModalConfirmBtn.disabled = true;
+      let sec = DELETE_CONFIRM_COUNTDOWN_SEC;
+      deleteModalConfirmBtn.textContent = `確認刪除（${sec}）`;
+      deleteModalEl.classList.add("is-open");
+      deleteModalEl.setAttribute("aria-hidden", "false");
+      deleteModalTimer = setInterval(() => {
+        sec -= 1;
+        if (sec <= 0) {
+          clearInterval(deleteModalTimer);
+          deleteModalTimer = null;
+          deleteModalConfirmBtn.disabled = false;
+          deleteModalConfirmBtn.textContent = "確認刪除";
+          return;
+        }
+        deleteModalConfirmBtn.textContent = `確認刪除（${sec}）`;
+      }, 1000);
+    }
+
+    function normalizeRecord(row) {
+      return {
+        id: row.id,
+        fileName: row.file_name || "",
+        fileSize: Number(row.file_size || 0),
+        filePath: row.file_path || "",
+        zone: row.zone || "",
+        username: row.username || "",
+        userId: row.user_id || "",
+        orgType: row.org_type || "",
+        approved: row.approved !== false,
+        pendingZone: row.pending_zone || "",
+        pendingOrgType: row.pending_org_type || "",
+        approvedBy: row.approved_by || "",
+        approvedAt: row.approved_at || "",
+        locked: !!row.locked,
+        downBy: row.down_by || "",
+        downAt: row.down_at || "",
+        pinned: !!row.pinned,
+        tagUpdatedBy: row.tag_updated_by || "",
+        tagUpdatedAt: row.tag_updated_at || "",
+        createdAt: row.created_at || "",
+        updatedAt: row.updated_at || ""
+      };
+    }
+
+    async function loadRecords() {
+      listEl.innerHTML = '<div class="empty">資料讀取中...</div>';
+      statsEl.textContent = "總筆數：讀取中...";
+
+      const { data, error } = await sb
+        .from(FIELD_UPLOADS_TABLE)
+        .select("id, file_name, file_size, file_path, zone, username, user_id, org_type, approved, pending_zone, pending_org_type, approved_by, approved_at, locked, down_by, down_at, pinned, tag_updated_by, tag_updated_at, created_at, updated_at")
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("讀取資料失敗", error);
+        statsEl.textContent = "總筆數：0，符合篩選：0";
+        listEl.innerHTML = `<div class="empty">讀取資料失敗：${escapeHtml(error.message)}</div>`;
+        return;
+      }
+
+      records = Array.isArray(data) ? data.map(normalizeRecord) : [];
+      renderList();
+    }
+
+    async function updateRecord(id, patch) {
+      const payload = {
+        ...patch,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await sb
+        .from(FIELD_UPLOADS_TABLE)
+        .update(payload)
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    async function deleteRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      if (record.filePath) {
+        const { error: removeFileError } = await sb.storage
+          .from(FIELD_FILES_BUCKET)
+          .remove([record.filePath]);
+        if (removeFileError) {
+          throw removeFileError;
+        }
+      }
+
+      const { error } = await sb
+        .from(FIELD_UPLOADS_TABLE)
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      records = records.filter(item => item.id !== id);
+      renderList();
+    }
+
+    async function approveRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const now = new Date().toISOString();
+      const hasPending = hasPendingEdit(record);
+      const payload = {
+        approved: true,
+        approved_by: currentUserId,
+        approved_at: now,
+        pending_zone: null,
+        pending_org_type: null
+      };
+
+      if (hasPending) {
+        payload.zone = record.pendingZone || record.zone;
+        payload.org_type = record.pendingOrgType || record.orgType;
+      }
+
+      await updateRecord(id, payload);
+
+      if (hasPending) {
+        record.zone = record.pendingZone || record.zone;
+        record.orgType = record.pendingOrgType || record.orgType;
+      }
+      record.approved = true;
+      record.pendingZone = "";
+      record.pendingOrgType = "";
+      record.approvedBy = currentUserId;
+      record.approvedAt = now;
+      record.updatedAt = now;
+      renderList();
+    }
+
+    async function toggleDownRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const nextLocked = !record.locked;
+      const now = new Date().toISOString();
+      await updateRecord(id, {
+        locked: nextLocked,
+        down_by: currentUsername || null,
+        down_at: now
+      });
+      record.locked = nextLocked;
+      record.downBy = currentUsername || "";
+      record.downAt = now;
+      record.updatedAt = new Date().toISOString();
+      renderList();
+    }
+
+    async function togglePinRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const nextPinned = !record.pinned;
+      await updateRecord(id, { pinned: nextPinned });
+      record.pinned = nextPinned;
+      record.updatedAt = new Date().toISOString();
+      renderList();
+    }
+
+    function openEditTagDialog(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+      editingRecordId = id;
+      editZoneInput.value = record.zone || "";
+      editOrgTypeInput.value = record.orgType || "";
+      editTagDialog.showModal();
+    }
+
+    async function saveEditedTag() {
+      if (!editingRecordId) return;
+
+      const record = records.find(item => item.id === editingRecordId);
+      if (!record) return;
+
+      const nextZone = editZoneInput.value;
+      const nextOrgType = editOrgTypeInput.value;
+      if (!nextZone) {
+        alert("請選擇工區。");
+        return;
+      }
+      if (!nextOrgType) {
+        alert("請選擇機關類別。");
+        return;
+      }
+
+      if (!canManageRestrictedActions()) {
+        await updateRecord(editingRecordId, {
+          zone: nextZone,
+          org_type: nextOrgType,
+          pending_zone: null,
+          pending_org_type: null,
+          tag_updated_by: currentUsername || null,
+          tag_updated_at: new Date().toISOString()
+        });
+
+        record.zone = nextZone;
+        record.orgType = nextOrgType;
+        record.pendingZone = "";
+        record.pendingOrgType = "";
+        record.tagUpdatedBy = currentUsername || "";
+        record.tagUpdatedAt = new Date().toISOString();
+        record.updatedAt = new Date().toISOString();
+        renderList();
+        editTagDialog.close();
+        editingRecordId = null;
+        return;
+      }
+
+      await updateRecord(editingRecordId, {
+        zone: nextZone,
+        org_type: nextOrgType,
+        approved: true,
+        pending_zone: null,
+        pending_org_type: null,
+        approved_by: currentUserId,
+        approved_at: new Date().toISOString(),
+        tag_updated_by: currentUsername || null,
+        tag_updated_at: new Date().toISOString()
+      });
+
+      record.zone = nextZone;
+      record.orgType = nextOrgType;
+      record.approved = true;
+      record.pendingZone = "";
+      record.pendingOrgType = "";
+      record.approvedBy = currentUserId;
+      record.approvedAt = new Date().toISOString();
+      record.tagUpdatedBy = currentUsername || "";
+      record.tagUpdatedAt = new Date().toISOString();
+      record.updatedAt = new Date().toISOString();
+      renderList();
+      editTagDialog.close();
+      editingRecordId = null;
+    }
+
+    async function downloadRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+      if (isDownloadBlocked(record)) {
+        alert("此筆資料待批准中，暫時無法下載。");
+        return;
+      }
+      if (!record.filePath) {
+        alert("此筆資料缺少檔案路徑，無法下載。");
+        return;
+      }
+
+      const { data, error } = await sb.storage
+        .from(FIELD_FILES_BUCKET)
+        .createSignedUrl(record.filePath, 60);
+
+      if (error || !data?.signedUrl) {
+        throw error || new Error("無法取得下載連結");
+      }
+
+      const anchor = document.createElement("a");
+      anchor.href = data.signedUrl;
+      anchor.download = record.fileName || "download";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    }
+
+    async function shareToLine(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const shareText =
+        `資料分享\n` +
+        `檔名：${record.fileName || ""}\n` +
+        `工區：${record.zone || ""}\n` +
+        `分類：${record.orgType || ""}\n` +
+        `上傳者：${record.username || ""}\n` +
+        `上傳時間：${record.createdAt ? formatDateTime(record.createdAt) : ""}`;
+
+      let shareUrl = window.location.href;
+      if (record.approved && record.filePath) {
+        const { data, error } = await sb.storage
+          .from(FIELD_FILES_BUCKET)
+          .createSignedUrl(record.filePath, 60 * 60);
+        if (!error && data?.signedUrl) {
+          shareUrl = data.signedUrl;
+        }
+      }
+
+      // Ref: https://www.techcoke.com/2017/01/line-share-button-mobile-desktop-app.html
+      const lineUrl = `https://lineit.line.me/share/ui?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+      window.open(lineUrl, "_blank", "noopener,noreferrer");
+    }
+
+    function renderList() {
+      const selectedZone = zoneFilter.value;
+      const selectedOrgType = orgTypeFilter.value;
+      const keyword = textFilter.value.trim().toLowerCase();
+      const fromDateTime = dateFromFilter.value;
+      const toDateTime = dateToFilter.value;
+      const fromMs = fromDateTime ? new Date(fromDateTime).getTime() : null;
+      const toMs = toDateTime ? new Date(toDateTime).getTime() : null;
+
+      const isAdmin = canManageRestrictedActions();
+      const visibleSource = isAdmin ? records : records.filter(item => item.approved && !item.locked);
+
+      const filtered = visibleSource.filter(item => {
+        const zoneMatch = !selectedZone || item.zone === selectedZone;
+        const orgTypeMatch = !selectedOrgType || item.orgType === selectedOrgType;
+        const createdMs = new Date(item.createdAt).getTime();
+        const validCreated = !Number.isNaN(createdMs);
+        const fromMatch = fromMs === null || (validCreated && createdMs >= fromMs);
+        const toMatch = toMs === null || (validCreated && createdMs <= toMs);
+        const dateMatch = fromMatch && toMatch;
+        const textSource = [
+          item.fileName || "",
+          item.username || "",
+          item.zone || "",
+          item.orgType || ""
+        ].join(" ").toLowerCase();
+        const textMatch = !keyword || textSource.includes(keyword);
+        return zoneMatch && orgTypeMatch && dateMatch && textMatch;
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        if (Number(!!b.pinned) !== Number(!!a.pinned)) {
+          return Number(!!b.pinned) - Number(!!a.pinned);
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      statsEl.textContent = `總筆數：${records.length}，符合篩選：${sorted.length}`;
+
+      if (!sorted.length) {
+        listEl.innerHTML = '<div class="empty">目前沒有符合條件的資料</div>';
+        return;
+      }
+
+      listEl.innerHTML = sorted.map(item => {
+        const isLocked = !!item.locked;
+        const isPinned = !!item.pinned;
+        const canManage = isAdmin;
+        const canDown = canDownRestrictedActions();
+        const canEdit = canEditRecord(item);
+        const canEditTag = canEditTagRecord(item);
+        const blockedDownload = isDownloadBlocked(item);
+        const approvalLabel = getApprovalLabel(item);
+        const tagActionInfo = item.tagUpdatedAt
+          ? `編輯標籤：${item.tagUpdatedBy || "-"} ${formatDateTime(item.tagUpdatedAt) || ""}`
+          : "";
+        const downActionInfo = item.downAt
+          ? `下架：${item.downBy || "-"} ${formatDateTime(item.downAt) || ""}`
+          : "";
+        const actionInline = [tagActionInfo, downActionInfo].filter(Boolean).join(" ｜ ");
+        const editTagBtn = (id) =>
+          `<button class="secondary chip-edit-btn" type="button" data-action="edit-tag" data-id="${id}" aria-label="編輯標籤" title="編輯標籤">編輯</button>`;
+
+        const chipsParts = [];
+        if (item.zone) chipsParts.push(`<span class="chip">${escapeHtml(`工區：${item.zone}`)}</span>`);
+        if (item.orgType) {
+          chipsParts.push(`<span class="chip">${escapeHtml(`分類：${item.orgType}`)}</span>`);
+          if (canEditTag) chipsParts.push(editTagBtn(item.id));
+        } else if (canEditTag) {
+          chipsParts.push(editTagBtn(item.id));
+        }
+        if (approvalLabel && canManage) chipsParts.push(`<span class="chip">${escapeHtml(approvalLabel)}</span>`);
+        if (item.pendingZone) chipsParts.push(`<span class="chip">${escapeHtml(`待核准工區：${item.pendingZone}`)}</span>`);
+        if (item.pendingOrgType) chipsParts.push(`<span class="chip">${escapeHtml(`待核准分類：${item.pendingOrgType}`)}</span>`);
+        if (isLocked && canManage) chipsParts.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
+        const tagHtml = chipsParts.join("");
+
+        const leadingActionButtons =
+          canManage && !item.approved
+            ? `<button class="success" type="button" data-action="approve" data-id="${item.id}">批准</button>`
+            : "";
+
+        return `
+          <div class="item ${isPinned ? "is-pinned" : ""}">
+            <div class="item-head">
+              <div class="item-left">
+                <div class="file-name ${isLocked ? "is-locked" : ""}">${escapeHtml(item.fileName)}${isLocked ? "（下架）" : ""}</div>
+                <div class="meta">大小：${formatSize(item.fileSize)} ｜ 上傳者：${escapeHtml(item.username || "未知")} ｜ 上傳時間：${item.createdAt ? formatDateTime(item.createdAt) : "-"}</div>
+                <div class="chips-row"><div class="chips">${tagHtml}</div>${actionInline ? `<div class="op-log">${escapeHtml(actionInline)}</div>` : ""}</div>
+              </div>
+              <div class="actions"><div class="actions-cluster">${leadingActionButtons}<div class="actions-file-block"><div class="actions-file-row">
+                    <button class="secondary" type="button" data-action="download" data-id="${item.id}" ${blockedDownload ? "disabled" : ""}>下載</button>
+                    ${canManage ? `<button class="${isPinned ? "success" : "secondary"}" type="button" data-action="pin" data-id="${item.id}">置頂</button>` : ""}
+                    ${canDown && canEdit ? `<button class="${isLocked ? "success" : "secondary"}" type="button" data-action="down" data-id="${item.id}">下架</button>` : ""}
+                    ${canManage ? `<button class="danger" type="button" data-action="delete" data-id="${item.id}">刪除</button>` : ""}
+                  </div><div class="actions-line-row">
+                    <button class="icon-btn line-share-btn" type="button" data-action="line-share" data-id="${item.id}" aria-label="分享 LINE" title="分享 LINE">
+                      <img class="line-share-img" src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" alt="用 LINE 傳送">
+                    </button>
+                  </div></div></div></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function refreshProfileUsername() {
+      if (!userInfoEl) return;
+
+      try {
+        const { data: authData, error: authErr } = await sb.auth.getUser();
+        if (authErr || !authData?.user) {
+          userInfoEl.textContent = "目前使用者：未登入";
+          currentUserId = "";
+          currentUsername = "";
+          currentPermissionLevel = null;
+          currentUserZone = "";
+          return;
+        }
+
+        currentUserId = authData.user.id;
+
+        const { data: profile, error: profileErr } = await sb
+          .from(PROFILE_TABLE)
+          .select("username, permission_level, 工區, approved")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        if (profileErr) {
+          userInfoEl.textContent = "目前使用者：讀取失敗";
+          currentUsername = "";
+          return;
+        }
+
+        currentUsername = profile?.username ? String(profile.username).trim() : "";
+        currentPermissionLevel = profile?.permission_level ?? null;
+        currentUserZone = profile?.工區 ? String(profile.工區).trim() : "";
+        currentProfileApproved = profile?.approved !== false;
+        if (!currentUsername) {
+          userInfoEl.textContent = "目前使用者：未設定 profiles.username";
+          return;
+        }
+
+        userInfoEl.textContent = `目前使用者：${currentUsername}`;
+      } catch (error) {
+        userInfoEl.textContent = "目前使用者：讀取失敗";
+        currentUserId = "";
+        currentUsername = "";
+        currentPermissionLevel = null;
+        currentUserZone = "";
+      }
+    }
+
+    function buildStoragePath(fileName) {
+      const ext = fileName.includes(".")
+        ? fileName.slice(fileName.lastIndexOf(".")).replace(/[^A-Za-z0-9.]/g, "")
+        : "";
+      const safeBase = fileName
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^A-Za-z0-9_-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        || "file";
+      return `${currentUserId}/${Date.now()}-${crypto.randomUUID()}-${safeBase}${ext}`;
+    }
+
+    uploadForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const file = fileInput.files[0];
+      const zone = zoneInput.value;
+      const orgType = orgTypeInput.value;
+
+      if (!file) {
+        alert("請先選擇要上傳的檔案。");
+        return;
+      }
+      if (!zone) {
+        alert("請選擇工區。");
+        return;
+      }
+      if (!currentUserId || !currentUsername) {
+        alert("目前無法取得登入使用者，請先登入後再上傳。");
+        return;
+      }
+      if (!orgType) {
+        alert("請選擇機關類別。");
+        return;
+      }
+
+      const filePath = buildStoragePath(file.name);
+      const submitBtn = uploadForm.querySelector('button[type="submit"]');
+      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+
+      try {
+        const { error: uploadError } = await sb.storage
+          .from(FIELD_FILES_BUCKET)
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const payload = {
+          file_name: file.name,
+          file_size: file.size,
+          file_path: filePath,
+          zone,
+          username: currentUsername,
+          user_id: currentUserId,
+          org_type: orgType,
+          approved: canManageRestrictedActions()
+        };
+
+        const { data, error: insertError } = await sb
+          .from(FIELD_UPLOADS_TABLE)
+          .insert(payload)
+          .select("id, file_name, file_size, file_path, zone, username, user_id, org_type, approved, pending_zone, pending_org_type, approved_by, approved_at, locked, down_by, down_at, pinned, tag_updated_by, tag_updated_at, created_at, updated_at")
+          .single();
+
+        if (insertError) {
+          await sb.storage.from(FIELD_FILES_BUCKET).remove([filePath]);
+          throw insertError;
+        }
+
+        if (canManageRestrictedActions()) {
+          records.unshift(normalizeRecord(data));
+          renderList();
+        } else {
+          await loadRecords();
+          alert("資料已上傳，待權限 0 管理者批准後才會公開顯示。");
+        }
+        uploadForm.reset();
+      } catch (error) {
+        console.error("上傳失敗", error);
+        alert(`上傳失敗：${error.message}`);
+      } finally {
+        if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+      }
+    });
+
+    zoneFilter.addEventListener("change", renderList);
+    orgTypeFilter.addEventListener("change", renderList);
+    textFilter.addEventListener("input", renderList);
+    dateFromFilter.addEventListener("change", renderList);
+    dateToFilter.addEventListener("change", renderList);
+
+    clearFilterBtn.addEventListener("click", () => {
+      zoneFilter.value = "";
+      orgTypeFilter.value = "";
+      textFilter.value = "";
+      dateFromFilter.value = "";
+      dateToFilter.value = "";
+      renderList();
+    });
+
+    listEl.addEventListener("click", async event => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+
+      const id = target.dataset.id;
+      if (!id) return;
+
+      const action = target.dataset.action;
+      if (["pin", "delete", "approve"].includes(action) && !canManageRestrictedActions()) {
+        target.disabled = false;
+        alert("只有權限等級 0 的使用者可操作此功能。");
+        return;
+      }
+      if (action === "down" && !canDownRestrictedActions()) {
+        target.disabled = false;
+        alert("只有權限等級 0 或 1 的使用者可操作此功能。");
+        return;
+      }
+      if (action === "edit-tag") {
+        const record = records.find(item => item.id === id);
+        if (!record) {
+          target.disabled = false;
+          alert("找不到資料。");
+          return;
+        }
+      }
+      if (action === "down") {
+        const record = records.find(item => item.id === id);
+        if (!record || !canEditRecord(record)) {
+          target.disabled = false;
+          alert("只能下架自己工區或全體屬性的資料。");
+          return;
+        }
+      }
+      target.disabled = true;
+      try {
+        if (action === "download") {
+          await downloadRecord(id);
+          return;
+        }
+        if (action === "line-share") {
+          await shareToLine(id);
+          return;
+        }
+        if (action === "pin") {
+          await togglePinRecord(id);
+          return;
+        }
+        if (action === "down") {
+          await toggleDownRecord(id);
+          return;
+        }
+        if (action === "approve") {
+          await approveRecord(id);
+          return;
+        }
+        if (action === "edit-tag") {
+          openEditTagDialog(id);
+          return;
+        }
+        if (action === "delete") {
+          const record = records.find(item => item.id === id);
+          openDeleteModal(id, record?.fileName || id.slice(0, 8));
+        }
+      } catch (error) {
+        console.error("操作失敗", error);
+        alert(`操作失敗：${error.message}`);
+      } finally {
+        target.disabled = false;
+      }
+    });
+
+    deleteModalCancelBtn.addEventListener("click", () => {
+      closeDeleteModal();
+    });
+
+    deleteModalEl.addEventListener("click", event => {
+      if (event.target === deleteModalEl) closeDeleteModal();
+    });
+
+    deleteModalConfirmBtn.addEventListener("click", async () => {
+      const id = pendingDeleteId;
+      if (!id) return;
+
+      deleteModalConfirmBtn.disabled = true;
+      try {
+        await deleteRecord(id);
+        closeDeleteModal();
+      } catch (error) {
+        console.error("刪除失敗", error);
+        alert(`刪除失敗：${error.message}`);
+        deleteModalConfirmBtn.disabled = false;
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && deleteModalEl.classList.contains("is-open")) {
+        event.preventDefault();
+        closeDeleteModal();
+      }
+    });
+
+    editTagCancelBtn.addEventListener("click", () => {
+      editTagDialog.close();
+      editingRecordId = null;
+    });
+
+    editTagForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        await saveEditedTag();
+      } catch (error) {
+        console.error("標籤更新失敗", error);
+        alert(`標籤更新失敗：${error.message}`);
+      }
+    });
+
+    await refreshProfileUsername();
+    await loadRecords();
+  </script>
+</body>
+</html>

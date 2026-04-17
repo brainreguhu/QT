@@ -17,7 +17,7 @@
       --ok: #4ade80;
       --btn-secondary-bg: #2a3038;
       --btn-secondary-hover: #383e4a;
-      --admin-table-min: 920px;
+      --admin-table-min: 1000px;
     }
     * { box-sizing: border-box; }
     body {
@@ -28,7 +28,7 @@
       color: var(--text);
     }
     main {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 24px 18px;
     }
@@ -87,26 +87,36 @@
       word-wrap: break-word;
       overflow-wrap: break-word;
     }
+    /* 帳號／使用者／建立時間 較原先欄寬 +20%，其餘欄等比縮小以維持 100% */
     th:nth-child(1), td:nth-child(1) {
-      width: 16%;
+      width: 19.2%;
       word-break: break-all;
     }
-    th:nth-child(2), td:nth-child(2) { width: 12%; }
-    th:nth-child(3), td:nth-child(3) { width: 8%; }
-    th:nth-child(4), td:nth-child(4) { width: 8%; }
-    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(2), td:nth-child(2) { width: 14.4%; }
+    th:nth-child(3), td:nth-child(3) { width: 6.8%; }
+    th:nth-child(4), td:nth-child(4) { width: 6.8%; }
+    th:nth-child(5), td:nth-child(5) { width: 8.6%; }
     th:nth-child(6), td:nth-child(6) {
-      width: 14%;
+      width: 16.8%;
       font-size: 12px;
       line-height: 1.35;
     }
-    th:nth-child(7), td:nth-child(7) { width: 32%; }
+    th:nth-child(7), td:nth-child(7) { width: 27.4%; }
     th {
       color: var(--muted);
       font-weight: 600;
       background: rgba(255, 255, 255, 0.02);
     }
     tr:last-child td { border-bottom: none; }
+    tr.perm-level-0 td {
+      background: rgba(255, 224, 130, 0.14);
+    }
+    tr.perm-level-0 input.username-field,
+    tr.perm-level-0 input.work-zone,
+    tr.perm-level-0 select.level {
+      background: rgba(22, 24, 20, 0.92);
+      border-color: rgba(255, 210, 100, 0.35);
+    }
     .badge {
       display: inline-block;
       border-radius: 999px;
@@ -143,6 +153,16 @@
       color: var(--text);
       font-size: 13px;
     }
+    input.username-field {
+      width: 100%;
+      min-width: 88px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
     .row-actions {
       display: flex;
       gap: 8px;
@@ -152,9 +172,7 @@
       padding: 4px 4px;
       font-size: 12px;
     }
-    .row-actions button[data-approve],
-    .row-actions button[data-save-role],
-    .row-actions button[data-save-work-zone] {
+    .row-actions button[data-approve] {
       transform-origin: center center;
       background-color: transparent;
       transition:
@@ -164,18 +182,14 @@
         background-color 0.18s ease,
         border-color 0.18s ease;
     }
-    .row-actions button[data-approve]:hover:not(:disabled),
-    .row-actions button[data-save-role]:hover:not(:disabled),
-    .row-actions button[data-save-work-zone]:hover:not(:disabled) {
+    .row-actions button[data-approve]:hover:not(:disabled) {
       transform: scale(1.1);
       filter: brightness(1.18);
       background-color: rgba(255, 255, 255, 0.14);
       border-color: rgba(255, 255, 255, 0.28);
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
     }
-    .row-actions button[data-approve]:active:not(:disabled),
-    .row-actions button[data-save-role]:active:not(:disabled),
-    .row-actions button[data-save-work-zone]:active:not(:disabled) {
+    .row-actions button[data-approve]:active:not(:disabled) {
       transform: scale(1.05);
       filter: brightness(0.92);
       background-color: rgba(255, 255, 255, 0.08);
@@ -207,6 +221,111 @@
       border-color: var(--accent);
       color: #fff;
     }
+    .row-actions button[data-delete],
+    #delete-modal-confirm {
+      transform-origin: center center;
+      border-color: rgba(248, 113, 113, 0.45);
+      color: var(--danger);
+      transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        font-weight 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+    .row-actions button[data-delete]:hover:not(:disabled),
+    #delete-modal-confirm:hover:not(:disabled) {
+      transform: scale(1.1);
+      background: #b91c1c;
+      border-color: #f87171;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(185, 28, 28, 0.45);
+    }
+    .row-actions button[data-delete]:active:not(:disabled),
+    #delete-modal-confirm:active:not(:disabled) {
+      transform: scale(1.05);
+      background: #991b1b;
+    }
+    .row-actions button[data-approve][data-approve-revoke] {
+      border-color: rgba(200, 220, 255, 0.55);
+    }
+    .row-actions button[data-approve][data-approve-revoke]:hover:not(:disabled) {
+      border-color: rgba(220, 235, 255, 0.78);
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(10, 14, 20, 0.72);
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.is-open {
+      display: flex;
+    }
+    .modal-box {
+      width: 100%;
+      max-width: 380px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    }
+    .modal-box h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .modal-box p {
+      margin: 0 0 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .modal-box .modal-target {
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .modal-actions button {
+      min-width: 96px;
+    }
+    #delete-modal-cancel {
+      transform-origin: center center;
+      background: #15803d;
+      border-color: rgba(134, 239, 172, 0.55);
+      color: #fff;
+      font-weight: 600;
+      transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+    #delete-modal-cancel:hover {
+      transform: scale(1.1);
+      background: #16a34a;
+      border-color: #86efac;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.42);
+    }
+    #delete-modal-cancel:active {
+      transform: scale(1.05);
+      background: #14532d;
+    }
   </style>
 </head>
 <body>
@@ -234,10 +353,21 @@
         </table>
       </div>
       <p class="tiny">注意：此頁可用前提是 Supabase RLS 已允許管理員更新 "profiles" 表單。</p>
-      <p class="tiny">資料修正(刪除)需於 Supabase 資料庫執行，請洽詢管理員。</p>
+      <p class="tiny">刪除為從 profiles 移除該筆（需 RLS 允許）；Auth 帳號可能仍須於 Supabase 後台另行處理。</p>
       <p class="tiny">密碼保存於 Supabase 加密資料庫，管理員無法查看，遺失密碼請重新註冊。</p>
     </div>
   </main>
+
+  <div id="delete-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" aria-hidden="true">
+    <div class="modal-box">
+      <h2 id="delete-modal-title">確認刪除</h2>
+      <p>確定要刪除使用者 <span id="delete-modal-label" class="modal-target"></span> 嗎？此動作無法復原。</p>
+      <div class="modal-actions">
+        <button type="button" id="delete-modal-cancel">取消</button>
+        <button type="button" id="delete-modal-confirm" disabled>確認刪除（5）</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -251,18 +381,51 @@
 
     const statusEl = document.getElementById("status");
     const rowsEl = document.getElementById("rows");
+    const deleteModalEl = document.getElementById("delete-modal");
+    const deleteModalLabelEl = document.getElementById("delete-modal-label");
+    const deleteModalConfirmBtn = document.getElementById("delete-modal-confirm");
+    const deleteModalCancelBtn = document.getElementById("delete-modal-cancel");
+    const DELETE_CONFIRM_COUNTDOWN_SEC = 5;
 
     let currentAdmin = null;
+    let deleteModalTimer = null;
+    let pendingDeleteId = null;
+    let loadedCount = 0;
+    const AUTOSAVE_DEBOUNCE_MS = 450;
 
     function setStatus(msg, kind) {
       statusEl.textContent = msg;
       statusEl.className = kind || "";
     }
 
+    function setStatusLine(suffix, kind) {
+      const base = `已載入 ${loadedCount} 筆`;
+      statusEl.textContent = suffix ? `${base} · ${suffix}` : base;
+      statusEl.className = kind || "";
+    }
+
+    function debounce(fn, ms) {
+      let t = null;
+      return (...args) => {
+        if (t) clearTimeout(t);
+        t = setTimeout(() => {
+          t = null;
+          fn(...args);
+        }, ms);
+      };
+    }
+
     function fmt(ts) {
       if (!ts) return "-";
       const d = new Date(ts);
-      return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+      if (Number.isNaN(d.getTime())) return "-";
+      const y = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const h = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      const s = String(d.getSeconds()).padStart(2, "0");
+      return `${y}/${mo}/${day} ${h}:${min}:${s}`;
     }
 
     function levelOptions(current) {
@@ -283,6 +446,7 @@
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
       if (!user) {
+        loadedCount = 0;
         setStatus("尚未登入，請先到 login.html 登入。", "error");
         return false;
       }
@@ -294,11 +458,13 @@
         .maybeSingle();
 
       if (error || !me) {
+        loadedCount = 0;
         setStatus("無法讀取你的管理者資訊。", "error");
         return false;
       }
 
       if (!me.approved || Number(me.permission_level) > ADMIN_LEVEL_MAX) {
+        loadedCount = 0;
         setStatus("權限不足：目前權限等級拒絕訪問資料及操作。", "error");
         return false;
       }
@@ -331,6 +497,47 @@
         .eq("id", id);
       if (error) throw error;
     }
+
+    async function deleteProfileRow(id) {
+      const { error } = await supabase.from(PROFILE_TABLE).delete().eq("id", id);
+      if (error) throw error;
+    }
+
+    function closeDeleteModal() {
+      if (deleteModalTimer != null) {
+        clearInterval(deleteModalTimer);
+        deleteModalTimer = null;
+      }
+      pendingDeleteId = null;
+      deleteModalEl.classList.remove("is-open");
+      deleteModalEl.setAttribute("aria-hidden", "true");
+      deleteModalConfirmBtn.disabled = true;
+    }
+
+    function openDeleteModal(id, label) {
+      if (deleteModalTimer != null) {
+        clearInterval(deleteModalTimer);
+        deleteModalTimer = null;
+      }
+      pendingDeleteId = id;
+      deleteModalLabelEl.textContent = label;
+      deleteModalConfirmBtn.disabled = true;
+      let sec = DELETE_CONFIRM_COUNTDOWN_SEC;
+      deleteModalConfirmBtn.textContent = `確認刪除（${sec}）`;
+      deleteModalEl.classList.add("is-open");
+      deleteModalEl.setAttribute("aria-hidden", "false");
+      deleteModalTimer = setInterval(() => {
+        sec -= 1;
+        if (sec <= 0) {
+          clearInterval(deleteModalTimer);
+          deleteModalTimer = null;
+          deleteModalConfirmBtn.disabled = false;
+          deleteModalConfirmBtn.textContent = "確認刪除";
+          return;
+        }
+        deleteModalConfirmBtn.textContent = `確認刪除（${sec}）`;
+      }, 1000);
+    }
     function renderRows(list) {
       if (!list.length) {
         rowsEl.innerHTML = `<tr><td colspan="7">目前無資料</td></tr>`;
@@ -338,9 +545,11 @@
       }
 
       rowsEl.innerHTML = list.map((row) => `
-        <tr data-id="${row.id}">
+        <tr data-id="${row.id}" class="${Number(row.permission_level) === 0 ? "perm-level-0" : ""}">
           <td>${row.account || "-"}</td>
-          <td>${row.username || "-"}</td>
+          <td>
+            <input class="username-field" data-username-input type="text" value="${escapeAttr(String(row.username ?? ""))}" placeholder="顯示名稱" autocomplete="off" />
+          </td>
           <td>${row.approved ? `<span class="badge ok">已批准</span>` : `<span class="badge no">待批准</span>`}</td>
           <td>
             <select class="level" data-role-select>
@@ -348,14 +557,13 @@
             </select>
           </td>
           <td>
-            <input class="work-zone" data-work-zone-input type="text" value="${escapeAttr(String(row.工區 ?? ""))}" placeholder="例如 69" />
+            <input class="work-zone" data-work-zone-input type="text" value="${escapeAttr(String(row.工區 ?? ""))}" placeholder="例如 69" autocomplete="off" />
           </td>
           <td>${fmt(row.created_at)}</td>
           <td>
             <div class="row-actions">
-              <button type="button" data-approve>${row.approved ? "取消批准" : "批准"}</button>
-              <button type="button" data-save-role>儲存權限</button>
-              <button type="button" data-save-work-zone>儲存工區</button>
+              <button type="button" data-approve ${row.approved ? "data-approve-revoke" : ""}>${row.approved ? "取消批准" : "批准"}</button>
+              <button type="button" data-delete>刪除</button>
             </div>
           </td>
         </tr>
@@ -372,6 +580,7 @@
         const { data, error } = await supabase
           .from(PROFILE_TABLE)
           .select("id, account, username, approved, permission_level, created_at, 工區")
+          .order("permission_level", { ascending: true })
           .order("created_at", { ascending: false })
           .range(from, to);
 
@@ -391,32 +600,78 @@
       try {
         const data = await fetchAllProfiles();
         const list = data || [];
+        loadedCount = list.length;
         renderRows(list);
-        setStatus(`已載入 ${list.length} 筆`, "success");
+        setStatusLine("", "success");
       } catch (error) {
+        loadedCount = 0;
         setStatus(`讀取失敗：${error.message}`, "error");
         return;
       }
     }
 
+    async function savePermissionForRow(tr) {
+      const id = tr.getAttribute("data-id");
+      if (!id) return;
+      const select = tr.querySelector("[data-role-select]");
+      const level = Number(select?.value ?? 3);
+      if (Number.isNaN(level) || level < 0 || level > 3) {
+        setStatusLine("權限等級需介於 0~3", "error");
+        return;
+      }
+      const nameInput = tr.querySelector("[data-username-input]");
+      const label = String(nameInput?.value || "").trim() || id.slice(0, 8);
+      setStatusLine(`正在儲存「${label}」的權限…`, "");
+      await updateProfile(id, { permission_level: level });
+      await loadProfiles();
+      setStatusLine(`已自動儲存權限：${label} → ${level}`, "success");
+    }
+
     async function saveWorkZoneForRow(tr) {
       const id = tr.getAttribute("data-id");
       if (!id) return;
-      const username = String(tr.children[1]?.textContent || "").trim();
+      const nameInput = tr.querySelector("[data-username-input]");
+      const username = String(nameInput?.value || "").trim();
       const zoneInput = tr.querySelector("[data-work-zone-input]");
       const workZone = String(zoneInput?.value || "").trim();
-      if (!username || username === "-") {
-        setStatus("缺少使用者名稱，無法更新工區。", "error");
+      if (!username) {
+        setStatusLine("使用者名稱不可為空白，請先填寫「使用者」欄。", "error");
         return;
       }
       if (!workZone) {
-        setStatus("請先輸入工區。", "error");
+        setStatusLine("工區不可為空白。", "error");
         return;
       }
+      setStatusLine(`正在儲存「${username}」的工區…`, "");
       await patchProfile(id, { 工區: workZone });
-      await loadProfiles();
-      setStatus(`已將 ${username} 的 profiles 工區更新為 ${workZone}。`, "success");
+      setStatusLine(`已自動儲存工區：${username} → ${workZone}`, "success");
     }
+
+    async function saveUsernameForRow(tr) {
+      const id = tr.getAttribute("data-id");
+      if (!id) return;
+      const nameInput = tr.querySelector("[data-username-input]");
+      const username = String(nameInput?.value || "").trim();
+      if (!username) {
+        setStatusLine("使用者名稱不可為空白。", "error");
+        return;
+      }
+      setStatusLine(`正在儲存「${username}」的使用者名稱…`, "");
+      await patchProfile(id, { username });
+      setStatusLine(`已自動儲存使用者名稱：${username}`, "success");
+    }
+
+    const debouncedSaveWorkZone = debounce((tr) => {
+      saveWorkZoneForRow(tr).catch((err) => {
+        setStatusLine(`工區更新失敗：${err.message}`, "error");
+      });
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    const debouncedSaveUsername = debounce((tr) => {
+      saveUsernameForRow(tr).catch((err) => {
+        setStatusLine(`使用者名稱更新失敗：${err.message}`, "error");
+      });
+    }, AUTOSAVE_DEBOUNCE_MS);
 
     rowsEl.addEventListener("click", async (e) => {
       const target = e.target;
@@ -430,28 +685,91 @@
         if (target.closest("[data-approve]")) {
           const approveBtn = target.closest("[data-approve]");
           const approved = approveBtn?.textContent?.trim() === "批准";
+          const nameInput = tr.querySelector("[data-username-input]");
+          const accountCell = tr.querySelector("td:first-child");
+          const label =
+            String(nameInput?.value || "").trim() ||
+            String(accountCell?.textContent || "").trim() ||
+            id.slice(0, 8);
+          setStatusLine(approved ? `正在批准「${label}」…` : `正在取消批准「${label}」…`, "");
           await updateProfile(id, { approved });
           await loadProfiles();
+          setStatusLine(
+            approved ? `已批准：${label}` : `已取消批准：${label}`,
+            "success"
+          );
           return;
         }
 
-        if (target.closest("[data-save-role]")) {
-          const select = tr.querySelector("[data-role-select]");
-          const level = Number(select?.value ?? 3);
-          if (Number.isNaN(level) || level < 0 || level > 3) {
-            setStatus("權限等級需介於 0~3。", "error");
+        if (target.closest("[data-delete]")) {
+          if (id === currentAdmin?.id) {
+            setStatusLine("無法刪除自己的帳號。", "error");
             return;
           }
-          await updateProfile(id, { permission_level: level });
-          await loadProfiles();
+          const nameInput = tr.querySelector("[data-username-input]");
+          const accountCell = tr.querySelector("td:first-child");
+          const label =
+            String(nameInput?.value || "").trim() ||
+            String(accountCell?.textContent || "").trim() ||
+            id.slice(0, 8);
+          openDeleteModal(id, label);
           return;
         }
-
-        if (target.closest("[data-save-work-zone]")) {
-          await saveWorkZoneForRow(tr);
-        }
       } catch (err) {
-        setStatus(`更新失敗：${err.message}`, "error");
+        setStatusLine(`更新失敗：${err.message}`, "error");
+      }
+    });
+
+    deleteModalCancelBtn.addEventListener("click", () => {
+      closeDeleteModal();
+    });
+
+    deleteModalEl.addEventListener("click", (e) => {
+      if (e.target === deleteModalEl) closeDeleteModal();
+    });
+
+    deleteModalConfirmBtn.addEventListener("click", async () => {
+      const id = pendingDeleteId;
+      const label = deleteModalLabelEl.textContent?.trim() || "";
+      if (!id) return;
+      closeDeleteModal();
+      try {
+        setStatusLine(`正在刪除「${label || id.slice(0, 8)}」…`, "");
+        await deleteProfileRow(id);
+        await loadProfiles();
+        setStatusLine(`已刪除：${label || id.slice(0, 8)}`, "success");
+      } catch (err) {
+        setStatusLine(`刪除失敗：${err.message}`, "error");
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && deleteModalEl.classList.contains("is-open")) {
+        e.preventDefault();
+        closeDeleteModal();
+      }
+    });
+
+    rowsEl.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      if (!target.hasAttribute("data-role-select")) return;
+      const tr = target.closest("tr[data-id]");
+      if (!tr) return;
+      savePermissionForRow(tr).catch((err) => {
+        setStatusLine(`權限更新失敗：${err.message}`, "error");
+      });
+    });
+
+    rowsEl.addEventListener("input", (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement)) return;
+      const tr = el.closest("tr[data-id]");
+      if (!tr) return;
+      if (el.hasAttribute("data-work-zone-input")) {
+        debouncedSaveWorkZone(tr);
+      } else if (el.hasAttribute("data-username-input")) {
+        debouncedSaveUsername(tr);
       }
     });
 
@@ -459,13 +777,19 @@
       if (e.key !== "Enter") return;
       const el = e.target;
       if (!(el instanceof HTMLInputElement)) return;
-      if (!el.hasAttribute("data-work-zone-input")) return;
+      if (!el.hasAttribute("data-work-zone-input") && !el.hasAttribute("data-username-input")) return;
       e.preventDefault();
       const tr = el.closest("tr[data-id]");
       if (!tr) return;
-      saveWorkZoneForRow(tr).catch((err) => {
-        setStatus(`更新失敗：${err.message}`, "error");
-      });
+      if (el.hasAttribute("data-work-zone-input")) {
+        saveWorkZoneForRow(tr).catch((err) => {
+          setStatusLine(`工區更新失敗：${err.message}`, "error");
+        });
+      } else {
+        saveUsernameForRow(tr).catch((err) => {
+          setStatusLine(`使用者名稱更新失敗：${err.message}`, "error");
+        });
+      }
     });
 
     (async () => {

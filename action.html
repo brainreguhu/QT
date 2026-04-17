@@ -705,6 +705,7 @@
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
+      padding: 5px;
     }
 
     .child-item-actions {
@@ -1758,15 +1759,14 @@
           const collapseBtn = document.createElement("button");
           collapseBtn.type = "button";
           collapseBtn.className = "move-btn child-collapse-btn";
-          collapseBtn.textContent = "＋";
-          let childCollapsed = false;
+          collapseBtn.textContent = "－";
           const childBody = document.createElement("div");
           childBody.className = "child-item-body";
           childBody.appendChild(childContentFlow);
           collapseBtn.addEventListener("click", () => {
-            childCollapsed = !childCollapsed;
-            childBody.style.display = childCollapsed ? "none" : "";
-            collapseBtn.textContent = childCollapsed ? "＋" : "－";
+            const wasCollapsed = childBody.style.display === "none";
+            childBody.style.display = wasCollapsed ? "" : "none";
+            collapseBtn.textContent = childBody.style.display === "none" ? "＋" : "－";
           });
 
           const childActions = document.createElement("div");
