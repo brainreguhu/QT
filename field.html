@@ -544,8 +544,20 @@
     }
 
     .row-line-share {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       flex-shrink: 0;
       margin-left: auto;
+    }
+
+    .mini-share-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
     }
 
     .chips {
@@ -1389,10 +1401,7 @@
       URL.revokeObjectURL(blobUrl);
     }
 
-    async function shareToLine(id) {
-      const record = records.find(item => item.id === id);
-      if (!record) return;
-
+    async function resolveSharePayload(record) {
       const shareText =
         `資料分享\n` +
         `檔名：${record.fileName || ""}\n` +
@@ -1411,9 +1420,52 @@
         }
       }
 
+      return { shareText, shareUrl };
+    }
+
+    async function shareToLine(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const popup = window.open("about:blank", "_blank", "noopener,noreferrer");
+      if (!popup) {
+        alert("瀏覽器已封鎖分享視窗，請允許彈出視窗後再試。");
+        return;
+      }
+
+      const { shareText, shareUrl } = await resolveSharePayload(record);
+
       // Ref: https://www.techcoke.com/2017/01/line-share-button-mobile-desktop-app.html
       const lineUrl = `https://lineit.line.me/share/ui?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-      window.open(lineUrl, "_blank", "noopener,noreferrer");
+      popup.location.href = lineUrl;
+    }
+
+    async function shareRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+
+      const { shareText, shareUrl } = await resolveSharePayload(record);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: record.fileName || "資料分享",
+            text: shareText,
+            url: shareUrl
+          });
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") return;
+        }
+      }
+
+      const fallbackText = `${shareText}\n${shareUrl}`;
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fallbackText);
+        alert("已複製分享內容。");
+        return;
+      }
+      window.prompt("請複製以下分享內容：", fallbackText);
     }
 
     function renderList() {
@@ -1520,6 +1572,7 @@
                 <div class="meta">大小：${formatSize(item.fileSize)} ｜ 上傳者：${escapeHtml(item.username || "未知")} ｜ 上傳時間：${item.createdAt ? formatDateTime(item.createdAt) : "-"}</div>
               </div>
               <div class="row-line-share">
+                <button class="secondary mini-share-btn" type="button" data-action="share" data-id="${item.id}" aria-label="分享" title="分享">分享</button>
                 <button class="icon-btn line-share-btn" type="button" data-action="line-share" data-id="${item.id}" aria-label="分享 LINE" title="分享 LINE">
                   <img class="line-share-img" src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" alt="用 LINE 傳送">
                 </button>
@@ -1745,6 +1798,10 @@
         }
         if (action === "line-share") {
           await shareToLine(id);
+          return;
+        }
+        if (action === "share") {
+          await shareRecord(id);
           return;
         }
         if (action === "pin") {
