@@ -1426,8 +1426,8 @@
      * 若「檔名在上、網址在下」，LINE 常會把網域再拆成一條根網址預覽，故順序改為網址優先。
      */
     function buildLineTextIntentUrl(record) {
-      const shareUrl = getFieldSharePageUrl(record.id);
       const name = record.fileName || "資料分享";
+      const shareUrl = getFieldSharePageUrl(record.id);
       const msg = `${shareUrl}\n檔名：${name}`;
       return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
     }
