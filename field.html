@@ -1422,12 +1422,13 @@
     }
 
     /**
-     * LINE：僅「檔名 + field-share 完整網址」兩行，避免再帶入根網址造成重疊。
+     * LINE 訊息：第一行僅完整 field-share 網址（單一 https），第二行檔名。
+     * 若「檔名在上、網址在下」，LINE 常會把網域再拆成一條根網址預覽，故順序改為網址優先。
      */
     function buildLineTextIntentUrl(record) {
       const shareUrl = getFieldSharePageUrl(record.id);
       const name = record.fileName || "資料分享";
-      const msg = `${name}\n${shareUrl}`;
+      const msg = `${shareUrl}\n檔名：${name}`;
       return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
     }
 
