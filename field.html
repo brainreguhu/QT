@@ -813,6 +813,7 @@
               <label for="zoneInput">工區</label>
               <select id="zoneInput" required>
                 <option value="">請選擇工區</option>
+                <option value="全部工區">全部工區</option>
                 <option value="57">57</option>
                 <option value="60">60</option>
                 <option value="65">65</option>
@@ -924,6 +925,7 @@
         <label for="editZoneInput">工區</label>
         <select id="editZoneInput" required>
           <option value="">請選擇工區</option>
+          <option value="全部工區">全部工區</option>
           <option value="57">57</option>
           <option value="60">60</option>
           <option value="65">65</option>
@@ -1445,11 +1447,14 @@
       window.prompt("請複製以下分享內容：", fallbackText);
     }
 
-    async function lineShareRecord(id) {
-      const record = records.find(item => item.id === id);
-      if (!record) return;
-      const { shareUrl } = await resolveSharePayload(record);
-      const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
+    /** 須在使用者點擊當下同步呼叫，不可放在 await 之後（否則手機／Safari 會擋彈出視窗）。 */
+    function openLineShareShellWindow() {
+      const isMobileUi =
+        window.matchMedia("(max-width: 640px)").matches ||
+        window.matchMedia("(pointer: coarse)").matches;
+      if (isMobileUi) {
+        return window.open("about:blank", "_blank");
+      }
       const w = 520;
       const h = 600;
       const left = Math.max(0, (window.screen.availWidth - w) / 2 + (window.screen.availLeft || 0));
@@ -1465,15 +1470,48 @@
         "menubar=no",
         "status=no"
       ].join(",");
-      const win = window.open(lineUrl, "lineShare", features);
-      if (win) {
+      return window.open("about:blank", "lineShare", features);
+    }
+
+    async function lineShareRecord(id, shellWindow) {
+      const record = records.find(item => item.id === id);
+      if (!record) {
+        if (shellWindow && !shellWindow.closed) {
+          try {
+            shellWindow.close();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        return;
+      }
+      let lineUrl = "";
+      try {
+        const { shareUrl } = await resolveSharePayload(record);
+        lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
+      } catch (error) {
+        if (shellWindow && !shellWindow.closed) {
+          try {
+            shellWindow.close();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        throw error;
+      }
+
+      if (shellWindow && !shellWindow.closed) {
         try {
-          win.opener = null;
+          shellWindow.opener = null;
         } catch (e) {
           /* ignore cross-origin */
         }
-        win.focus();
+        shellWindow.location.href = lineUrl;
+        shellWindow.focus();
+        return;
       }
+
+      window.location.href = lineUrl;
     }
 
     function renderList() {
@@ -1825,7 +1863,8 @@
           return;
         }
         if (action === "line-share") {
-          await lineShareRecord(id);
+          const lineShell = openLineShareShellWindow();
+          await lineShareRecord(id, lineShell);
           return;
         }
         if (action === "pin") {
