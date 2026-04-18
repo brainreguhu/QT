@@ -72,9 +72,19 @@
       opacity: 0.55;
       cursor: not-allowed;
     }
-    a.back {
+    a.back,
+    button.back {
       color: #93c5fd;
       font-size: 0.95rem;
+    }
+
+    button.back {
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+      text-decoration: underline;
     }
     .msg {
       margin: 0;
@@ -85,17 +95,6 @@
   </style>
 </head>
 <body>
-  <script>
-    (function () {
-      try {
-        var q = new URLSearchParams(location.search);
-        var id = q.get("id");
-        if (id) {
-          location.replace(new URL("field.html?share=" + encodeURIComponent(id), location.href).href);
-        }
-      } catch (e) {}
-    })();
-  </script>
   <div class="container">
     <div class="card">
       <h1 id="pageTitle">資料下載</h1>
@@ -105,7 +104,7 @@
       <div class="actions">
         <button id="downloadBtn" class="primary" type="button" disabled>下載</button>
         <a id="loginLink" class="back" href="login.html">登入</a>
-        <a class="back" href="field.html">返回資料列表</a>
+        <button type="button" class="back" id="closePageBtn">關閉</button>
       </div>
     </div>
   </div>
@@ -127,6 +126,13 @@
     const msgEl = document.getElementById("msg");
     const downloadBtn = document.getElementById("downloadBtn");
     const loginLink = document.getElementById("loginLink");
+    const closePageBtn = document.getElementById("closePageBtn");
+
+    if (closePageBtn) {
+      closePageBtn.addEventListener("click", () => {
+        window.close();
+      });
+    }
 
     const params = new URLSearchParams(window.location.search);
     const recordId = params.get("id");
