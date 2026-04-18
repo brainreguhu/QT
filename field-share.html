@@ -3,7 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
+  <!-- Open Graph：靜態預設（LINE 等擷取預覽時多數不執行 JS，須有基本標籤） -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="資料下載">
+  <meta property="og:description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
+  <meta property="og:site_name" content="QT">
+  <!-- 若正式網域不同請一併修改下列預設網址；頁面載入後仍會以目前網址覆寫 -->
+  <meta property="og:url" content="https://qt-brainreguhus-projects.vercel.app/field-share.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="資料下載">
+  <meta name="twitter:description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
   <title>資料下載</title>
+  <script>
+    (function () {
+      try {
+        var m = document.querySelector('meta[property="og:url"]');
+        if (m) m.setAttribute("content", location.href.split("#")[0]);
+      } catch (e) {}
+    })();
+  </script>
   <style>
     :root {
       --bg: #0f1419;
@@ -127,6 +146,29 @@
     const downloadBtn = document.getElementById("downloadBtn");
     const loginLink = document.getElementById("loginLink");
     const closePageBtn = document.getElementById("closePageBtn");
+
+    function applyShareMeta(title, description) {
+      const t = title || "資料下載";
+      const d =
+        description ||
+        "請登入後於此頁面下載檔案；分享連結不含直接檔案網址。";
+      const set = (selector, content) => {
+        const el = document.querySelector(selector);
+        if (el) el.setAttribute("content", content);
+      };
+      document.title = t;
+      set('meta[name="description"]', d);
+      set('meta[property="og:title"]', t);
+      set('meta[property="og:description"]', d);
+      set('meta[name="twitter:title"]', t);
+      set('meta[name="twitter:description"]', d);
+      try {
+        const ou = document.querySelector('meta[property="og:url"]');
+        if (ou) ou.setAttribute("content", location.href.split("#")[0]);
+      } catch (e) {
+        /* ignore */
+      }
+    }
 
     if (closePageBtn) {
       closePageBtn.addEventListener("click", () => {
@@ -302,9 +344,9 @@
       }
 
       const name = record.fileName || "未命名檔案";
-      document.title = name;
       pageTitleEl.textContent = name;
       metaEl.hidden = false;
+      applyShareMeta(name, `檔案：${name}。登入後按「下載」取得檔案。`);
       metaEl.textContent = [
         `大小：${formatSize(record.fileSize)}`,
         record.zone ? `工區：${record.zone}` : "",
