@@ -95,17 +95,6 @@
   </style>
 </head>
 <body>
-  <script>
-    (function () {
-      try {
-        var q = new URLSearchParams(location.search);
-        var id = q.get("id");
-        if (id) {
-          location.replace(new URL("field.html?share=" + encodeURIComponent(id), location.href).href);
-        }
-      } catch (e) {}
-    })();
-  </script>
   <div class="container">
     <div class="card">
       <h1 id="pageTitle">資料下載</h1>
