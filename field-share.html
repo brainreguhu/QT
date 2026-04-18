@@ -3,18 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
+  <meta name="description" content="點我開啟下載頁面，不支援手機版Line)">
   <!-- Open Graph：靜態預設（LINE 等擷取預覽時多數不執行 JS，須有基本標籤） -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="資料下載">
-  <meta property="og:description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
-  <meta property="og:site_name" content="QT">
+  <meta property="og:title" content="青鈿營造｜資料下載">
+  <meta property="og:description" content="點我開啟下載頁面，不支援手機版Line)">
+  <meta property="og:site_name" content="青鈿營造">
   <!-- 若正式網域不同請一併修改下列預設網址；頁面載入後仍會以目前網址覆寫 -->
-  <meta property="og:url" content="https://qt-brainreguhus-projects.vercel.app/field-share.html">
+  <meta property="og:url" content="https://qt-git-main-brainreguhus-projects.vercel.app/field-share.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="資料下載">
-  <meta name="twitter:description" content="請登入後於此頁面下載檔案；分享連結不含直接檔案網址。">
-  <title>資料下載</title>
+  <meta name="twitter:title" content="青鈿營造｜資料下載">
+  <meta name="twitter:description" content="點我開啟下載頁面，不支援手機版Line)">
+  <meta property="og:image" content="https://qt-git-main-brainreguhus-projects.vercel.app/og.png">
+  <meta property="og:image:width" content="1">
+  <meta property="og:image:height" content="1">
+  <meta property="og:image:alt" content="青鈿營造 資料下載">
+  <meta name="twitter:image" content="https://qt-git-main-brainreguhus-projects.vercel.app/og.png">
+  <link rel="canonical" href="https://qt-git-main-brainreguhus-projects.vercel.app/field-share.html">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebPage","name":"青鈿營造｜資料下載","description":"點我開啟下載頁面，不支援手機版Line)","url":"https://qt-git-main-brainreguhus-projects.vercel.app/field-share.html"}
+  </script>
+  <title>青鈿營造｜資料下載</title>
   <script>
     (function () {
       try {
@@ -44,7 +53,7 @@
       color: var(--text);
     }
     .container {
-      max-width: 560px;
+      max-width: 1000px;
       margin: 24px auto;
       padding: 0 16px;
     }
@@ -114,9 +123,10 @@
   </style>
 </head>
 <body>
+  <noscript>點我開啟下載頁面，不支援手機版Line)</noscript>
   <div class="container">
     <div class="card">
-      <h1 id="pageTitle">資料下載</h1>
+      <h1 id="pageTitle">青鈿營造｜資料下載</h1>
       <p id="meta" class="meta" hidden></p>
       <p id="hint" class="hint"></p>
       <p id="msg" class="msg" role="status"></p>
@@ -139,6 +149,8 @@
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const SHARE_PREVIEW_DESC = "點我開啟下載頁面，不支援手機版Line";
+
     const pageTitleEl = document.getElementById("pageTitle");
     const metaEl = document.getElementById("meta");
     const hintEl = document.getElementById("hint");
@@ -148,10 +160,8 @@
     const closePageBtn = document.getElementById("closePageBtn");
 
     function applyShareMeta(title, description) {
-      const t = title || "資料下載";
-      const d =
-        description ||
-        "請登入後於此頁面下載檔案；分享連結不含直接檔案網址。";
+      const t = title || "青鈿營造｜資料下載";
+      const d = description || SHARE_PREVIEW_DESC;
       const set = (selector, content) => {
         const el = document.querySelector(selector);
         if (el) el.setAttribute("content", content);
@@ -276,13 +286,13 @@
       const user = !authErr && authData?.user ? authData.user : null;
 
       if (!user) {
-        document.title = "請登入 — 資料下載";
         pageTitleEl.textContent = "請先登入";
         hintEl.textContent =
           "此連結僅供已登入使用者下載；請登入後再按「下載」。分享此連結不會直接暴露檔案網址。";
         msgEl.textContent = "";
         loginLink.style.display = "inline";
         downloadBtn.disabled = true;
+        applyShareMeta("青鈿營造｜請登入後下載", SHARE_PREVIEW_DESC);
         return;
       }
 
@@ -346,7 +356,7 @@
       const name = record.fileName || "未命名檔案";
       pageTitleEl.textContent = name;
       metaEl.hidden = false;
-      applyShareMeta(name, `檔案：${name}。登入後按「下載」取得檔案。`);
+      applyShareMeta(name, SHARE_PREVIEW_DESC);
       metaEl.textContent = [
         `大小：${formatSize(record.fileSize)}`,
         record.zone ? `工區：${record.zone}` : "",
