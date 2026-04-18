@@ -786,27 +786,9 @@
       background: #14532d;
     }
 
-    #fieldShareGate .share-gate-msg.error {
-      color: #fca5a5;
-    }
   </style>
 </head>
 <body>
-  <div id="fieldShareGate" class="container" hidden>
-    <div class="card">
-      <h1 id="shareGateTitle">資料下載</h1>
-      <p id="shareGateMeta" class="meta" hidden></p>
-      <p id="shareGateHint" style="font-size: 0.92rem; color: var(--subtle); margin: 12px 0 8px;"></p>
-      <p id="shareGateMsg" class="share-gate-msg" role="status" style="margin: 0; font-size: 0.95rem; line-height: 1.5;"></p>
-      <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <button id="shareGateDownloadBtn" class="success" type="button" disabled>下載</button>
-        <a id="shareGateLoginLink" href="login.html" style="color: #93c5fd;">登入</a>
-        <a href="./field.html" style="color: #93c5fd;">返回資料列表</a>
-      </div>
-    </div>
-  </div>
-
-  <div id="fieldMainContent">
   <div class="container">
     <div class="card upload-card">
       <div class="title-area">
@@ -935,7 +917,6 @@
       <div id="stats" class="stats"></div>
       <div id="list" class="list"></div>
     </div>
-  </div>
   </div>
 
   <dialog id="editTagDialog">
@@ -1417,194 +1398,9 @@
       URL.revokeObjectURL(blobUrl);
     }
 
-    async function initFieldShareGate(recordId) {
-      const shareGateTitle = document.getElementById("shareGateTitle");
-      const shareGateMeta = document.getElementById("shareGateMeta");
-      const shareGateHint = document.getElementById("shareGateHint");
-      const shareGateMsg = document.getElementById("shareGateMsg");
-      const shareGateDownloadBtn = document.getElementById("shareGateDownloadBtn");
-      const shareGateLoginLink = document.getElementById("shareGateLoginLink");
-
-      function shareGateRowFormatSize(bytes) {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-      }
-
-      function shareGateFormatDt(value) {
-        if (!value) return "";
-        const date = value instanceof Date ? value : new Date(value);
-        if (Number.isNaN(date.getTime())) return "";
-        return new Intl.DateTimeFormat("zh-TW", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false
-        }).format(date);
-      }
-
-      function shareGateCanDl(rec, isAdmin) {
-        if (!rec?.filePath) return { ok: false, reason: "此筆資料缺少檔案路徑，無法下載。" };
-        if (isDownloadBlocked(rec)) return { ok: false, reason: "此筆資料待批准中，暫時無法下載。" };
-        if (rec.locked && !isAdmin) return { ok: false, reason: "此資料已下架，無法下載。" };
-        return { ok: true, reason: "" };
-      }
-
-      function setShareGateLoginHref() {
-        shareGateLoginLink.href = `login.html?next=field.html&share=${encodeURIComponent(recordId)}`;
-      }
-
-      async function runShareGateDownload(rec) {
-        const { data, error } = await sb.storage
-          .from(FIELD_FILES_BUCKET)
-          .createSignedUrl(rec.filePath, 60);
-        if (error || !data?.signedUrl) {
-          throw error || new Error("無法取得下載連結");
-        }
-        const response = await fetch(data.signedUrl);
-        if (!response.ok) {
-          throw new Error("下載檔案失敗，請稍後再試。");
-        }
-        const fileBlob = await response.blob();
-        const blobUrl = URL.createObjectURL(fileBlob);
-        const downloadName = String(rec.fileName || "").trim() || "download";
-        const anchor = document.createElement("a");
-        anchor.href = blobUrl;
-        anchor.download = downloadName;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(blobUrl);
-      }
-
-      setShareGateLoginHref();
-
-      if (!recordId) {
-        shareGateMsg.textContent = "連結缺少資料編號，無法開啟。";
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      const { data: authData, error: authErr } = await sb.auth.getUser();
-      const user = !authErr && authData?.user ? authData.user : null;
-
-      if (!user) {
-        document.title = "請登入 — 資料下載";
-        shareGateTitle.textContent = "請先登入";
-        shareGateHint.textContent = "此連結僅供已登入使用者下載；登入後即可在此頁按「下載」。";
-        shareGateMsg.textContent = "";
-        shareGateLoginLink.style.display = "inline";
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      shareGateLoginLink.style.display = "none";
-
-      const { data: profile, error: profileErr } = await sb
-        .from(PROFILE_TABLE)
-        .select("username, permission_level, approved")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profileErr) {
-        shareGateMsg.textContent = `讀取權限失敗：${profileErr.message}`;
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      if (!profile || profile.approved === false) {
-        shareGateMsg.textContent = "您的帳號尚未批准，無法下載。";
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      const isAdmin = Number(profile.permission_level) === 0 && profile.approved !== false;
-
-      const { data: row, error: rowErr } = await sb
-        .from(FIELD_UPLOADS_TABLE)
-        .select("id, file_name, file_size, file_path, zone, org_type, approved, locked, username, created_at")
-        .eq("id", recordId)
-        .maybeSingle();
-
-      if (rowErr) {
-        shareGateMsg.textContent = `讀取資料失敗：${rowErr.message}`;
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      if (!row) {
-        shareGateMsg.textContent = "找不到此筆資料，或您無權瀏覽。";
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      const rec = normalizeRecord(row);
-
-      if (!isAdmin && (!rec.approved || rec.locked)) {
-        shareGateMsg.textContent = rec.locked
-          ? "此資料已下架或尚未公開，無法下載。"
-          : "此筆資料待批准中，無法下載。";
-        shareGateMsg.classList.add("error");
-        shareGateTitle.textContent = "無法下載";
-        document.title = "無法下載";
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      const displayName = rec.fileName || "未命名檔案";
-      document.title = displayName;
-      shareGateTitle.textContent = displayName;
-      shareGateMeta.hidden = false;
-      shareGateMeta.textContent = [
-        `大小：${shareGateRowFormatSize(rec.fileSize)}`,
-        rec.zone ? `工區：${rec.zone}` : "",
-        rec.orgType ? `分類：${rec.orgType}` : "",
-        `上傳者：${rec.username || "未知"}`,
-        rec.createdAt ? `上傳時間：${shareGateFormatDt(rec.createdAt)}` : ""
-      ].filter(Boolean).join(" ｜ ");
-
-      const dl = shareGateCanDl(rec, isAdmin);
-      shareGateHint.textContent = dl.ok
-        ? "檔案將下載到您的裝置；連結不含可直接存取檔案的網址。"
-        : "";
-
-      if (!dl.ok) {
-        shareGateMsg.textContent = dl.reason;
-        shareGateMsg.classList.add("error");
-        shareGateDownloadBtn.disabled = true;
-        return;
-      }
-
-      shareGateMsg.textContent = "";
-      shareGateMsg.classList.remove("error");
-      shareGateDownloadBtn.disabled = false;
-
-      shareGateDownloadBtn.onclick = async () => {
-        shareGateDownloadBtn.disabled = true;
-        try {
-          await runShareGateDownload(rec);
-        } catch (e) {
-          console.error(e);
-          shareGateMsg.textContent = e?.message || "下載失敗。";
-          shareGateMsg.classList.add("error");
-        } finally {
-          shareGateDownloadBtn.disabled = false;
-        }
-      };
-    }
-
     /**
-     * 分享用網址使用 field.html?share=（與本頁同檔，避免主機未部署 field-share.html 時 404）。
-     * 以 pathname + origin 組出，避免用整段 location.href 作為基底時在部分瀏覽器／路徑下解析錯誤。
-     * 若實際上線網址與目前網址列不同，可設定 FIELD_SHARE_BASE_DIR（結尾需 /）。
+     * 分享用網址為 field-share.html?id=（獨立下載頁）。
+     * 以 pathname + origin 組出；若與上線網址不一致可設定 FIELD_SHARE_BASE_DIR（結尾需 /）。
      */
     const FIELD_SHARE_BASE_DIR = "";
 
@@ -1620,14 +1416,13 @@
         const pathPart = dir.endsWith("/") ? dir : `${dir}/`;
         baseHref = new URL(pathPart, window.location.origin).href;
       }
-      const u = new URL("field.html", baseHref);
-      if (rawId) u.searchParams.set("share", rawId);
+      const u = new URL("field-share.html", baseHref);
+      if (rawId) u.searchParams.set("id", rawId);
       return u.href;
     }
 
     /**
-     * LINE 的 lineit/share?url= 在部分環境會改用來源頁而忽略 url 參數。
-     * 改以 line.me/R/msg/text/；訊息僅「檔名 + 網址」兩行，減少與預覽卡根網址重疊。
+     * LINE：僅「檔名 + field-share 完整網址」兩行，避免再帶入根網址造成重疊。
      */
     function buildLineTextIntentUrl(record) {
       const shareUrl = getFieldSharePageUrl(record.id);
@@ -1645,7 +1440,7 @@
         `分類：${record.orgType || ""}\n` +
         `上傳者：${record.username || ""}\n` +
         `上傳時間：${record.createdAt ? formatDateTime(record.createdAt) : ""}\n` +
-        `請開啟下方連結並登入後，於頁面內下載檔案（連結不含直接檔案網址）。\n` +
+        `請開啟下方連結並登入後，於 field-share 頁面內下載（連結不含直接檔案網址）。\n` +
         `下載頁連結：\n` +
         shareUrl;
 
@@ -1662,8 +1457,7 @@
         try {
           await navigator.share({
             title: record.fileName || "資料分享",
-            text: shareText,
-            url: shareUrl
+            text: shareText
           });
           return;
         } catch (error) {
@@ -2172,19 +1966,8 @@
       }
     });
 
-    const shareQs = new URLSearchParams(window.location.search);
-    const shareId = (shareQs.get("share") || shareQs.get("id") || "").trim();
-    const fieldMainContent = document.getElementById("fieldMainContent");
-    const fieldShareGate = document.getElementById("fieldShareGate");
-
-    if (shareId && fieldMainContent && fieldShareGate) {
-      fieldMainContent.hidden = true;
-      fieldShareGate.hidden = false;
-      await initFieldShareGate(shareId);
-    } else {
-      await refreshProfileUsername();
-      await loadRecords();
-    }
+    await refreshProfileUsername();
+    await loadRecords();
   </script>
 </body>
 </html>
