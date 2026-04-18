@@ -1421,29 +1421,36 @@
       return u.href;
     }
 
+    /** 與 field-share 同層的 index.html（QT APP 首頁）絕對網址。 */
+    function getAppHomePageUrl() {
+      const configured = String(FIELD_SHARE_BASE_DIR || "").trim();
+      if (configured) {
+        const base = configured.endsWith("/") ? configured : `${configured}/`;
+        return new URL("index.html", base).href;
+      }
+      const pathOnly = window.location.pathname || "/";
+      const dir = pathOnly.replace(/[^/]*$/, "");
+      const pathPart = dir.endsWith("/") ? dir : `${dir}/`;
+      const baseHref = new URL(pathPart, window.location.origin).href;
+      return new URL("index.html", baseHref).href;
+    }
+
     /**
-     * LINE 訊息：第一行僅完整 field-share 網址（單一 https），第二行檔名。
-     * 若「檔名在上、網址在下」，LINE 常會把網域再拆成一條根網址預覽，故順序改為網址優先。
+     * 分享文字三列：①標題(檔名) ②分享網址 ③「QT APP 首頁連結:」+ 首頁網址
      */
     function buildLineTextIntentUrl(record) {
-      const name = record.fileName || "資料分享";
+      const titleLine = record.fileName || "資料分享";
       const shareUrl = getFieldSharePageUrl(record.id);
-      const msg = `${shareUrl}\n檔名：${name}`;
+      const homeUrl = getAppHomePageUrl();
+      const msg = `${titleLine}\n${shareUrl}\nQT APP 首頁連結: ${homeUrl}`;
       return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
     }
 
     function resolveSharePayload(record) {
       const shareUrl = getFieldSharePageUrl(record.id);
-      const shareText =
-        `資料分享\n` +
-        `檔名：${record.fileName || ""}\n` +
-        `工區：${record.zone || ""}\n` +
-        `分類：${record.orgType || ""}\n` +
-        `上傳者：${record.username || ""}\n` +
-        `上傳時間：${record.createdAt ? formatDateTime(record.createdAt) : ""}\n` +
-        `請開啟下方連結並登入後，於 field-share 頁面內下載（連結不含直接檔案網址）。\n` +
-        `下載頁連結：\n` +
-        shareUrl;
+      const homeUrl = getAppHomePageUrl();
+      const titleLine = record.fileName || "資料分享";
+      const shareText = `${titleLine}\n${shareUrl}\nQT APP 首頁連結: ${homeUrl}`;
 
       return { shareText, shareUrl };
     }
