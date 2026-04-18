@@ -2172,8 +2172,8 @@
       }
     });
 
-    const shareParam = new URLSearchParams(window.location.search).get("share");
-    const shareId = shareParam ? shareParam.trim() : "";
+    const shareQs = new URLSearchParams(window.location.search);
+    const shareId = (shareQs.get("share") || shareQs.get("id") || "").trim();
     const fieldMainContent = document.getElementById("fieldMainContent");
     const fieldShareGate = document.getElementById("fieldShareGate");
 
