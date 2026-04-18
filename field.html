@@ -1397,24 +1397,53 @@
       URL.revokeObjectURL(blobUrl);
     }
 
-    async function resolveSharePayload(record) {
+    /**
+     * 分享用網址需與 field.html 同資料夾的 field-share.html。
+     * 以 pathname + origin 組出，避免用整段 location.href 作為基底時在部分瀏覽器／路徑下解析錯誤。
+     * 若實際上線網址與目前網址列不同，可設定 FIELD_SHARE_BASE_DIR（結尾需 /）。
+     */
+    const FIELD_SHARE_BASE_DIR = "";
+
+    function getFieldSharePageUrl(recordId) {
+      const rawId = String(recordId ?? "").trim();
+      const configured = String(FIELD_SHARE_BASE_DIR || "").trim();
+      let baseHref;
+      if (configured) {
+        baseHref = configured.endsWith("/") ? configured : `${configured}/`;
+      } else {
+        const pathOnly = window.location.pathname || "/";
+        const dir = pathOnly.replace(/[^/]*$/, "");
+        const pathPart = dir.endsWith("/") ? dir : `${dir}/`;
+        baseHref = new URL(pathPart, window.location.origin).href;
+      }
+      const u = new URL("field-share.html", baseHref);
+      if (rawId) u.searchParams.set("id", rawId);
+      return u.href;
+    }
+
+    /**
+     * LINE 的 lineit/share?url= 在部分環境會改用來源頁（field.html）而忽略 url 參數。
+     * 改以 line.me/R/msg/text/ 帶出完整下載頁網址，較能穩定傳遞。
+     */
+    function buildLineTextIntentUrl(record) {
+      const shareUrl = getFieldSharePageUrl(record.id);
+      const name = record.fileName || "資料分享";
+      const msg = `${name}\n下載頁（請登入後於頁面內按「下載」）：\n${shareUrl}`;
+      return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
+    }
+
+    function resolveSharePayload(record) {
+      const shareUrl = getFieldSharePageUrl(record.id);
       const shareText =
         `資料分享\n` +
         `檔名：${record.fileName || ""}\n` +
         `工區：${record.zone || ""}\n` +
         `分類：${record.orgType || ""}\n` +
         `上傳者：${record.username || ""}\n` +
-        `上傳時間：${record.createdAt ? formatDateTime(record.createdAt) : ""}`;
-
-      let shareUrl = window.location.href;
-      if (record.approved && record.filePath) {
-        const { data, error } = await sb.storage
-          .from(FIELD_FILES_BUCKET)
-          .createSignedUrl(record.filePath, 60 * 60);
-        if (!error && data?.signedUrl) {
-          shareUrl = data.signedUrl;
-        }
-      }
+        `上傳時間：${record.createdAt ? formatDateTime(record.createdAt) : ""}\n` +
+        `請開啟下方連結並登入後，於頁面內下載檔案（連結不含直接檔案網址）。\n` +
+        `下載頁連結：\n` +
+        shareUrl;
 
       return { shareText, shareUrl };
     }
@@ -1423,7 +1452,7 @@
       const record = records.find(item => item.id === id);
       if (!record) return;
 
-      const { shareText, shareUrl } = await resolveSharePayload(record);
+      const { shareText, shareUrl } = resolveSharePayload(record);
 
       if (navigator.share) {
         try {
@@ -1438,7 +1467,7 @@
         }
       }
 
-      const fallbackText = `${shareText}\n${shareUrl}`;
+      const fallbackText = shareText;
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(fallbackText);
         alert("已複製分享內容。");
@@ -1487,8 +1516,7 @@
       }
       let lineUrl = "";
       try {
-        const { shareUrl } = await resolveSharePayload(record);
-        lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
+        lineUrl = buildLineTextIntentUrl(record);
       } catch (error) {
         if (shellWindow && !shellWindow.closed) {
           try {
