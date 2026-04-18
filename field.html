@@ -1429,7 +1429,7 @@
     function buildLineTextIntentUrl(record) {
       const titleLine = record.fileName || "資料分享";
       const shareUrl = getFieldSharePageUrl(record.id);
-      const msg = `${titleLine}\n${shareUrl}\n${SHARE_HOME_HINT_LINE}\n${SHARE_HOME_HINT_LINE}`;
+      const msg = `${titleLine}\n${shareUrl}\n${SHARE_HOME_HINT_LINE}\n`;
       return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
     }
 
