@@ -536,6 +536,24 @@
       line-height: 1.2;
     }
 
+    .line-share-link {
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
+      flex-shrink: 0;
+    }
+
+    .line-share-link img {
+      width: 168px;
+      height: 40px;
+      display: block;
+    }
+
+    .line-share-link.is-busy {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
     .chips {
       display: flex;
       flex-wrap: wrap;
@@ -1427,6 +1445,37 @@
       window.prompt("請複製以下分享內容：", fallbackText);
     }
 
+    async function lineShareRecord(id) {
+      const record = records.find(item => item.id === id);
+      if (!record) return;
+      const { shareUrl } = await resolveSharePayload(record);
+      const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
+      const w = 520;
+      const h = 600;
+      const left = Math.max(0, (window.screen.availWidth - w) / 2 + (window.screen.availLeft || 0));
+      const top = Math.max(0, (window.screen.availHeight - h) / 2 + (window.screen.availTop || 0));
+      const features = [
+        `width=${w}`,
+        `height=${h}`,
+        `left=${Math.round(left)}`,
+        `top=${Math.round(top)}`,
+        "scrollbars=yes",
+        "resizable=yes",
+        "toolbar=no",
+        "menubar=no",
+        "status=no"
+      ].join(",");
+      const win = window.open(lineUrl, "lineShare", features);
+      if (win) {
+        try {
+          win.opener = null;
+        } catch (e) {
+          /* ignore cross-origin */
+        }
+        win.focus();
+      }
+    }
+
     function renderList() {
       const selectedZone = zoneFilter.value;
       const selectedOrgType = orgTypeFilter.value;
@@ -1532,6 +1581,9 @@
               </div>
               <div class="row-line-share">
                 <button class="secondary mini-share-btn" type="button" data-action="share" data-id="${item.id}" aria-label="分享" title="分享">分享</button>
+                <a class="line-share-link" href="#" data-action="line-share" data-id="${item.id}" aria-label="用LINE傳送" title="用LINE傳送">
+                  <img src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" width="168" height="40" alt="用LINE傳送" />
+                </a>
               </div>
             </div>
             <div class="item-row item-row-3">
@@ -1713,27 +1765,43 @@
     listEl.addEventListener("click", async event => {
       const rawTarget = event.target;
       if (!(rawTarget instanceof Element)) return;
-      const target = rawTarget.closest("button[data-action][data-id]");
-      if (!(target instanceof HTMLButtonElement) || !listEl.contains(target)) return;
+      const target = rawTarget.closest("[data-action][data-id]");
+      if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLAnchorElement)) return;
+      if (!target || !listEl.contains(target)) return;
 
       const id = target.dataset.id;
       if (!id) return;
 
       const action = target.dataset.action;
+      if (target instanceof HTMLAnchorElement) {
+        if (action !== "line-share") return;
+        event.preventDefault();
+      } else if (!(target instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const setActionBusy = busy => {
+        if (target instanceof HTMLButtonElement) {
+          target.disabled = busy;
+        } else if (target instanceof HTMLAnchorElement) {
+          target.classList.toggle("is-busy", busy);
+        }
+      };
+
       if (["pin", "delete", "approve"].includes(action) && !canManageRestrictedActions()) {
-        target.disabled = false;
+        setActionBusy(false);
         alert("只有權限等級 0 的使用者可操作此功能。");
         return;
       }
       if (action === "down" && !canDownRestrictedActions()) {
-        target.disabled = false;
+        setActionBusy(false);
         alert("只有權限等級 0 或 1 的使用者可操作此功能。");
         return;
       }
       if (action === "edit-tag") {
         const record = records.find(item => item.id === id);
         if (!record) {
-          target.disabled = false;
+          setActionBusy(false);
           alert("找不到資料。");
           return;
         }
@@ -1741,12 +1809,12 @@
       if (action === "down") {
         const record = records.find(item => item.id === id);
         if (!record || !canEditRecord(record)) {
-          target.disabled = false;
+          setActionBusy(false);
           alert("只能下架自己工區或全體屬性的資料。");
           return;
         }
       }
-      target.disabled = true;
+      setActionBusy(true);
       try {
         if (action === "download") {
           await downloadRecord(id);
@@ -1754,6 +1822,10 @@
         }
         if (action === "share") {
           await shareRecord(id);
+          return;
+        }
+        if (action === "line-share") {
+          await lineShareRecord(id);
           return;
         }
         if (action === "pin") {
@@ -1780,7 +1852,7 @@
         console.error("操作失敗", error);
         alert(`操作失敗：${error.message}`);
       } finally {
-        target.disabled = false;
+        setActionBusy(false);
       }
     });
 
