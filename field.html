@@ -1421,22 +1421,21 @@
       return u.href;
     }
 
-    const SHARE_HOME_HINT_LINE = "QT APP 首頁連結:";
-
     /**
-     * 分享文字三列：①標題(檔名) ②分享網址 ③純文字「QT APP 首頁連結:」（不附 index 網址，避免多一則重複連結預覽）。
+     * 分享文字僅兩列：①標題(檔名) ② field-share 網址。
+     * （曾使用第三列「QT APP 首頁連結:」易讓 LINE 再擷取首頁或出現 index 相關預覽，故不再加入第三列。）
      */
     function buildLineTextIntentUrl(record) {
       const titleLine = record.fileName || "資料分享";
       const shareUrl = getFieldSharePageUrl(record.id);
-      const msg = `${titleLine}\n${shareUrl}\n${SHARE_HOME_HINT_LINE}`;
+      const msg = `${titleLine}\n${shareUrl}`;
       return `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
     }
 
     function resolveSharePayload(record) {
       const shareUrl = getFieldSharePageUrl(record.id);
       const titleLine = record.fileName || "資料分享";
-      const shareText = `${titleLine}\n${shareUrl}\n${SHARE_HOME_HINT_LINE}`;
+      const shareText = `${titleLine}\n${shareUrl}`;
 
       return { shareText, shareUrl };
     }
