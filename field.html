@@ -479,10 +479,12 @@
 
     .item-row-2 {
       align-items: center;
+      margin-top: 0;
     }
 
     .item-row-3 {
       gap: 8px;
+      margin-top: -15px;
     }
 
     .item-row-4 {
@@ -496,6 +498,7 @@
     }
 
     .file-name {
+      font-size: 20px;
       font-weight: 600;
       word-break: break-all;
     }
@@ -506,9 +509,9 @@
     }
 
     .meta {
-      font-size: 0.85rem;
+      font-size: 15px;
       color: var(--subtle);
-      margin-top: 0;
+      margin-top: -20px;
     }
 
     .row-actions {
@@ -536,20 +539,36 @@
       line-height: 1.2;
     }
 
-    .line-share-link {
+    .line-share-btn {
       display: inline-flex;
       align-items: center;
-      line-height: 0;
+      justify-content: center;
       flex-shrink: 0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #86efac;
+      background: #16a34a;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      cursor: pointer;
+      user-select: none;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
     }
 
-    .line-share-link img {
-      width: 168px;
-      height: 40px;
-      display: block;
+    .line-share-btn:hover {
+      transform: scale(1.1);
+      filter: brightness(1.15);
+      background: #22c55e;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.32);
     }
 
-    .line-share-link.is-busy {
+    .line-share-btn.is-busy {
       opacity: 0.6;
       pointer-events: none;
     }
@@ -1601,15 +1620,17 @@
         if (item.zone) primaryChips.push(`<span class="chip">${escapeHtml(`工區：${item.zone}`)}</span>`);
         if (item.orgType) {
           primaryChips.push(`<span class="chip">${escapeHtml(`分類：${item.orgType}`)}</span>`);
+          if (isLocked && canManage) primaryChips.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
           if (canEditTag) primaryChips.push(editTagBtn(item.id));
         } else if (canEditTag) {
           primaryChips.push(editTagBtn(item.id));
+        } else if (isLocked && canManage) {
+          primaryChips.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
         }
         const extraChips = [];
         if (approvalLabel && canManage) extraChips.push(`<span class="chip">${escapeHtml(approvalLabel)}</span>`);
         if (item.pendingZone) extraChips.push(`<span class="chip">${escapeHtml(`待核准工區：${item.pendingZone}`)}</span>`);
         if (item.pendingOrgType) extraChips.push(`<span class="chip">${escapeHtml(`待核准分類：${item.pendingOrgType}`)}</span>`);
-        if (isLocked && canManage) extraChips.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
         const primaryTagHtml = primaryChips.join("");
         const extraTagHtml = extraChips.join("");
 
@@ -1639,9 +1660,7 @@
               </div>
               <div class="row-line-share">
                 <button class="secondary mini-share-btn" type="button" data-action="share" data-id="${item.id}" aria-label="分享" title="分享">分享</button>
-                <a class="line-share-link" href="#" data-action="line-share" data-id="${item.id}" aria-label="用LINE傳送" title="用LINE傳送">
-                  <img src="https://clcqnbnbbtzzuctaspfn.supabase.co/storage/v1/object/public/web-assets/168x40.png" width="168" height="40" alt="用LINE傳送" />
-                </a>
+                <div class="line-share-btn" role="button" tabindex="0" data-action="line-share" data-id="${item.id}" aria-label="用Line分享" title="用Line分享">用Line分享</div>
               </div>
             </div>
             <div class="item-row item-row-3">
@@ -1824,7 +1843,7 @@
       const rawTarget = event.target;
       if (!(rawTarget instanceof Element)) return;
       const target = rawTarget.closest("[data-action][data-id]");
-      if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLAnchorElement)) return;
+      if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLAnchorElement) && !(target instanceof HTMLDivElement)) return;
       if (!target || !listEl.contains(target)) return;
 
       const id = target.dataset.id;
@@ -1834,15 +1853,18 @@
       if (target instanceof HTMLAnchorElement) {
         if (action !== "line-share") return;
         event.preventDefault();
-      } else if (!(target instanceof HTMLButtonElement)) {
+      } else if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLDivElement)) {
         return;
       }
 
       const setActionBusy = busy => {
         if (target instanceof HTMLButtonElement) {
           target.disabled = busy;
-        } else if (target instanceof HTMLAnchorElement) {
+        } else if (target instanceof HTMLAnchorElement || target instanceof HTMLDivElement) {
           target.classList.toggle("is-busy", busy);
+          if (target instanceof HTMLDivElement) {
+            target.setAttribute("aria-disabled", busy ? "true" : "false");
+          }
         }
       };
 
@@ -1913,6 +1935,14 @@
       } finally {
         setActionBusy(false);
       }
+    });
+
+    listEl.addEventListener("keydown", event => {
+      if (!(event.target instanceof HTMLDivElement)) return;
+      if (event.target.dataset.action !== "line-share") return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      event.target.click();
     });
 
     deleteModalCancelBtn.addEventListener("click", () => {
