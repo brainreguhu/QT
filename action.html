@@ -19,7 +19,7 @@
     body {
       margin: 0 auto;
       width: 100%;
-      max-width: 1000px;
+      max-width: 1200px;
       padding: 5px 24px;
       font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       min-height: 100vh;
@@ -231,7 +231,7 @@
       z-index: 1;
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 48px;
     }
 
     .card-with-side-arrows.is-viewport-focus {
@@ -250,7 +250,7 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
-      height: 600px;
+      height: 75vh;
       min-height: 0;
       overflow: hidden;
     }
@@ -363,9 +363,9 @@
     }
 
     .card-with-side-arrows > .card {
-      width: 800px;
+      width: 1200px;
       max-width: 100%;
-      flex: 0 1 800px;
+      flex: 0 1 1200px;
       min-width: 0;
       margin: 0;
     }
@@ -556,6 +556,7 @@
       min-width: 0;
       overflow-x: auto;
       overflow-y: auto;
+      overscroll-behavior: contain;
       border-radius: 8px;
       scroll-behavior: smooth;
       isolation: isolate;
@@ -656,7 +657,7 @@
     }
 
     .subitem-title-input {
-      width: 205px;
+      width: 330px;
       flex-shrink: 0;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
@@ -713,7 +714,7 @@
       align-items: center;
       flex-wrap: nowrap;
       justify-content: flex-end;
-      gap: 5px;
+      gap: 3px;
       margin-left: auto;
       flex-shrink: 0;
     }
@@ -725,7 +726,7 @@
     }
 
     .child-item-title-input {
-      width: 180px;
+      width: 300px;
       flex-shrink: 0;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
@@ -777,13 +778,22 @@
     }
 
     .check-item-input {
-      width: 450px;
+      width: 330px;
       border: 0px solid #cbd5e1;
       border-radius: 8px;
       padding: 4px 8px 0px 8px;
       background: transparent;
       font-size: 15px;
       line-height: 1.1;
+    }
+
+    .check-item-user-tag {
+      margin-left: 10px;
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.1;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .desc-item-row {
@@ -857,7 +867,7 @@
       bottom: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: min(940px, 100%);
+      width: min(1200px, 100%);
       max-width: 100%;
       box-sizing: border-box;
       margin: 0;
@@ -1098,6 +1108,37 @@
 
     window.addEventListener("scroll", scheduleUpdateViewportFocusCard, { passive: true });
     window.addEventListener("resize", scheduleUpdateViewportFocusCard);
+
+    /** 滑鼠在區塊（含左右箭頭）內時，滾輪只捲動該區塊的 .subitems-viewport，避免帶動整頁；移出區塊後恢復整頁捲動。 */
+    document.addEventListener(
+      "wheel",
+      (e) => {
+        if (e.ctrlKey || e.metaKey) return;
+
+        const wrap = e.target.closest(".card-with-side-arrows");
+        if (!wrap || !cardsContainer || !cardsContainer.contains(wrap)) return;
+
+        const vp = wrap.querySelector(".subitems-viewport");
+        if (!vp) return;
+
+        const ta = e.target.closest("textarea");
+        if (ta && wrap.contains(ta)) {
+          const maxScroll = ta.scrollHeight - ta.clientHeight;
+          if (maxScroll > 1) {
+            e.preventDefault();
+            ta.scrollTop = Math.max(0, Math.min(maxScroll, ta.scrollTop + e.deltaY));
+            return;
+          }
+        }
+
+        if (e.deltaY === 0 && e.deltaX === 0) return;
+
+        e.preventDefault();
+        if (e.deltaY !== 0) vp.scrollTop += e.deltaY;
+        if (e.deltaX !== 0) vp.scrollLeft += e.deltaX;
+      },
+      { passive: false, capture: true }
+    );
 
     function createCard() {
       cardCount += 1;
@@ -1378,6 +1419,35 @@
         subTitleInput.className = "subitem-title-input";
         subTitleInput.value = "階段工進" + subCount;
 
+        const subShiftLeftBtn = document.createElement("button");
+        subShiftLeftBtn.type = "button";
+        subShiftLeftBtn.className = "move-btn edit-reveal-btn";
+        subShiftLeftBtn.textContent = "左移";
+        subShiftLeftBtn.addEventListener("click", () => {
+          const i = Array.from(subitems.children).indexOf(subitem);
+          if (i <= 0) return;
+          subitems.insertBefore(subitem, subitem.previousElementSibling);
+          if (currentSubIndex === i) currentSubIndex = i - 1;
+          else if (currentSubIndex === i - 1) currentSubIndex = i;
+          updateSubitemsView();
+          scheduleAutoSave();
+        });
+
+        const subShiftRightBtn = document.createElement("button");
+        subShiftRightBtn.type = "button";
+        subShiftRightBtn.className = "move-btn edit-reveal-btn";
+        subShiftRightBtn.textContent = "右移";
+        subShiftRightBtn.addEventListener("click", () => {
+          const i = Array.from(subitems.children).indexOf(subitem);
+          const next = subitem.nextElementSibling;
+          if (!next) return;
+          subitems.insertBefore(next, subitem);
+          if (currentSubIndex === i) currentSubIndex = i + 1;
+          else if (currentSubIndex === i + 1) currentSubIndex = i;
+          updateSubitemsView();
+          scheduleAutoSave();
+        });
+
         const subDeleteBtn = document.createElement("button");
         subDeleteBtn.type = "button";
         subDeleteBtn.className = "delete-btn edit-reveal-btn";
@@ -1501,6 +1571,41 @@
           }
           updateChildCheckStats();
 
+          function updateCheckUserTag(checkRow, checkbox, checkUserTag) {
+            if (!checkRow || !checkbox || !checkUserTag) {
+              return;
+            }
+            function formatCheckDate(dateLike) {
+              const dt = new Date(dateLike);
+              if (Number.isNaN(dt.getTime())) {
+                return "";
+              }
+              const yyyy = String(dt.getFullYear());
+              const mm = String(dt.getMonth() + 1).padStart(2, "0");
+              const dd = String(dt.getDate()).padStart(2, "0");
+              const hh = String(dt.getHours()).padStart(2, "0");
+              const min = String(dt.getMinutes()).padStart(2, "0");
+              return yyyy + "/" + mm + "/" + dd + "-" + hh + ":" + min;
+            }
+            if (!checkbox.checked) {
+              checkRow.dataset.checkedBy = "";
+              checkRow.dataset.checkedAt = "";
+              checkUserTag.textContent = "";
+              return;
+            }
+            const preset = (checkbox.dataset.checkedBy && String(checkbox.dataset.checkedBy).trim()) || "";
+            const checkedBy = preset || getUsername();
+            const presetAt =
+              (checkbox.dataset.checkedAt && String(checkbox.dataset.checkedAt).trim()) || "";
+            const checkedAt = presetAt || new Date().toISOString();
+            const checkedAtText = formatCheckDate(checkedAt);
+            checkRow.dataset.checkedBy = checkedBy;
+            checkRow.dataset.checkedAt = checkedAt;
+            checkUserTag.textContent = checkedAtText ? checkedBy + " | " + checkedAtText : checkedBy;
+            checkbox.dataset.checkedBy = "";
+            checkbox.dataset.checkedAt = "";
+          }
+
           addCheckBtn.addEventListener("click", () => {
             const checkRow = document.createElement("div");
             checkRow.className = "check-item-row";
@@ -1514,6 +1619,9 @@
             textInput.type = "text";
             textInput.className = "check-item-input";
             textInput.value = "項目";
+
+            const checkUserTag = document.createElement("span");
+            checkUserTag.className = "check-item-user-tag";
 
             const checkMoveUpBtn = document.createElement("button");
             checkMoveUpBtn.type = "button";
@@ -1549,10 +1657,14 @@
 
             checkRow.appendChild(checkbox);
             checkRow.appendChild(textInput);
+            checkRow.appendChild(checkUserTag);
             checkRow.appendChild(checkMoveUpBtn);
             checkRow.appendChild(checkMoveDownBtn);
             checkRow.appendChild(checkDeleteBtn);
             childContentFlow.appendChild(checkRow);
+            checkbox.addEventListener("change", () => {
+              updateCheckUserTag(checkRow, checkbox, checkUserTag);
+            });
             updateChildCheckStats();
           });
 
@@ -1571,6 +1683,9 @@
             textInput.value = "項目";
             textInput.style.fontWeight = "700";
 
+            const checkUserTag = document.createElement("span");
+            checkUserTag.className = "check-item-user-tag";
+
             const checkMoveUpBtn = document.createElement("button");
             checkMoveUpBtn.type = "button";
             checkMoveUpBtn.className = "move-btn edit-reveal-btn";
@@ -1605,10 +1720,14 @@
 
             checkRow.appendChild(checkbox);
             checkRow.appendChild(textInput);
+            checkRow.appendChild(checkUserTag);
             checkRow.appendChild(checkMoveUpBtn);
             checkRow.appendChild(checkMoveDownBtn);
             checkRow.appendChild(checkDeleteBtn);
             childContentFlow.appendChild(checkRow);
+            checkbox.addEventListener("change", () => {
+              updateCheckUserTag(checkRow, checkbox, checkUserTag);
+            });
             updateChildCheckStats();
           });
 
@@ -1790,6 +1909,8 @@
 
         const subActions = document.createElement("div");
         subActions.className = "subitem-actions";
+        subActions.appendChild(subShiftLeftBtn);
+        subActions.appendChild(subShiftRightBtn);
         subActions.appendChild(addChildBtn);
         subActions.appendChild(subDeleteBtn);
 
@@ -1981,6 +2102,8 @@
               type: fw ? "check_important" : "check",
               label: inp ? inp.value : "",
               checked: !!(row.querySelector(".check-item-checkbox") && row.querySelector(".check-item-checkbox").checked),
+              checkedBy: row.dataset.checkedBy || "",
+              checkedAt: row.dataset.checkedAt || "",
             });
           } else if (row.classList.contains("desc-item-row")) {
             const ta = row.querySelector(".desc-item-input");
@@ -2125,6 +2248,8 @@
                   }
                 }
                 if (cb) {
+                  cb.dataset.checkedBy = item.checkedBy || "";
+                  cb.dataset.checkedAt = item.checkedAt || "";
                   cb.checked = !!item.checked;
                   cb.dispatchEvent(new Event("change", { bubbles: true }));
                 }
