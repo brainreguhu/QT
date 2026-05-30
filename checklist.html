@@ -189,13 +189,29 @@
       flex-wrap: nowrap;
       align-items: flex-start;
       justify-content: flex-start;
-      gap: 8px 22px;
+      gap: 8px 33px;
       overflow-x: auto;
     }
     .record-card-row--6 .record-field {
       flex: 0 0 auto;
       min-width: 0;
-      max-width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+    }
+    .record-card-row--check {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      font-size: 13px;
+      color: rgba(210, 223, 242, 0.92);
+    }
+    .record-card-row--check .row-check {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      vertical-align: middle;
     }
     .record-card-row--rest {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -548,6 +564,67 @@
       box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.28);
     }
 
+    .record-list-item {
+      border: 1px solid var(--record-card-border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      padding: 10px 12px;
+    }
+    .record-list-item + .record-list-item {
+      margin-top: 8px;
+    }
+    .record-list-row {
+      font-size: 14px;
+      line-height: 1.45;
+      word-break: break-word;
+      color: rgba(230, 236, 246, 0.95);
+    }
+    .record-list-row + .record-list-row {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(70, 92, 128, 0.35);
+    }
+    .record-list-row--1 {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .record-list-row--1-main {
+      min-width: 0;
+    }
+    .record-list-actions {
+      flex-shrink: 0;
+    }
+    .record-list-row--4 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      font-size: 13px;
+      color: rgba(210, 223, 242, 0.92);
+    }
+    .record-list-check-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .record-list-check-label {
+      font-weight: 600;
+      color: rgba(210, 223, 242, 0.92);
+    }
+    .record-list-sep {
+      color: rgba(139, 156, 179, 0.85);
+    }
+    .record-list-row--4 .row-check {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      vertical-align: middle;
+    }
+
     .record-table-wrap {
       overflow: auto;
       border-radius: 10px;
@@ -720,6 +797,11 @@
 
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+    const CHECK_USER_KEY = {
+      勾選1: "勾選人1",
+      勾選2: "勾選人2",
+    };
 
     /** 與 check.html「分類」下拉選項一致，用於篩選 */
     const CATEGORY_OPTIONS = ["設備", "清潔", "維修", "巡檢", "其他"];
@@ -762,6 +844,15 @@
     ];
 
     const MERGED_KEYS = new Set([...MERGE_LOCATION, ...MERGE_VENDOR, "廠商1", "工區"]);
+    /** 大圖模式不顯示（改由清單模式第四列呈現） */
+    const CARD_MODE_HIDDEN_KEYS = new Set([
+      "勾選1",
+      "勾選2",
+      "勾選時間1",
+      "勾選時間2",
+      "勾選人1",
+      "勾選人2",
+    ]);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const recordsListEl = document.getElementById("record-list");
@@ -780,6 +871,7 @@
 
     let recordsCache = null;
     let viewMode = "card"; // 'card'（大圖顯示） | 'list'（清單式顯示）
+    let cachedUserName = null;
 
     function loadViewMode() {
       try {
@@ -977,6 +1069,27 @@
       if (v === false || v === 0 || v === null || v === undefined) return false;
       const s = String(v).trim().toLowerCase();
       return s === "true" || s === "t" || s === "yes" || s === "1" || s === "是";
+    }
+
+    async function getSessionUserName() {
+      if (cachedUserName) return cachedUserName;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return "未知使用者";
+      const { data: profile } = await supabase
+        .from(PROFILE_TABLE)
+        .select("username")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      const meta = session.user.user_metadata || {};
+      cachedUserName =
+        (profile?.username && String(profile.username).trim()) ||
+        (meta.full_name && String(meta.full_name).trim()) ||
+        (meta.name && String(meta.name).trim()) ||
+        session.user.email?.trim() ||
+        "未知使用者";
+      return cachedUserName;
     }
 
     function escapeAttr(s) {
@@ -1182,17 +1295,19 @@
       const c照片 = findColSingle(bodyCols, "照片");
       const c來自 = findColSingle(bodyCols, "來自");
       const c提交 = findColSingle(bodyCols, "提交時間");
-      const c完成 = findColCheckbox(bodyCols, "勾選1");
-      const c完成日 = findColSingle(bodyCols, "勾選時間1");
-      const c覆核 = findColCheckbox(bodyCols, "勾選2");
-      const c覆核日 = findColSingle(bodyCols, "勾選時間2");
+
+      for (const c of bodyCols) {
+        if (c.kind === "single" && CARD_MODE_HIDDEN_KEYS.has(c.key)) used.add(colSignature(c));
+        if (c.kind === "checkbox" && CARD_MODE_HIDDEN_KEYS.has(c.key)) used.add(colSignature(c));
+      }
 
       const chunks = [];
 
-      /* 第一列：分類、樓層、位置、廠商、來自、提交日期、完成、完成日期、覆核、覆核日期 */
-      if (c分類 || c樓層 || c位置 || c廠商 || c來自 || c提交 || c完成 || c完成日 || c覆核 || c覆核日) {
+      /* 第一列：分類、樓層、位置、廠商、來自、提交日期 */
+      const topRowCols = [c分類, c樓層, c位置, c廠商, c來自, c提交].filter(Boolean);
+      if (topRowCols.length) {
         chunks.push(
-          `<div class="record-card-row record-card-row--6">${slotHtml(c分類)}${slotHtml(c樓層)}${slotHtml(c位置)}${slotHtml(c廠商)}${slotHtml(c來自)}${slotHtml(c提交)}${slotHtml(c完成)}${slotHtml(c完成日)}${slotHtml(c覆核)}${slotHtml(c覆核日)}</div>`
+          `<div class="record-card-row record-card-row--6">${topRowCols.map((c) => slotHtml(c)).join("")}</div>`
         );
       }
 
@@ -1215,8 +1330,101 @@
         );
       }
 
+      const check1Group = renderCheckGroupHTML(row, "勾選人1", "勾選1", "勾選時間1", "完成");
+      const check2Group = renderCheckGroupHTML(row, "勾選人2", "勾選2", "勾選時間2", "覆核");
+      chunks.push(
+        `<div class="record-card-row record-card-row--check">${check1Group}<span class="record-list-sep" aria-hidden="true">|</span>${check2Group}</div>`
+      );
+
       const fieldsHtml = chunks.join("");
       return `<article class="record-card"><header class="record-card-header"><span class="record-card-title">編號：<strong>${serial}</strong></span><div class="record-card-header-actions">${deleteHtml}</div></header><div class="record-card-body">${fieldsHtml}</div></article>`;
+    }
+
+    function listDisplayValue(raw, fallback = "（無）") {
+      if (raw === null || raw === undefined || String(raw).trim() === "") return escapeHtml(fallback);
+      return escapeHtml(String(raw).trim());
+    }
+
+    function mergeLocationForList(row) {
+      const parts = ["樓層", "位置1", "位置2", "位置3"]
+        .map((k) => String(row[k] ?? "").trim())
+        .filter(Boolean);
+      return parts.length ? escapeHtml(parts.join(" / ")) : escapeHtml("（無位置）");
+    }
+
+    function checkStatusText(row, checkKey) {
+      return isTruthy(row[checkKey]) ? "勾選" : "取消勾選";
+    }
+
+    function renderListCheckboxHTML(row, checkKey, timeKey, ariaLabel) {
+      const checked = isTruthy(row[checkKey]);
+      const pk = rowPrimaryKey(row);
+      if (!pk) {
+        return `<input type="checkbox" class="row-check" disabled title="此列缺少 id 與編號，無法寫回" aria-label="${escapeAttr(ariaLabel)}" />`;
+      }
+      const pkAttr =
+        pk.kind === "id"
+          ? `data-pk-id="${escapeAttr(pk.value)}"`
+          : `data-pk-serial="${escapeAttr(pk.value)}"`;
+      return `<input type="checkbox" class="row-check" ${pkAttr} data-check-key="${escapeAttr(checkKey)}" data-time-key="${escapeAttr(timeKey)}" ${checked ? "checked" : ""} aria-label="${escapeAttr(ariaLabel)}" />`;
+    }
+
+    function renderCheckGroupHTML(row, userKey, checkKey, timeKey, checkboxLabel) {
+      const checkbox = renderListCheckboxHTML(row, checkKey, timeKey, checkboxLabel);
+      const user = listDisplayValue(row[userKey], "（無）");
+      const status = escapeHtml(checkStatusText(row, checkKey));
+      const timeRaw = row[timeKey];
+      const time = timeRaw ? escapeHtml(formatDateYMD(timeRaw)) : escapeHtml("（無）");
+      return `<span class="record-list-check-group"><span class="record-list-check-label">${escapeHtml(checkboxLabel)}</span>${checkbox} ${user} : ${status} : ${time}</span>`;
+    }
+
+    function renderRecordListItemHTML(row) {
+      const deleteHtml = cellHtml(DELETE_COL, row);
+      const serial = listDisplayValue(row.編號, "（無編號）");
+      const category = listDisplayValue(row.分類, "（無分類）");
+      const vendor = listDisplayValue(row.廠商2, "（無廠商）");
+      const from = listDisplayValue(row.來自, "未知來源");
+      const submitRaw = row.提交時間;
+      const submitDate = submitRaw ? escapeHtml(formatDateYMD(submitRaw)) : escapeHtml("（無）");
+      const location = mergeLocationForList(row);
+      const photo = photoLinkCellHtml(row.照片) || escapeHtml("（無）");
+      const desc = listDisplayValue(row.說明, "（無說明）");
+      const check1Group = renderCheckGroupHTML(row, "勾選人1", "勾選1", "勾選時間1", "完成");
+      const check2Group = renderCheckGroupHTML(row, "勾選人2", "勾選2", "勾選時間2", "覆核");
+
+      return `<article class="record-list-item">
+        <div class="record-list-row record-list-row--1">
+          <div class="record-list-row--1-main"><strong>${serial}</strong> | ${category} | ${vendor} | ${from} : ${submitDate}</div>
+          <div class="record-list-actions">${deleteHtml}</div>
+        </div>
+        <div class="record-list-row record-list-row--2">${location} | ${photo}</div>
+        <div class="record-list-row record-list-row--3">${desc}</div>
+        <div class="record-list-row record-list-row--4">${check1Group}<span class="record-list-sep" aria-hidden="true">|</span>${check2Group}</div>
+      </article>`;
+    }
+
+    function renderRecordListHTML(rows) {
+      return rows.map((row) => renderRecordListItemHTML(row)).join("");
+    }
+
+    /** 大圖模式第一列：依各欄內容寬度再加寬 50% */
+    function widenTopRowFields(container = recordsListEl) {
+      if (viewMode !== "card") return;
+      const fields = container.querySelectorAll(
+        ".record-card-row--6 .record-field:not(.record-field--spacer)"
+      );
+      fields.forEach((el) => {
+        el.style.width = "auto";
+        el.style.minWidth = "0";
+        el.style.flex = "0 0 auto";
+      });
+      fields.forEach((el) => {
+        const w = el.getBoundingClientRect().width;
+        if (w <= 0) return;
+        const target = Math.ceil(w * 1.5);
+        el.style.width = `${target}px`;
+        el.style.flex = `0 0 ${target}px`;
+      });
     }
 
     function photoLinkCellHtml(urlRaw) {
@@ -1225,30 +1433,6 @@
       if (!/^https?:\/\//i.test(u)) return escapeHtml(u);
       const safe = escapeAttr(u);
       return `<a href="${safe}" class="photo-open photo-link" data-photo-url="${safe}">照片</a>`;
-    }
-
-    function cellHtmlForList(col, row) {
-      if (col.kind === "single" && col.key === "照片") {
-        return photoLinkCellHtml(row[col.key]);
-      }
-      return cellHtml(col, row);
-    }
-
-    function renderRecordListTableHTML(rows, displayCols) {
-      const cols = [...displayCols, DELETE_COL];
-      const thead = `<thead><tr>${cols.map((c) => `<th>${escapeHtml(c.header)}</th>`).join("")}</tr></thead>`;
-      const tbody = `<tbody>${rows
-        .map((row) => {
-          const tds = cols
-            .map((c) => {
-              const v = cellHtmlForList(c, row);
-              return `<td>${v}</td>`;
-            })
-            .join("");
-          return `<tr>${tds}</tr>`;
-        })
-        .join("")}</tbody>`;
-      return `<div class="record-table-wrap"><table class="record-table">${thead}${tbody}</table></div>`;
     }
 
     function renderFilteredTable() {
@@ -1309,9 +1493,10 @@
       }
 
       if (viewMode === "list") {
-        recordsListEl.innerHTML = renderRecordListTableHTML(rows, displayCols);
+        recordsListEl.innerHTML = renderRecordListHTML(rows);
       } else {
         recordsListEl.innerHTML = rows.map((row) => renderRecordCardHTML(row, bodyCols)).join("");
+        widenTopRowFields();
       }
 
       setFilterResult(`共 ${rows.length} 筆。`);
@@ -1401,10 +1586,15 @@
       const timeKey = t.dataset.timeKey;
       const checked = t.checked;
       const prev = !checked;
+      const userKey = CHECK_USER_KEY[checkKey];
+      const userName = await getSessionUserName();
 
       const patch = { [checkKey]: checked };
       if (timeKey) {
-        patch[timeKey] = checked ? new Date().toISOString() : null;
+        patch[timeKey] = new Date().toISOString();
+      }
+      if (userKey) {
+        patch[userKey] = userName;
       }
 
       let q = supabase.from("records").update(patch);

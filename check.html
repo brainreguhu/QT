@@ -27,10 +27,59 @@
       color: var(--text);
       line-height: 1.5;
     }
+    body.split-layout-active {
+      overflow: hidden;
+    }
     main {
       max-width: 400px;
       margin: 0 auto;
       padding: 8px 12px 0;
+    }
+    main.split-layout {
+      max-width: min(1200px, 100%);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 8px;
+    }
+    main.split-layout #auth-status {
+      flex: 0 0 auto;
+    }
+    .page-layout {
+      display: flex;
+      flex-direction: column;
+    }
+    .page-layout-form,
+    .page-layout-query {
+      min-width: 0;
+    }
+    main.split-layout .page-layout {
+      flex: 1 1 auto;
+      min-height: 0;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 12px;
+    }
+    main.split-layout .page-layout-query {
+      flex: 1 1 0;
+      order: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    main.split-layout .page-layout-form {
+      flex: 1 1 0;
+      order: 2;
+      max-width: 400px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    main.split-layout .query-card {
+      margin-top: 0;
     }
     form {
       background: var(--panel);
@@ -58,6 +107,47 @@
       font-size: 14px;
       border-style: dashed;
     }
+    input[type="file"].visually-hidden-file {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .photo-picker-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+    }
+    .photo-picker-btn {
+      flex: 1 1 0;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .photo-picker-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .photo-selected-name {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-all;
+    }
     .select-with-reset {
       display: flex;
       align-items: center;
@@ -66,6 +156,19 @@
     .select-with-reset > select {
       flex: 1 1 auto;
       min-width: 0;
+    }
+    .vendor-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vendor-row > select {
+      flex: 1 1 0;
+      min-width: 0;
+      width: auto;
+    }
+    .vendor-row > .select-reset-btn {
+      flex: 0 0 auto;
     }
     .select-reset-btn {
       flex: 0 0 auto;
@@ -119,12 +222,78 @@
       gap: 8px;
       flex-wrap: wrap;
     }
+    .serial-header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .header-toggle {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.16);
+      cursor: pointer;
+      user-select: none;
+    }
+    .header-toggle:hover {
+      border-color: rgba(120, 160, 220, 0.55);
+    }
+    .header-toggle-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .header-toggle-track {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .header-toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      background: rgba(220, 232, 250, 0.9);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      transition: left 160ms ease, background 160ms ease;
+    }
+    .header-toggle-input:checked + .header-toggle-track {
+      background: rgba(61, 139, 253, 0.25);
+      border-color: rgba(90, 160, 255, 0.75);
+    }
+    .header-toggle-input:checked + .header-toggle-track::after {
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+    }
+    .header-toggle-input:focus-visible + .header-toggle-track {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.28);
+    }
     .serial-header .back-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      margin-left: auto;
+      margin-left: 0;
       text-decoration: none;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -265,6 +434,26 @@
       font-size: 14px;
       white-space: nowrap;
     }
+    .missing-result-actions {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+    .missing-toggle-btn {
+      border: none;
+      background: none;
+      padding: 0;
+      color: var(--accent);
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .missing-toggle-btn:hover {
+      color: var(--accent-hover);
+    }
     .missing-list {
       margin: 0;
       padding: 0;
@@ -274,17 +463,15 @@
       gap: 8px;
     }
     .missing-item {
+      position: relative;
       border: 1px solid rgba(70, 92, 128, 0.5);
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.12);
       padding: 8px 10px 8px 8px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 20px;
-      align-items: start;
-      gap: 8px;
     }
     .missing-item-main {
       min-width: 0;
+      padding-right: 44px;
       line-height: 1.45;
       word-break: break-word;
       font-size: 14px;
@@ -295,6 +482,32 @@
     .missing-item-row + .missing-item-row {
       margin-top: 4px;
     }
+    .missing-item-row--check {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .missing-item-check-label {
+      font-weight: 600;
+      color: rgba(210, 223, 242, 0.92);
+    }
+    .missing-item-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+    .missing-check {
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
     .missing-photo-link {
       color: #9ac7ff;
       text-decoration: underline;
@@ -303,20 +516,6 @@
     }
     .missing-photo-link:hover {
       color: #fff;
-    }
-    .missing-item-check {
-      width: 20px;
-      min-height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-right: 10px;
-    }
-    .missing-check {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-      accent-color: var(--accent);
     }
     .photo-modal[hidden] { display: none; }
     .photo-modal {
@@ -379,18 +578,26 @@
   </style>
 </head>
 <body>
-  <main>
+  <main id="app-main">
     <p id="auth-status" role="status" aria-live="polite">驗證登入中…</p>
+    <div class="page-layout">
+      <div class="page-layout-form">
     <form id="record-form" inert novalidate>
       <div class="serial-block">
         <div class="serial-header">
           <div class="work-zone-inline">
             <span class="section-title work-zone-heading">工區</span>
-            <span class="work-zone-tag" id="work-zone-display" title="工區">69</span>
+            <span class="work-zone-tag" id="work-zone-display" title="工區">67</span>
           </div>
-          <a class="back-btn" href="./index.html">↩ 返回</a>
+          <div class="serial-header-actions">
+            <label class="header-toggle" for="header-toggle" title="分割檢視：左側查詢列表、右側新增表單">
+              <input id="header-toggle" class="header-toggle-input" type="checkbox" role="switch" aria-checked="false" />
+              <span class="header-toggle-track" aria-hidden="true"></span>
+            </label>
+            <a class="back-btn" href="./index.html">↩ 返回</a>
+          </div>
         </div>
-        <input type="hidden" id="work-zone" name="workZone" value="69" />
+        <input type="hidden" id="work-zone" name="workZone" value="67" />
         <div class="serial-number-row">
           <label for="serial" class="section-title">編號</label>
           <input id="serial" name="serial" type="text" readonly />
@@ -429,16 +636,14 @@
 
       <div>
         <p class="section-title">廠商</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div class="vendor-row">
           <select id="vendor1" name="vendor1" required>
             <option value="" disabled selected>請選擇</option>
           </select>
-          <div class="select-with-reset">
-            <select id="vendor2" name="vendor2" required disabled>
-              <option value="" disabled selected>請先選擇 廠商1</option>
-            </select>
-            <button type="button" id="clear-vendor2-btn" class="select-reset-btn">清除</button>
-          </div>
+          <select id="vendor2" name="vendor2" required disabled>
+            <option value="" disabled selected>請先選擇 廠商1</option>
+          </select>
+          <button type="button" id="clear-vendor2-btn" class="select-reset-btn">清除</button>
         </div>
       </div>
 
@@ -448,26 +653,40 @@
       </div>
       <div>
         <label for="category" class="section-title">分類</label>
-        <select id="category" name="category" required>
-          <option value="" disabled selected>請選擇</option>
-        </select>
+        <div class="select-with-reset">
+          <select id="category" name="category" required>
+            <option value="" disabled selected>請選擇</option>
+          </select>
+          <button type="button" id="clear-category-btn" class="select-reset-btn">清除</button>
+        </div>
       </div>
       <div>
-        <label for="photo" class="section-title">照片</label>
-        <input type="file" id="photo" name="photo" accept="image/*" required />
+        <p class="section-title">照片</p>
+        <input type="file" id="photo-camera" class="visually-hidden-file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" />
+        <input type="file" id="photo-gallery" class="visually-hidden-file" accept="image/*" tabindex="-1" aria-hidden="true" />
+        <div class="photo-picker-row">
+          <button type="button" id="photo-camera-btn" class="photo-picker-btn">拍照</button>
+          <button type="button" id="photo-gallery-btn" class="photo-picker-btn">從相簿選擇</button>
+        </div>
+        <p id="photo-selected-name" class="photo-selected-name" aria-live="polite">尚未選擇照片</p>
       </div>
       <button type="submit" id="submit-btn">送出至 Supabase</button>
       <p id="status" role="status" aria-live="polite"></p>
     </form>
-    <section class="query-card" aria-label="查詢缺失卡片">
+      </div>
+    <section class="query-card page-layout-query" aria-label="查詢缺失卡片">
       <button type="button" id="query-missing-btn">查詢缺失</button>
       <p id="query-warning" role="status" aria-live="polite"></p>
       <div id="missing-result-row" class="missing-result-row" hidden>
         <p id="missing-result" role="status" aria-live="polite"></p>
-        <span class="missing-hint">完成請打勾</span>
+        <div class="missing-result-actions">
+          <button type="button" id="toggle-completed-btn" class="missing-toggle-btn">隱藏完成項目</button>
+          <span class="missing-hint">完成請打勾</span>
+        </div>
       </div>
       <ol id="missing-list" class="missing-list"></ol>
     </section>
+    </div>
   </main>
   <div id="photo-modal" class="photo-modal" hidden aria-hidden="true">
     <div class="photo-modal-backdrop" aria-hidden="true"></div>
@@ -498,21 +717,70 @@
       description: "說明",
       photo: "照片",
       from: "來自",
+      check1User: "勾選人1",
+      check1Time: "勾選時間1",
     };
-    const FLOOR_OPTIONS = ["1F", "2F", "3F", "B1", "B2"];
-    const CATEGORY_OPTIONS = ["設備", "清潔", "維修", "巡檢", "其他"];
+    const FLOOR_OPTIONS = ["B5F", "B4F", "B3F", "B2F", "B1F", "1F", "1MF", "2F", "3F", "4F", "5F", "6F", "7F", "8F", "9F", "10F", "11F", "12F", "13F", "14F", "15F", "16F", "17F", "R1F", "R2F", "R3F", "PRF"];
+    const CATEGORY_OPTIONS = ["品管缺失", "客變缺失", "驗屋缺失", "待辦", "記錄"];
     const LOCATION_TREE = {
-      A區: { 一段: ["A-一段-001", "A-一段-002"], 二段: ["A-二段-001"] },
-      B區: { 北側: ["B-北側-101"], 南側: ["B-南側-201"] },
-    };
+  "戶內A": {
+    "A1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "A6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
+  },
+    "戶內B": {
+    "B1": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B2": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B3": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B5": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B6": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"],
+    "B7": ["客廳","餐廳","主浴","客浴","廚房","主臥室","臥室1","臥室2","臥室3","和室","露台","前陽台","後陽台","全室","管道間"]
+  },
+    "店鋪": {
+    "A1": ["樓梯","廁所"],
+    "A2": ["樓梯","廁所"],
+    "A3": ["樓梯","廁所"],
+    "A5": ["樓梯","廁所"],
+    "A6": ["樓梯","廁所"],
+    "A7": ["樓梯","廁所"],
+    "A8": ["樓梯","廁所"],
+    "A9": ["樓梯","廁所"],
+    "A10": ["樓梯","廁所"],
+    "A11": ["樓梯","廁所"]    
+  },
+  "公設": {
+    "管委會": ["大廳","兒遊室","防災中心","健身房A","健身房B","瑜伽教室A","瑜伽教室B"],
+    "廁所": ["廁所"], "梯廳": ["梯廳"], "電梯廳": ["電梯廳"],
+    "樓梯間": ["A1梯","A2梯","B1梯","B2梯"]
+  },
+  "外牆": { 
+    "外牆A": ["全區","A1","A2","A3","A5","A6","A1梯","A2梯","電梯廳"],
+    "外牆B": ["全區","B1","B2","B3","B5","B6","B7","B1梯","B2梯","電梯廳"]
+    },
+  "地下室": {
+    "公設": ["樓梯間","電梯廳","第二門廳","車道","停車位","機機位"],
+    "機房": ["台電受電室","垃圾儲藏室","電信機房","發電機房","消防機房","泵浦室","水箱"]
+  },
+  "景觀": { "景觀中庭/花台": ["整區"], "人行道": ["整區"], "水溝": ["整區"], "騎樓": ["整區"] }
+};
     const VENDOR_TREE = {
-      甲公司: ["甲-北區", "甲-中區"],
-      乙公司: ["乙-一部", "乙-二部"],
-    };
+  "結構": ["放樣","模板","鋼筋","鷹架","壓送","防水","石膏磚","打石","土木"],
+  "機電": ["機電","給排水","強弱電","消防","監控","燈光"],
+  "內部裝修": ["泥作","石膏磚","油漆","SPC地坪","矽酸鈣天花","木門","玻璃","矽利康","收邊條","踢腳板"],
+  "外部裝修": ["泥作-丁掛磚","石材","鐵件/金屬包板","玻璃"],
+  "開口設備": ["鋁門窗","金屬門","防火門","木門","鐵捲門","防水閘門","維修孔/檢修門","鐵件","玻璃"],
+  "浴室設備": ["鏡櫃.浴櫃","面盆","檯面","龍頭.蓮蓬頭","馬桶","淋浴拉門","暖風機","毛巾架","矽利康"],
+  "廚房陽台設備": ["廚具(及設備)","烤漆玻璃","企口天花","曬衣架"],
+  "其他設備": ["防水閘門","冷氣","電梯","停車場設備","EPOXY","樓梯扶手","刮泥墊","廣告招牌","燈光","案名字","鐵件類"],
+  "地工": ["尚無開項"],
+  "工務所": ["兆龍","漴楠","維哲","建男","粗工","公司","冠宏"]
+};
     const STORAGE_BUCKET = "Public";
     const STORAGE_OBJECT_PREFIX = "Rublic";
     /** 與畫面「工區」標籤一致，寫入 records.工區；編號前綴使用此字串 */
-    const WORK_ZONE_VALUE = "69";
+    const WORK_ZONE_VALUE = "67";
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const LOGIN_URL = "./login.html?next=check.html";
@@ -529,8 +797,13 @@
     const clearFloorBtn = document.getElementById("clear-floor-btn");
     const clearLoc1Btn = document.getElementById("clear-loc1-btn");
     const clearVendor2Btn = document.getElementById("clear-vendor2-btn");
+    const clearCategoryBtn = document.getElementById("clear-category-btn");
     const descriptionEl = document.getElementById("description");
-    const photoInput = document.getElementById("photo");
+    const photoCameraInput = document.getElementById("photo-camera");
+    const photoGalleryInput = document.getElementById("photo-gallery");
+    const photoCameraBtn = document.getElementById("photo-camera-btn");
+    const photoGalleryBtn = document.getElementById("photo-gallery-btn");
+    const photoSelectedNameEl = document.getElementById("photo-selected-name");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
     const authStatusEl = document.getElementById("auth-status");
@@ -539,11 +812,66 @@
     const missingResultRowEl = document.getElementById("missing-result-row");
     const missingResultEl = document.getElementById("missing-result");
     const missingListEl = document.getElementById("missing-list");
+    const toggleCompletedBtn = document.getElementById("toggle-completed-btn");
     const photoModalEl = document.getElementById("photo-modal");
     const photoModalImgEl = document.getElementById("photo-modal-img");
     const photoModalCloseEl = document.getElementById("photo-modal-close");
+    const appMainEl = document.getElementById("app-main");
+    const headerToggleEl = document.getElementById("header-toggle");
+    const SPLIT_LAYOUT_KEY = "check:splitLayout";
     let statusTimer = null;
     let queryWarningTimer = null;
+    let missingRowsCache = [];
+    let hideCompletedItems = false;
+    let cachedUserName = null;
+    let selectedPhotoFile = null;
+
+    function setSelectedPhoto(file) {
+      selectedPhotoFile = file || null;
+      photoSelectedNameEl.textContent = selectedPhotoFile
+        ? `已選擇：${selectedPhotoFile.name}`
+        : "尚未選擇照片";
+    }
+    function clearPhotoInputs() {
+      photoCameraInput.value = "";
+      photoGalleryInput.value = "";
+      setSelectedPhoto(null);
+    }
+    function handlePhotoInputChange(e) {
+      const input = e.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const file = input.files?.[0] || null;
+      if (input === photoCameraInput) photoGalleryInput.value = "";
+      else photoCameraInput.value = "";
+      setSelectedPhoto(file);
+    }
+
+    photoCameraBtn.addEventListener("click", () => photoCameraInput.click());
+    photoGalleryBtn.addEventListener("click", () => photoGalleryInput.click());
+    photoCameraInput.addEventListener("change", handlePhotoInputChange);
+    photoGalleryInput.addEventListener("change", handlePhotoInputChange);
+
+    function applySplitLayout(enabled) {
+      appMainEl.classList.toggle("split-layout", enabled);
+      document.body.classList.toggle("split-layout-active", enabled);
+      headerToggleEl.checked = enabled;
+      headerToggleEl.setAttribute("aria-checked", enabled ? "true" : "false");
+    }
+    function loadSplitLayoutEnabled() {
+      try {
+        return localStorage.getItem(SPLIT_LAYOUT_KEY) === "1";
+      } catch (_) {
+        return false;
+      }
+    }
+    applySplitLayout(loadSplitLayoutEnabled());
+    headerToggleEl.addEventListener("change", () => {
+      const enabled = headerToggleEl.checked;
+      applySplitLayout(enabled);
+      try {
+        localStorage.setItem(SPLIT_LAYOUT_KEY, enabled ? "1" : "0");
+      } catch (_) {}
+    });
 
     function redirectToLogin() {
       window.location.href = LOGIN_URL;
@@ -598,47 +926,92 @@
     function clearMissingList() {
       missingListEl.innerHTML = "";
     }
+    function isRowDone(r) {
+      const doneRaw = r["勾選1"] ?? r["完成"];
+      return doneRaw === true || doneRaw === "true" || doneRaw === 1 || doneRaw === "1" || doneRaw === "Y";
+    }
+    function getVisibleMissingRows() {
+      if (!hideCompletedItems) return missingRowsCache;
+      return missingRowsCache.filter((r) => !isRowDone(r));
+    }
+    function updateToggleCompletedLabel() {
+      toggleCompletedBtn.textContent = hideCompletedItems ? "顯示完成項目" : "隱藏完成項目";
+    }
     function renderMissingList(rows) {
-      if (!rows || rows.length === 0) {
+      if (rows !== undefined) missingRowsCache = rows || [];
+      const visibleRows = getVisibleMissingRows();
+      if (!visibleRows || visibleRows.length === 0) {
         clearMissingList();
         setMissingStatus("篩選符合共 0 筆。");
         showMissingResultRow(true);
         return;
       }
-      const html = rows
+      const html = visibleRows
         .map((r) => {
           const serialKey = String(r[DB_COLUMNS.serial] ?? "").trim();
           const serial = String(r[DB_COLUMNS.serial] ?? "").trim() || "（無編號）";
           const category = String(r[DB_COLUMNS.category] ?? "").trim() || "（無分類）";
+          const floor = String(r[DB_COLUMNS.floor] ?? "").trim();
           const loc1 = String(r[DB_COLUMNS.loc1] ?? "").trim();
           const loc2 = String(r[DB_COLUMNS.loc2] ?? "").trim();
           const loc3 = String(r[DB_COLUMNS.loc3] ?? "").trim();
-          const locDisplay = [loc1, loc2, loc3].filter(Boolean).join("/");
+          const locDisplay = [floor, loc1, loc2, loc3].filter(Boolean).join("/");
           const vendor2 = String(r[DB_COLUMNS.vendor2] ?? "").trim() || "（無廠商2）";
           const desc = String(r[DB_COLUMNS.description] ?? "").trim() || "（無說明）";
           const photo = String(r[DB_COLUMNS.photo] ?? "").trim();
           const from = String(r[DB_COLUMNS.from] ?? "").trim() || "未知來源";
-          const doneRaw = r["勾選1"] ?? r["完成"];
-          const done = doneRaw === true || doneRaw === "true" || doneRaw === 1 || doneRaw === "1" || doneRaw === "Y";
+          const checkUser = String(r[DB_COLUMNS.check1User] ?? "").trim();
+          const checkDateDisplay = formatDateYMD(r[DB_COLUMNS.check1Time]);
+          const done = isRowDone(r);
+          const checkActionLabel = done ? "勾選" : "取消勾選";
           const photoHtml = photo
             ? `<a class="missing-photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer">照片</a>`
             : "（無）";
           const checkHtml = serialKey
-            ? `<input type="checkbox" class="missing-check" data-row-serial="${escapeHtml(serialKey)}" ${done ? "checked" : ""} />`
-            : `<input type="checkbox" class="missing-check" disabled title="缺少編號，無法寫回" />`;
-          return `<li class="missing-item"><div class="missing-item-main"><p class="missing-item-row"><strong>${escapeHtml(serial)}</strong> | ${escapeHtml(category)} | ${escapeHtml(vendor2)} | ${escapeHtml(from)}</p><p class="missing-item-row">${escapeHtml(locDisplay || "（無位置）")} | ${photoHtml}</p><p class="missing-item-row">${escapeHtml(desc)}</p></div><div class="missing-item-check">${checkHtml}</div></li>`;
+            ? `<input type="checkbox" class="missing-check" data-row-serial="${escapeHtml(serialKey)}" ${done ? "checked" : ""} aria-label="完成" />`
+            : `<input type="checkbox" class="missing-check" disabled title="缺少編號，無法寫回" aria-label="完成" />`;
+          const checkBottomHtml = `<p class="missing-item-row missing-item-row--check"><span class="missing-item-check-label">完成</span>${escapeHtml(checkUser || "（無）")} : ${escapeHtml(checkActionLabel)} : ${escapeHtml(checkDateDisplay || "（無）")}</p>`;
+          return `<li class="missing-item"><div class="missing-item-main"><p class="missing-item-row"><strong>${escapeHtml(serial)}</strong></p><p class="missing-item-row">${escapeHtml(category)} | ${escapeHtml(vendor2)} | ${escapeHtml(from)}</p><p class="missing-item-row">${escapeHtml(locDisplay || "（無位置）")} | ${photoHtml}</p><p class="missing-item-row">${escapeHtml(desc)}</p>${checkBottomHtml}</div><div class="missing-item-check">${checkHtml}</div></li>`;
         })
         .join("");
       missingListEl.innerHTML = html;
-      setMissingStatus(`篩選符合共 ${rows.length} 筆。`);
+      setMissingStatus(`篩選符合共 ${visibleRows.length} 筆。`);
       showMissingResultRow(true);
     }
-    function getTodayDateYMD() {
-      const d = new Date();
+    function formatDateYMD(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const s = String(value).trim();
+      const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) return `${isoMatch[1]}/${isoMatch[2]}/${isoMatch[3]}`;
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) return s;
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, "0");
       const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
+      return `${y}/${m}/${day}`;
+    }
+    function getNowDateTimeISO() {
+      return new Date().toISOString();
+    }
+    async function getSessionUserName() {
+      if (cachedUserName) return cachedUserName;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return "未知使用者";
+      const { data: profile } = await supabase
+        .from(PROFILE_TABLE)
+        .select("username")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      const meta = session.user.user_metadata || {};
+      cachedUserName =
+        (profile?.username && String(profile.username).trim()) ||
+        (meta.full_name && String(meta.full_name).trim()) ||
+        (meta.name && String(meta.name).trim()) ||
+        session.user.email?.trim() ||
+        "未知使用者";
+      return cachedUserName;
     }
     function escapeHtml(str) {
       return String(str)
@@ -733,6 +1106,9 @@
     clearVendor2Btn.addEventListener("click", () => {
       vendor2Select.selectedIndex = 0;
     });
+    clearCategoryBtn.addEventListener("click", () => {
+      categorySelect.selectedIndex = 0;
+    });
 
     (async function gateCheckPage() {
       const {
@@ -763,8 +1139,10 @@
       queryWarningEl.textContent = "";
       showMissingResultRow(false);
       clearMissingList();
+      hideCompletedItems = false;
+      updateToggleCompletedLabel();
 
-      let query = supabase.from("records").select("編號, 分類, 位置1, 位置2, 位置3, 廠商2, 說明, 照片, 來自, 勾選1");
+      let query = supabase.from("records").select("編號, 分類, 樓層, 位置1, 位置2, 位置3, 廠商2, 說明, 照片, 來自, 勾選1, 勾選人1, 勾選時間1"); //清單資料輸出
       if (floor) query = query.eq(DB_COLUMNS.floor, floor);
       if (loc1) query = query.eq(DB_COLUMNS.loc1, loc1);
       if (loc2) query = query.eq(DB_COLUMNS.loc2, loc2);
@@ -780,6 +1158,11 @@
         return;
       }
       renderMissingList(rows || []);
+    });
+    toggleCompletedBtn.addEventListener("click", () => {
+      hideCompletedItems = !hideCompletedItems;
+      updateToggleCompletedLabel();
+      renderMissingList();
     });
     missingListEl.addEventListener("click", (e) => {
       const target = e.target;
@@ -798,7 +1181,13 @@
       if (!rowSerial) return;
       const checked = target.checked;
       target.disabled = true;
-      const patch = { 勾選1: checked, 勾選時間1: checked ? getTodayDateYMD() : null };
+      const userName = await getSessionUserName();
+      const operatedAt = getNowDateTimeISO();
+      const patch = {
+        勾選1: checked,
+        [DB_COLUMNS.check1User]: userName,
+        [DB_COLUMNS.check1Time]: operatedAt,
+      };
       const { error } = await supabase.from("records").update(patch).eq(DB_COLUMNS.serial, rowSerial);
       target.disabled = false;
       if (error) {
@@ -806,6 +1195,13 @@
         setMissingStatus(`更新完成狀態失敗：${error.message || "未知錯誤"}`);
         return;
       }
+      const cachedRow = missingRowsCache.find((r) => String(r[DB_COLUMNS.serial] ?? "").trim() === rowSerial);
+      if (cachedRow) {
+        cachedRow["勾選1"] = checked;
+        cachedRow[DB_COLUMNS.check1User] = userName;
+        cachedRow[DB_COLUMNS.check1Time] = operatedAt;
+      }
+      renderMissingList();
       setMissingStatus(checked ? "已更新為完成。" : "已取消完成。");
     });
     photoModalCloseEl.addEventListener("click", closePhotoModal);
@@ -836,14 +1232,14 @@
       const vendor1 = vendor1Select.value.trim();
       const vendor2 = vendor2Select.value.trim();
       const description = descriptionEl.value.trim();
-      const photoFile = photoInput.files?.[0];
+      const photoFile = selectedPhotoFile;
 
       if (!floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
         setStatus("請完成樓層、分類、位置、廠商與說明。", "error");
         return;
       }
       if (!photoFile) {
-        setStatus("請選擇照片。", "error");
+        setStatus("請拍照或從相簿選擇照片。", "error");
         return;
       }
 
@@ -915,6 +1311,7 @@
 
       setStatus("已成功儲存。", "success");
       form.reset();
+      clearPhotoInputs();
       resetSelect(loc2Select, "請先選擇 位置1");
       resetSelect(loc3Select, "請先選擇 位置2");
       resetSelect(vendor2Select, "請先選擇 廠商1");
