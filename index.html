@@ -458,6 +458,84 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .report-missing-open {
+      display: block;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .report-missing-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: rgba(8, 12, 18, 0.72);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.18s ease, visibility 0.18s ease;
+    }
+    .report-missing-overlay.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .report-missing-card {
+      width: min(92vw, 320px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+    .report-missing-card .report-missing-item {
+      display: block;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      text-decoration: none;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .report-missing-card a.report-missing-item:hover {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+      color: #fff;
+    }
+    .report-missing-card button.report-missing-item {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .report-missing-card button.report-missing-item:hover {
+      border-color: var(--muted);
+      background: var(--btn-secondary-hover);
+      color: var(--text);
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
@@ -503,8 +581,8 @@
         <a class="link-btn" href="./sumit.html">進度回報🖥️</a>
       </div>
       <div class="links-row-two">
-        <a class="link-btn" href="./check.html">回報缺失📱</a>
-        <a class="link-btn" href="./checklist.html">紀錄管理🖥️</a>
+        <button class="link-btn report-missing-open" type="button" id="report-missing-open">回報缺失</button>
+        <a class="link-btn" href="./checklist.html">缺失紀錄管理🖥️</a>
       </div>
       <div class="links-row-three">
         <a class="link-btn" href="">查詢考勤🚧</a>
@@ -523,7 +601,7 @@
           target="_blank"
           rel="noopener noreferrer"
           >業績地圖</a>
-        <a class="link-btn" href="">員工守則🚧</a>
+        <a class="link-btn" href="">廠商花冊🚧</a>
       </div>
       <div class="tetris-btn-wrap">
         <a class="link-btn link-btn--tetris" href="./tetris.html">俄羅斯方塊</a>
@@ -533,6 +611,16 @@
     </div>
   </main>
   <footer class="site-footer">© Reguhu 2026</footer>
+
+  <!-- 彈窗內容 -->
+  <div class="report-missing-overlay" id="report-missing-overlay" hidden aria-hidden="true">
+    <div class="report-missing-card" role="dialog" aria-modal="true" aria-labelledby="report-missing-title">
+      <p id="report-missing-title" class="visually-hidden">選擇工區回報缺失</p>
+      <a class="report-missing-item" href="./check67.html">67</a>
+      <a class="report-missing-item" href="./check69.html">69</a>
+      <button class="report-missing-item" type="button" id="report-missing-cancel">取消</button>
+    </div>
+  </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -679,6 +767,33 @@
       const timer = window.setInterval(spawnHeart, 260);
       window.addEventListener("beforeunload", () => window.clearInterval(timer), { once: true });
     }
+
+    const reportMissingOpen = document.getElementById("report-missing-open");
+    const reportMissingOverlay = document.getElementById("report-missing-overlay");
+    const reportMissingCancel = document.getElementById("report-missing-cancel");
+
+    function openReportMissingModal() {
+      reportMissingOverlay.hidden = false;
+      reportMissingOverlay.setAttribute("aria-hidden", "false");
+      reportMissingOverlay.classList.add("is-open");
+    }
+
+    function closeReportMissingModal() {
+      reportMissingOverlay.classList.remove("is-open");
+      reportMissingOverlay.setAttribute("aria-hidden", "true");
+      reportMissingOverlay.hidden = true;
+    }
+
+    reportMissingOpen?.addEventListener("click", openReportMissingModal);
+    reportMissingCancel?.addEventListener("click", closeReportMissingModal);
+    reportMissingOverlay?.addEventListener("click", (e) => {
+      if (e.target === reportMissingOverlay) closeReportMissingModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && reportMissingOverlay?.classList.contains("is-open")) {
+        closeReportMissingModal();
+      }
+    });
 
     startFieldHearts();
     loadCurrentUserName();
