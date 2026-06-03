@@ -910,9 +910,9 @@
   const MOVE_ARR_MS = 50;
   /**
    * 長按 ←／→ 「連續橫移」時，橫向每移一格的間隔（毫秒）。
-   * 此處為在與 MOVE_ARR_MS 相同基底下，橫向移動再快 50%（間隔 ÷1.5，格／秒 ×1.5）。
+   * 在 MOVE_ARR_MS 基底下橫向再快 50%，連發速度再放慢 30%（間隔 ×1/0.7）。
    */
-  const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS / 0.75;
+  const MOVE_HORIZ_REPEAT_MS = MOVE_ARR_MS *1.5;
   /** 方塊底部著地後，經過此時間才鎖定 */
   const LOCK_DELAY_MS = 400;
   /** 長按 ↑ 時，阻擋系統鍵盤連發過快；僅限 e.repeat，單次點按仍立即旋轉 */
