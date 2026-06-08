@@ -44,13 +44,45 @@
       align-items: stretch;
     }
 
+    .page-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      min-height: 38px;
+    }
+
     .page-title {
-      margin: 0 0 14px;
+      margin: 0;
       font-size: 22px;
       font-weight: 700;
       letter-spacing: 0.02em;
       color: var(--text);
       text-align: center;
+    }
+
+    .back-btn {
+      position: absolute;
+      left: 0;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      font-family: inherit;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .back-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
     }
 
     .gear-btn {
@@ -892,7 +924,10 @@
 </head>
 <body>
   <div class="page" id="page">
-    <h1 class="page-title">69內部進度</h1>
+    <header class="page-header">
+      <a class="back-btn" href="./index.html">↩ 返回</a>
+      <h1 class="page-title">69內部進度</h1>
+    </header>
     <div class="table-panel" id="tablePanel">
       <div class="table-toolbar">
         <button type="button" id="addTableRow" class="edit-reveal">新增列</button>
