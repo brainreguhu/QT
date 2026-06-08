@@ -454,14 +454,11 @@
       padding: 8px;
     }
 
-    .data-table .cell-meta {
+    .data-table .cell-meta-date,
+    .data-table .cell-meta-operator {
       width: 100%;
       text-align: center;
       line-height: 1.35;
-    }
-
-    .data-table .cell-meta-date,
-    .data-table .cell-meta-operator {
       font-size: 12px;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
@@ -1816,46 +1813,54 @@
       return getCurrentOperatorName();
     }
 
-    function updateCellMeta(cell, metaEl) {
-      if (!metaEl) return;
-      var dateEl = metaEl.querySelector(".cell-meta-date");
-      var operatorEl = metaEl.querySelector(".cell-meta-operator");
+    function updateCellMeta(cell, wrapEl) {
+      if (!wrapEl) return;
+      var dateEl = wrapEl.querySelector(".cell-meta-date");
+      var operatorEl = wrapEl.querySelector(".cell-meta-operator");
       if (!cell.lastOperatedAt) {
-        metaEl.hidden = true;
-        if (dateEl) dateEl.textContent = "";
-        if (operatorEl) operatorEl.textContent = "";
+        if (dateEl) {
+          dateEl.hidden = true;
+          dateEl.textContent = "";
+        }
+        if (operatorEl) {
+          operatorEl.hidden = true;
+          operatorEl.textContent = "";
+        }
         return;
       }
-      metaEl.hidden = false;
-      if (dateEl) dateEl.textContent = formatOperationDate(cell.lastOperatedAt);
-      if (operatorEl) operatorEl.textContent = getDisplayOperatorName(cell.lastOperator);
+      if (dateEl) {
+        dateEl.hidden = false;
+        dateEl.textContent = formatOperationDate(cell.lastOperatedAt);
+      }
+      if (operatorEl) {
+        operatorEl.hidden = false;
+        operatorEl.textContent = getDisplayOperatorName(cell.lastOperator);
+      }
     }
 
     function buildCellWrap(cell, rowIndex, colIndex) {
       var wrap = document.createElement("div");
       wrap.className = "cell-wrap";
 
+      var dateEl = document.createElement("div");
+      dateEl.className = "cell-meta-date";
+
       var button = document.createElement("button");
       button.type = "button";
       button.className = "cell-btn";
       applyCellDisplay(cell, button);
 
-      var meta = document.createElement("div");
-      meta.className = "cell-meta";
-      var dateEl = document.createElement("div");
-      dateEl.className = "cell-meta-date";
       var operatorEl = document.createElement("div");
       operatorEl.className = "cell-meta-operator";
-      meta.appendChild(dateEl);
-      meta.appendChild(operatorEl);
-      updateCellMeta(cell, meta);
 
       button.addEventListener("click", function () {
-        handleCellButtonClick(rowIndex, colIndex, button, meta);
+        handleCellButtonClick(rowIndex, colIndex, button, wrap);
       });
 
+      wrap.appendChild(dateEl);
       wrap.appendChild(button);
-      wrap.appendChild(meta);
+      wrap.appendChild(operatorEl);
+      updateCellMeta(cell, wrap);
       return wrap;
     }
 
@@ -1900,7 +1905,7 @@
       applyCellButtonStyle(button, display.text, display.color, display.textColor);
     }
 
-    function handleCellButtonClick(rowIndex, colIndex, button, metaEl) {
+    function handleCellButtonClick(rowIndex, colIndex, button, wrapEl) {
       if (!state.contents.length) {
         openModal();
         return;
@@ -1910,7 +1915,7 @@
       cell.lastOperatedAt = new Date().toISOString();
       cell.lastOperator = getCurrentOperatorName();
       applyCellDisplay(cell, button);
-      updateCellMeta(cell, metaEl);
+      updateCellMeta(cell, wrapEl);
       persistTableState();
     }
 
