@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>空白頁面</title>
+  <title>69內部進度</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -30,7 +30,7 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 72px 16px 24px;
+      padding: 24px 16px;
       font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       color: var(--text);
       -webkit-tap-highlight-color: transparent;
@@ -44,21 +44,29 @@
       align-items: stretch;
     }
 
+    .page-title {
+      margin: 0 0 14px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      text-align: center;
+    }
+
     .gear-btn {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      width: 44px;
-      height: 44px;
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      margin: 0;
+      padding: 0;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--panel);
+      border-radius: 10px;
+      background: transparent;
       color: var(--muted);
       cursor: pointer;
       display: grid;
       place-items: center;
       transition: color 0.2s, border-color 0.2s, transform 0.15s;
-      z-index: 10;
     }
 
     .gear-btn:hover {
@@ -95,7 +103,7 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .table-toolbar button {
+    .table-toolbar button:not(.gear-btn) {
       padding: 8px 12px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -108,7 +116,7 @@
       cursor: pointer;
     }
 
-    .table-toolbar button:hover {
+    .table-toolbar button:not(.gear-btn):hover {
       background: rgba(61, 139, 253, 0.12);
     }
 
@@ -128,10 +136,17 @@
       font-size: 12px;
       color: var(--muted);
       margin-left: 4px;
+      transition: opacity 0.35s ease;
     }
 
     .toolbar-cloud-status.is-error {
       color: var(--danger);
+    }
+
+    .toolbar-cloud-status.is-sync-ok {
+      font-size: 16px;
+      font-weight: 700;
+      color: #22c55e;
     }
 
     body:not(.is-edit-mode) .edit-reveal,
@@ -145,6 +160,18 @@
 
     body:not(.is-edit-mode) .row-label-wrap {
       grid-template-columns: 1fr;
+    }
+
+    body:not(.is-edit-mode) .table-header-input,
+    body:not(.is-edit-mode) .table-row-label-input {
+      pointer-events: none;
+      cursor: default;
+      background: transparent;
+    }
+
+    body:not(.is-edit-mode) .data-table .table-header-input:focus,
+    body:not(.is-edit-mode) .data-table .table-row-label-input:focus {
+      background: transparent;
     }
 
     .toolbar-widths {
@@ -188,6 +215,7 @@
       overflow-x: hidden;
       overflow-y: auto;
       max-height: calc(100vh - 180px);
+      padding-bottom: 18px;
     }
 
     .data-table {
@@ -219,6 +247,14 @@
 
     .data-table th {
       background: rgba(255, 255, 255, 0.03);
+    }
+
+    .data-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--panel);
+      box-shadow: 0 1px 0 var(--border);
     }
 
     .data-table input {
@@ -459,6 +495,16 @@
       opacity: 1;
       transform: translate(-50%, -50%) scale(1.08);
       box-shadow: 0 4px 14px rgba(34, 197, 94, 0.5);
+    }
+
+    .data-table tr.row-insert-slot-last .row-insert-btn {
+      top: auto;
+      bottom: 0;
+      transform: translate(-50%, 50%);
+    }
+
+    .data-table tr.row-insert-slot-last .row-insert-btn:hover {
+      transform: translate(-50%, 50%) scale(1.08);
     }
 
     .cell-action {
@@ -815,15 +861,8 @@
   </style>
 </head>
 <body>
-  <button class="gear-btn" id="gearBtn" type="button" aria-label="設定">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3"></circle>
-      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg>
-  </button>
-
   <div class="page" id="page">
+    <h1 class="page-title">69內部進度</h1>
     <div class="table-panel" id="tablePanel">
       <div class="table-toolbar">
         <button type="button" id="addTableRow" class="edit-reveal">新增列</button>
@@ -841,6 +880,13 @@
             <input type="text" id="frameWidth" inputmode="numeric" value="960" aria-label="框架寬度">
             <span class="width-unit">px</span>
           </label>
+          <button class="gear-btn" id="gearBtn" type="button" aria-label="設定">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="table-wrap">
@@ -891,8 +937,9 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
     var STORAGE_KEY = "blank-page-click-contents";
     var TABLE_STORAGE_KEY = "blank-page-table-data";
     var SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
@@ -901,7 +948,13 @@
     var BLANK_PAGE_STATES_TABLE = "blank_page_states";
     var BLANK_PAGE_KEY = "default";
 
-    var supabase = null;
+    var supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
     var cloudUserId = null;
     var cachedPermissionLevel = null;
     var cachedUsername = null;
@@ -910,6 +963,8 @@
     var cloudSyncInFlight = false;
     var suppressCloudSave = false;
     var isEditMode = false;
+    var cloudStatusFadeTimer = null;
+    var cloudStatusFadeEndHandler = null;
 
     var defaultAccent = "#3d8bfd";
     var defaultContents = [
@@ -921,6 +976,7 @@
     var defaultTable = {
       headers: ["欄 1", "欄 2", "欄 3"],
       rowLabels: ["列 1", "列 2"],
+      rowStandalone: [false, false],
       cells: [
         [
           { text: "按鈕", color: "#3d8bfd" },
@@ -987,29 +1043,6 @@
       return Math.min(800, Math.max(80, Math.round(width)));
     }
 
-    function initSupabase() {
-      try {
-        var g = window.supabase;
-        var createClient = g && typeof g.createClient === "function"
-          ? g.createClient
-          : g && g.default && typeof g.default.createClient === "function"
-            ? g.default.createClient
-            : null;
-        if (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
-          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-              persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true,
-              storage: typeof localStorage !== "undefined" ? localStorage : undefined
-            }
-          });
-        }
-      } catch (e) {
-        console.warn("Supabase 初始化失敗", e);
-      }
-    }
-
     function formatSupabaseError(err) {
       var msg = err && err.message ? err.message : String(err || "未知錯誤");
       if (/failed to fetch/i.test(msg)) {
@@ -1024,10 +1057,48 @@
       return msg;
     }
 
+    function clearCloudStatusFade() {
+      if (cloudStatusFadeTimer) {
+        clearTimeout(cloudStatusFadeTimer);
+        cloudStatusFadeTimer = null;
+      }
+      if (cloudStatusFadeEndHandler && cloudStatusEl) {
+        cloudStatusEl.removeEventListener("transitionend", cloudStatusFadeEndHandler);
+        cloudStatusFadeEndHandler = null;
+      }
+      if (cloudStatusEl) {
+        cloudStatusEl.style.opacity = "1";
+        cloudStatusEl.classList.remove("is-sync-ok");
+      }
+    }
+
     function setCloudStatus(message, isError) {
       if (!cloudStatusEl) return;
+      clearCloudStatusFade();
       cloudStatusEl.textContent = message || "";
       cloudStatusEl.classList.toggle("is-error", !!isError);
+    }
+
+    function showSyncSuccessStatus() {
+      if (!cloudStatusEl) return;
+      clearCloudStatusFade();
+      cloudStatusEl.classList.remove("is-error");
+      cloudStatusEl.classList.add("is-sync-ok");
+      cloudStatusEl.textContent = "已同步至雲端";
+      cloudStatusEl.style.opacity = "1";
+      cloudStatusFadeTimer = setTimeout(function () {
+        cloudStatusFadeTimer = null;
+        cloudStatusFadeEndHandler = function (e) {
+          if (e.propertyName !== "opacity") return;
+          cloudStatusEl.removeEventListener("transitionend", cloudStatusFadeEndHandler);
+          cloudStatusFadeEndHandler = null;
+          cloudStatusEl.textContent = "";
+          cloudStatusEl.classList.remove("is-sync-ok");
+          cloudStatusEl.style.opacity = "1";
+        };
+        cloudStatusEl.addEventListener("transitionend", cloudStatusFadeEndHandler);
+        cloudStatusEl.style.opacity = "0";
+      }, 5000);
     }
 
     function normalizePermissionLevel(value) {
@@ -1052,11 +1123,18 @@
     }
 
     async function resolveAuthUser() {
+      var userResult = await supabase.auth.getUser();
+      if (userResult.data && userResult.data.user) {
+        return userResult.data.user;
+      }
       var sessionResult = await supabase.auth.getSession();
       var session = sessionResult.data && sessionResult.data.session;
-      if (session && session.user) return session.user;
-      var userResult = await supabase.auth.getUser();
-      return userResult.data && userResult.data.user ? userResult.data.user : null;
+      return session && session.user ? session.user : null;
+    }
+
+    function redirectToLogin() {
+      var next = encodeURIComponent("blank.html");
+      window.location.href = "./login.html?next=" + next;
     }
 
     function applyProfileFromRow(profile, userId) {
@@ -1097,6 +1175,15 @@
         document.body.classList.remove("is-edit-mode");
       }
       applyTableColumnWidths();
+      applyTableLabelEditability();
+    }
+
+    function applyTableLabelEditability() {
+      if (!dataTable) return;
+      var editable = isEditMode && canUseEditMode();
+      dataTable.querySelectorAll(".table-header-input, .table-row-label-input").forEach(function (input) {
+        input.readOnly = !editable;
+      });
     }
 
     function setEditMode(on) {
@@ -1149,8 +1236,8 @@
           cachedPermissionLevel = null;
           cachedUsername = null;
           cachedWorkZone = null;
-          setCloudStatus("未登入：使用本機資料（請先至 login.html 登入）");
           syncEditModeUi();
+          redirectToLogin();
           return;
         }
         var profileResult = await supabase
@@ -1194,14 +1281,11 @@
     }
 
     async function loadFromSupabase() {
-      if (!supabase) {
-        setCloudStatus("Supabase 用戶端未載入", true);
-        return;
-      }
       try {
         await loadProfile();
         if (!cloudUserId) return;
-        setCloudStatus("讀取雲端資料中…");
+        var statusPrefix = cloudStatusEl ? cloudStatusEl.textContent.split("｜")[0] : "";
+        setCloudStatus((statusPrefix || "已連線") + "｜讀取雲端資料中…");
         var result = await supabase
           .from(BLANK_PAGE_STATES_TABLE)
           .select("click_state, table_state, updated_at")
@@ -1230,10 +1314,18 @@
         }
         suppressCloudSave = false;
         renderTable();
-        setCloudStatus("已載入雲端資料");
+        var doneText = "已登入：" + (cachedUsername || cloudUserId);
+        doneText += "（權限 " + (cachedPermissionLevel === null ? "未設定" : cachedPermissionLevel) + "）";
+        if (cachedWorkZone) doneText += "｜工區 " + cachedWorkZone;
+        doneText += "｜已載入雲端資料";
+        setCloudStatus(doneText);
         return;
       }
-        setCloudStatus("尚無雲端資料，使用本機資料");
+        var localText = "已登入：" + (cachedUsername || cloudUserId);
+        localText += "（權限 " + (cachedPermissionLevel === null ? "未設定" : cachedPermissionLevel) + "）";
+        if (cachedWorkZone) localText += "｜工區 " + cachedWorkZone;
+        localText += "｜尚無雲端資料，使用本機資料";
+        setCloudStatus(localText);
       } catch (err) {
         setCloudStatus("雲端讀取失敗：" + formatSupabaseError(err), true);
       }
@@ -1249,7 +1341,7 @@
           .from(BLANK_PAGE_STATES_TABLE)
           .upsert(payload, { onConflict: "page_key" });
         if (result.error) throw result.error;
-        setCloudStatus("已同步至雲端");
+        showSyncSuccessStatus();
       } catch (err) {
         setCloudStatus("雲端同步失敗：" + formatSupabaseError(err), true);
       } finally {
@@ -1581,6 +1673,7 @@
         var shaped = ensureTableShape({
           headers: Array.isArray(table.headers) ? table.headers : defaultTable.headers.slice(),
           rowLabels: Array.isArray(table.rowLabels) ? table.rowLabels : defaultTable.rowLabels.slice(),
+          rowStandalone: Array.isArray(table.rowStandalone) ? table.rowStandalone : [],
           cells: table.cells,
           frameWidth: frameWidth,
           labelColWidth: labelColWidth
@@ -1597,6 +1690,7 @@
         rowLabels: legacyRows.map(function (_, index) {
           return "列 " + (index + 1);
         }),
+        rowStandalone: Array.isArray(table.rowStandalone) ? table.rowStandalone : [],
         cells: legacyRows.map(function (row) {
           return Array.isArray(row) ? row.map(function (cell) {
             return normalizeCell(cell, "按鈕");
@@ -1630,6 +1724,7 @@
     function syncTableFromDom() {
       var headerInputs = dataTable.querySelectorAll(".table-header-input");
       var rowLabelInputs = dataTable.querySelectorAll(".table-row-label-input");
+      var rowCheckboxes = dataTable.querySelectorAll(".row-standalone-checkbox");
 
       tableState.headers = Array.prototype.map.call(headerInputs, function (input) {
         return input.value;
@@ -1637,6 +1732,11 @@
       tableState.rowLabels = Array.prototype.map.call(rowLabelInputs, function (input) {
         return input.value;
       });
+      if (rowCheckboxes.length) {
+        tableState.rowStandalone = Array.prototype.map.call(rowCheckboxes, function (checkbox) {
+          return !!checkbox.checked;
+        });
+      }
     }
 
     function moveTableRow(rowIndex, direction) {
@@ -1662,6 +1762,7 @@
       rowLabelInput.value = tableState.rowLabels[rowIndex] || ("列 " + (rowIndex + 1));
       rowLabelInput.placeholder = "列名稱";
       rowLabelInput.className = "table-row-label-input";
+      rowLabelInput.readOnly = !isEditMode || !canUseEditMode();
       rowLabelInput.addEventListener("input", function () {
         syncTableFromDom();
         persistTableState();
@@ -1687,6 +1788,9 @@
     function appendRowInsertSlot(tbody, insertIndex) {
       var insertTr = document.createElement("tr");
       insertTr.className = "row-insert-slot edit-reveal";
+      if (insertIndex === tableState.cells.length) {
+        insertTr.classList.add("row-insert-slot-last");
+      }
 
       var insertCheckboxTd = document.createElement("td");
       insertCheckboxTd.className = "edit-reveal";
@@ -1760,6 +1864,7 @@
         input.value = header;
         input.placeholder = "欄位名稱";
         input.className = "table-header-input";
+        input.readOnly = !isEditMode || !canUseEditMode();
         input.addEventListener("input", function () {
           syncTableFromDom();
           persistTableState();
@@ -2178,16 +2283,28 @@
       if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
     });
 
-    function bootstrap() {
-      initSupabase();
+    async function bootstrap() {
       loadState();
       loadTableState();
       renderTable();
       syncEditModeUi();
-      loadFromSupabase().catch(function (err) {
+      try {
+        await loadFromSupabase();
+      } catch (err) {
         setCloudStatus("雲端連線失敗：" + formatSupabaseError(err), true);
-      });
+      }
     }
+
+    supabase.auth.onAuthStateChange(function (event) {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        loadFromSupabase().catch(function (err) {
+          setCloudStatus("雲端連線失敗：" + formatSupabaseError(err), true);
+        });
+      }
+      if (event === "SIGNED_OUT") {
+        redirectToLogin();
+      }
+    });
 
     bootstrap();
   </script>
