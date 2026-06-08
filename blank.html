@@ -614,8 +614,8 @@
     .entry-row,
     .entry-row-head {
       display: grid;
-      grid-template-columns: 40px 52px minmax(0, 1fr) 60px 76px 34px;
-      gap: 8px;
+      grid-template-columns: 34px 46px minmax(0, 1fr) 44px 44px 60px 28px;
+      gap: 6px;
       align-items: center;
       width: 100%;
     }
@@ -627,7 +627,8 @@
     }
 
     .entry-row-head span:nth-child(4),
-    .entry-row-head span:nth-child(5) {
+    .entry-row-head span:nth-child(5),
+    .entry-row-head span:nth-child(6) {
       text-align: center;
     }
 
@@ -732,6 +733,7 @@
 
     .entry-row .entry-text-input {
       width: 100%;
+      min-width: 0;
       padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -747,8 +749,8 @@
     }
 
     .entry-row .color-input {
-      width: 56px;
-      height: 44px;
+      width: 44px;
+      height: 40px;
     }
 
     .entry-row .transparent-toggle {
@@ -810,39 +812,11 @@
       filter: brightness(1.08);
     }
 
-    .setting-section {
-      margin-top: 20px;
-      padding-top: 18px;
-      border-top: 1px solid var(--border);
-    }
-
-    .setting-section h3 {
-      margin: 0 0 10px;
-      font-size: 15px;
-    }
-
-    .operator-name-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
-      font-family: inherit;
-    }
-
-    .operator-name-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
     @media (max-width: 520px) {
       .entry-row,
       .entry-row-head {
-        grid-template-columns: 34px 44px minmax(0, 1fr) 52px 68px 30px;
-        gap: 6px;
+        grid-template-columns: 30px 40px minmax(0, 1fr) 40px 40px 56px 26px;
+        gap: 5px;
       }
 
       .entry-row-head {
@@ -902,11 +876,12 @@
         <button class="close-btn" id="closeBtn" type="button" aria-label="關閉">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">設定表格按鈕點擊時的文字與底色，依序循環。</p>
+        <p class="modal-desc">設定表格按鈕點擊時的文字、字色與底色，依序循環。</p>
         <div class="entry-row-head">
           <span></span>
           <span></span>
           <span>按鈕文字</span>
+          <span>字色</span>
           <span>底色</span>
           <span>透明</span>
           <span></span>
@@ -915,6 +890,9 @@
           <span></span>
           <div class="entry-label">尚未點擊</div>
           <input id="defaultBtnText" class="entry-text-input" type="text" placeholder="例如：點我">
+          <div class="color-field">
+            <input id="defaultBtnTextColor" class="color-input entry-text-color-input" type="color" value="#ffffff" aria-label="尚未點擊字色">
+          </div>
           <div class="color-field">
             <input id="defaultBtnColor" class="color-input" type="color" value="#3d8bfd">
           </div>
@@ -925,10 +903,6 @@
           <span></span>
         </div>
         <div class="entry-list" id="entryList"></div>
-        <div class="setting-section">
-          <h3>操作人員</h3>
-          <input id="operatorName" class="entry-text-input operator-name-input" type="text" placeholder="例如：李冠宏" aria-label="操作人員名稱">
-        </div>
       </div>
       <div class="modal-actions">
         <button class="add-btn" id="addBtn" type="button">新增項目</button>
@@ -968,11 +942,13 @@
 
     var defaultAccent = "#3d8bfd";
     var defaultContents = [
-      { text: "再點一次", color: "#3d8bfd" },
-      { text: "繼續", color: "#22c55e" },
-      { text: "點我", color: "#f59e0b" }
+      { text: "再點一次", color: "#3d8bfd", textColor: "#ffffff" },
+      { text: "繼續", color: "#22c55e", textColor: "#ffffff" },
+      { text: "點我", color: "#f59e0b", textColor: "#ffffff" }
     ];
     var defaultBtnText = "點我";
+    var defaultBtnTextColor = "#ffffff";
+    var defaultTextOnTransparent = "#e7ecf3";
     var defaultTable = {
       headers: ["欄 1", "欄 2", "欄 3"],
       rowLabels: ["列 1", "列 2"],
@@ -998,7 +974,7 @@
       contents: [],
       defaultBtnText: defaultBtnText,
       defaultBtnColor: defaultAccent,
-      operatorName: "",
+      defaultBtnTextColor: defaultBtnTextColor,
       clickCount: 0
     };
 
@@ -1008,9 +984,9 @@
     var frameWidthInput = document.getElementById("frameWidth");
     var labelColWidthInput = document.getElementById("labelColWidth");
     var defaultBtnTextInput = document.getElementById("defaultBtnText");
+    var defaultBtnTextColorInput = document.getElementById("defaultBtnTextColor");
     var defaultBtnColorInput = document.getElementById("defaultBtnColor");
     var defaultBtnTransparentInput = document.getElementById("defaultBtnTransparent");
-    var operatorNameInput = document.getElementById("operatorName");
     var overlay = document.getElementById("overlay");
     var closeBtn = document.getElementById("closeBtn");
     var entryList = document.getElementById("entryList");
@@ -1142,9 +1118,6 @@
       cachedUsername = String(profile.username || "").trim();
       cachedPermissionLevel = normalizePermissionLevel(profile.permission_level);
       cachedWorkZone = String(profile["工區"] || "").trim();
-      if (!state.operatorName && cachedUsername) {
-        state.operatorName = cachedUsername;
-      }
     }
 
     function canWriteCloud() {
@@ -1198,7 +1171,10 @@
       }
       state.defaultBtnText = String(clickState.defaultBtnText || defaultBtnText).trim() || defaultBtnText;
       state.defaultBtnColor = normalizeColor(clickState.defaultBtnColor);
-      state.operatorName = String(clickState.operatorName || "").trim();
+      state.defaultBtnTextColor = normalizeTextColor(
+        clickState.defaultBtnTextColor,
+        isTransparentColor(clickState.defaultBtnColor) ? defaultTextOnTransparent : defaultBtnTextColor
+      );
       state.clickCount = Number(clickState.clickCount) || 0;
     }
 
@@ -1209,7 +1185,7 @@
           contents: state.contents,
           defaultBtnText: state.defaultBtnText,
           defaultBtnColor: state.defaultBtnColor,
-          operatorName: state.operatorName,
+          defaultBtnTextColor: state.defaultBtnTextColor,
           clickCount: state.clickCount
         },
         table_state: tableState,
@@ -1302,7 +1278,7 @@
             contents: state.contents,
             defaultBtnText: state.defaultBtnText,
             defaultBtnColor: state.defaultBtnColor,
-            operatorName: state.operatorName,
+            defaultBtnTextColor: state.defaultBtnTextColor,
             clickCount: state.clickCount
           }));
         }
@@ -1419,6 +1395,19 @@
       return defaultAccent;
     }
 
+    function normalizeTextColor(color, fallback) {
+      var value = String(color || "").trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
+      return fallback || defaultBtnTextColor;
+    }
+
+    function resolveTextColor(textColor, bgColor) {
+      return normalizeTextColor(
+        textColor,
+        isTransparentColor(bgColor) ? defaultTextOnTransparent : defaultBtnTextColor
+      );
+    }
+
     function readColorValue(colorInput, transparentInput) {
       if (transparentInput && transparentInput.checked) return "transparent";
       return normalizeColor(colorInput ? colorInput.value : defaultAccent);
@@ -1434,15 +1423,30 @@
       };
     }
 
+    function setupTextColorField(colorInput, colorValue, bgColor) {
+      colorInput.value = normalizeTextColor(
+        colorValue,
+        isTransparentColor(bgColor) ? defaultTextOnTransparent : defaultBtnTextColor
+      );
+    }
+
     function normalizeItem(item) {
       if (item && typeof item === "object") {
         var text = String(item.text || item.button || "").trim();
         if (!text) return null;
-        return { text: text, color: normalizeColor(item.color) };
+        var color = normalizeColor(item.color);
+        return {
+          text: text,
+          color: color,
+          textColor: normalizeTextColor(
+            item.textColor,
+            isTransparentColor(color) ? defaultTextOnTransparent : defaultBtnTextColor
+          )
+        };
       }
       var value = String(item || "").trim();
       if (!value) return null;
-      return { text: value, color: defaultAccent };
+      return { text: value, color: defaultAccent, textColor: defaultBtnTextColor };
     }
 
     function hexToRgb(hex) {
@@ -1468,17 +1472,18 @@
       return "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", " + alpha + ")";
     }
 
-    function applyCellButtonStyle(button, text, color) {
+    function applyCellButtonStyle(button, text, color, textColor) {
       button.textContent = text || "按鈕";
+      var resolvedTextColor = resolveTextColor(textColor, color);
       if (isTransparentColor(color)) {
         button.style.background = "transparent";
         button.style.boxShadow = "none";
         button.style.border = "1px solid var(--border)";
-        button.style.color = "var(--text)";
+        button.style.color = resolvedTextColor;
         return;
       }
       button.style.border = "none";
-      button.style.color = "#fff";
+      button.style.color = resolvedTextColor;
       var base = normalizeColor(color);
       button.style.background = "linear-gradient(180deg, " + lightenColor(base, 0.18) + " 0%, " + base + " 100%)";
       button.style.boxShadow = "0 6px 18px " + colorShadow(base, 0.28);
@@ -1486,9 +1491,14 @@
 
     function normalizeCell(cell, fallbackText) {
       if (cell && typeof cell === "object") {
+        var color = normalizeColor(cell.color);
         return {
           text: String(cell.text || fallbackText || "按鈕").trim() || "按鈕",
-          color: normalizeColor(cell.color),
+          color: color,
+          textColor: normalizeTextColor(
+            cell.textColor,
+            isTransparentColor(color) ? defaultTextOnTransparent : defaultBtnTextColor
+          ),
           clickCount: Number(cell.clickCount) || 0,
           lastOperatedAt: cell.lastOperatedAt || null,
           lastOperator: String(cell.lastOperator || "").trim()
@@ -1498,6 +1508,7 @@
       return {
         text: value || "按鈕",
         color: defaultAccent,
+        textColor: defaultBtnTextColor,
         clickCount: 0,
         lastOperatedAt: null,
         lastOperator: ""
@@ -1511,12 +1522,18 @@
     function formatOperationDate(value) {
       var date = value instanceof Date ? value : new Date(value);
       if (isNaN(date.getTime())) return "";
-      return date.getFullYear() + "/" + pad2(date.getMonth() + 1) + "/" + pad2(date.getDate());
+      var year = String(date.getFullYear()).slice(-2);
+      return year + "/" + pad2(date.getMonth() + 1) + "/" + pad2(date.getDate());
     }
 
     function getCurrentOperatorName() {
-      var name = String(state.operatorName || "").trim();
-      return name || "未設定";
+      return String(cachedUsername || "").trim();
+    }
+
+    function getDisplayOperatorName(stored) {
+      var trimmed = String(stored || "").trim();
+      if (trimmed && trimmed !== "未設定") return trimmed;
+      return getCurrentOperatorName();
     }
 
     function updateCellMeta(cell, metaEl) {
@@ -1531,7 +1548,7 @@
       }
       metaEl.hidden = false;
       if (dateEl) dateEl.textContent = formatOperationDate(cell.lastOperatedAt);
-      if (operatorEl) operatorEl.textContent = cell.lastOperator || "";
+      if (operatorEl) operatorEl.textContent = getDisplayOperatorName(cell.lastOperator);
     }
 
     function buildCellWrap(cell, rowIndex, colIndex) {
@@ -1566,22 +1583,32 @@
       return {
         text: state.defaultBtnText || "按鈕",
         color: state.defaultBtnColor || defaultAccent,
+        textColor: state.defaultBtnTextColor || defaultBtnTextColor,
         clickCount: 0
       };
     }
 
     function getCellButtonDisplay(cell) {
       if (!state.contents.length) {
-        return { text: state.defaultBtnText, color: state.defaultBtnColor };
+        return {
+          text: state.defaultBtnText,
+          color: state.defaultBtnColor,
+          textColor: state.defaultBtnTextColor
+        };
       }
       if (!cell.clickCount) {
-        return { text: state.defaultBtnText, color: state.defaultBtnColor };
+        return {
+          text: state.defaultBtnText,
+          color: state.defaultBtnColor,
+          textColor: state.defaultBtnTextColor
+        };
       }
       var index = ((cell.clickCount - 1) % state.contents.length + state.contents.length) % state.contents.length;
       var item = state.contents[index];
       return {
         text: item.text || state.defaultBtnText,
-        color: item.color || state.defaultBtnColor
+        color: item.color || state.defaultBtnColor,
+        textColor: item.textColor || state.defaultBtnTextColor
       };
     }
 
@@ -1589,7 +1616,8 @@
       var display = getCellButtonDisplay(cell);
       cell.text = display.text;
       cell.color = display.color;
-      applyCellButtonStyle(button, display.text, display.color);
+      cell.textColor = display.textColor;
+      applyCellButtonStyle(button, display.text, display.color, display.textColor);
     }
 
     function handleCellButtonClick(rowIndex, colIndex, button, metaEl) {
@@ -1618,6 +1646,7 @@
             return {
               text: cell.text,
               color: cell.color,
+              textColor: cell.textColor,
               clickCount: cell.clickCount || 0,
               lastOperatedAt: cell.lastOperatedAt || null,
               lastOperator: String(cell.lastOperator || "").trim()
@@ -2038,22 +2067,25 @@
         var raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           var parsed = JSON.parse(raw);
-          state.operatorName = String(parsed.operatorName || "").trim();
           if (Array.isArray(parsed.contents) && parsed.contents.length) {
             state.contents = parsed.contents.map(normalizeItem).filter(Boolean);
             state.defaultBtnText = String(parsed.defaultBtnText || defaultBtnText).trim() || defaultBtnText;
             state.defaultBtnColor = normalizeColor(parsed.defaultBtnColor);
+            state.defaultBtnTextColor = normalizeTextColor(
+              parsed.defaultBtnTextColor,
+              isTransparentColor(parsed.defaultBtnColor) ? defaultTextOnTransparent : defaultBtnTextColor
+            );
             state.clickCount = Number(parsed.clickCount) || 0;
             if (state.contents.length) return;
           }
         }
       } catch (e) {}
       state.contents = defaultContents.map(function (item) {
-        return { text: item.text, color: item.color };
+        return { text: item.text, color: item.color, textColor: item.textColor };
       });
       state.defaultBtnText = defaultBtnText;
       state.defaultBtnColor = defaultAccent;
-      state.operatorName = state.operatorName || "";
+      state.defaultBtnTextColor = defaultBtnTextColor;
       state.clickCount = 0;
     }
 
@@ -2062,7 +2094,7 @@
         contents: state.contents,
         defaultBtnText: state.defaultBtnText,
         defaultBtnColor: state.defaultBtnColor,
-        operatorName: state.operatorName,
+        defaultBtnTextColor: state.defaultBtnTextColor,
         clickCount: state.clickCount
       }));
       scheduleCloudSave();
@@ -2072,11 +2104,17 @@
       var rows = entryList.querySelectorAll(".entry-row:not(.entry-row-default)");
       return Array.prototype.map.call(rows, function (row) {
         var textInput = row.querySelector(".entry-text-input");
-        var colorInput = row.querySelector(".entry-color-input");
+        var textColorInput = row.querySelector(".entry-text-color-input");
+        var colorInput = row.querySelector(".entry-bg-color-input");
         var transparentInput = row.querySelector(".entry-transparent-input");
+        var bgColor = readColorValue(colorInput, transparentInput);
         return {
           text: textInput ? textInput.value.trim() : "",
-          color: readColorValue(colorInput, transparentInput)
+          color: bgColor,
+          textColor: normalizeTextColor(
+            textColorInput ? textColorInput.value : "",
+            isTransparentColor(bgColor) ? defaultTextOnTransparent : defaultBtnTextColor
+          )
         };
       });
     }
@@ -2095,7 +2133,7 @@
     function renderEntryList() {
       entryList.innerHTML = "";
       defaultBtnTextInput.value = state.defaultBtnText;
-      operatorNameInput.value = state.operatorName || "";
+      setupTextColorField(defaultBtnTextColorInput, state.defaultBtnTextColor, state.defaultBtnColor);
       setupColorField(defaultBtnColorInput, defaultBtnTransparentInput, state.defaultBtnColor);
 
       state.contents.forEach(function (item, i) {
@@ -2138,12 +2176,21 @@
         input.placeholder = "按鈕文字";
         input.className = "entry-text-input";
 
+        var textColorField = document.createElement("div");
+        textColorField.className = "color-field";
+
+        var textColorInput = document.createElement("input");
+        textColorInput.type = "color";
+        textColorInput.className = "color-input entry-text-color-input";
+        textColorInput.setAttribute("aria-label", "第 " + (i + 1) + " 次字色");
+        setupTextColorField(textColorInput, item.textColor, item.color);
+
         var colorField = document.createElement("div");
         colorField.className = "color-field";
 
         var colorInput = document.createElement("input");
         colorInput.type = "color";
-        colorInput.className = "color-input entry-color-input";
+        colorInput.className = "color-input entry-bg-color-input";
         colorInput.setAttribute("aria-label", "第 " + (i + 1) + " 次底色");
 
         var transparentLabel = document.createElement("label");
@@ -2155,6 +2202,7 @@
         transparentLabel.appendChild(document.createTextNode("透明"));
 
         setupColorField(colorInput, transparentInput, item.color);
+        textColorField.appendChild(textColorInput);
         colorField.appendChild(colorInput);
 
         var remove = document.createElement("button");
@@ -2172,6 +2220,7 @@
         row.appendChild(moveWrap);
         row.appendChild(label);
         row.appendChild(input);
+        row.appendChild(textColorField);
         row.appendChild(colorField);
         row.appendChild(transparentLabel);
         row.appendChild(remove);
@@ -2205,7 +2254,7 @@
 
     addBtn.addEventListener("click", function () {
       var items = readEntriesFromDom();
-      items.push({ text: "", color: defaultAccent });
+      items.push({ text: "", color: defaultAccent, textColor: defaultBtnTextColor });
       state.contents = items;
       renderEntryList();
       var inputs = entryList.querySelectorAll(".entry-text-input");
@@ -2221,7 +2270,10 @@
       }
       state.defaultBtnText = defaultBtnTextInput.value.trim() || defaultBtnText;
       state.defaultBtnColor = readColorValue(defaultBtnColorInput, defaultBtnTransparentInput);
-      state.operatorName = operatorNameInput.value.trim();
+      state.defaultBtnTextColor = normalizeTextColor(
+        defaultBtnTextColorInput.value,
+        isTransparentColor(state.defaultBtnColor) ? defaultTextOnTransparent : defaultBtnTextColor
+      );
       state.contents = items;
       tableState.cells.forEach(function (row) {
         row.forEach(function (cell) {
