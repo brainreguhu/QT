@@ -132,10 +132,30 @@
       border-color: var(--border);
     }
 
+    .toolbar-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      margin-left: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .toolbar-active-editors {
+      font-size: 12px;
+      color: #fbbf24;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .toolbar-active-editors[hidden] {
+      display: none !important;
+    }
+
     .toolbar-cloud-status {
       font-size: 12px;
       color: var(--muted);
-      margin-left: 4px;
       transition: opacity 0.35s ease;
     }
 
@@ -147,6 +167,45 @@
       font-size: 16px;
       font-weight: 700;
       color: #22c55e;
+    }
+
+    .conflict-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(248, 113, 113, 0.35);
+      background: rgba(248, 113, 113, 0.12);
+      color: #fecaca;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .conflict-banner[hidden] {
+      display: none !important;
+    }
+
+    .conflict-banner-text {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .conflict-reload-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: rgba(248, 113, 113, 0.18);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .conflict-reload-btn:hover {
+      background: rgba(248, 113, 113, 0.3);
     }
 
     body:not(.is-edit-mode) .edit-reveal,
@@ -842,7 +901,10 @@
         <button type="button" id="addTableRow" class="edit-reveal">新增列</button>
         <button type="button" id="addTableCol" class="edit-reveal">新增欄</button>
         <button type="button" id="editModeToggle" class="toolbar-edit-mode-btn" aria-pressed="false">編輯模式</button>
-        <span id="cloudStatus" class="toolbar-cloud-status" aria-live="polite"></span>
+        <div class="toolbar-meta">
+          <span id="activeEditors" class="toolbar-active-editors" hidden></span>
+          <span id="cloudStatus" class="toolbar-cloud-status" aria-live="polite"></span>
+        </div>
         <div class="toolbar-widths">
           <label class="width-control" for="labelColWidth">
             <span>首欄寬度</span>
@@ -862,6 +924,10 @@
             </svg>
           </button>
         </div>
+      </div>
+      <div id="conflictBanner" class="conflict-banner" hidden role="alert">
+        <span id="conflictBannerText" class="conflict-banner-text"></span>
+        <button type="button" id="conflictReloadBtn" class="conflict-reload-btn">重新載入雲端資料</button>
       </div>
       <div class="table-wrap">
         <table class="data-table" id="dataTable"></table>
@@ -939,6 +1005,12 @@
     var isEditMode = false;
     var cloudStatusFadeTimer = null;
     var cloudStatusFadeEndHandler = null;
+    var lastKnownCloudUpdatedAt = null;
+    var lastKnownCloudUpdatedBy = null;
+    var hasCloudConflict = false;
+    var presenceChannel = null;
+    var stateRealtimeChannel = null;
+    var presenceHeartbeatTimer = null;
 
     var defaultAccent = "#3d8bfd";
     var defaultContents = [
@@ -997,6 +1069,10 @@
     var addTableColBtn = document.getElementById("addTableCol");
     var editModeToggle = document.getElementById("editModeToggle");
     var cloudStatusEl = document.getElementById("cloudStatus");
+    var activeEditorsEl = document.getElementById("activeEditors");
+    var conflictBanner = document.getElementById("conflictBanner");
+    var conflictBannerText = document.getElementById("conflictBannerText");
+    var conflictReloadBtn = document.getElementById("conflictReloadBtn");
 
     var tableState = {
       headers: [],
@@ -1118,6 +1194,194 @@
       cachedUsername = String(profile.username || "").trim();
       cachedPermissionLevel = normalizePermissionLevel(profile.permission_level);
       cachedWorkZone = String(profile["工區"] || "").trim();
+      refreshPresenceTrack();
+    }
+
+    function parseCloudTime(value) {
+      if (!value) return 0;
+      var time = new Date(value).getTime();
+      return isNaN(time) ? 0 : time;
+    }
+
+    function setCloudRevision(row) {
+      if (!row) return;
+      lastKnownCloudUpdatedAt = row.updated_at || null;
+      lastKnownCloudUpdatedBy = row.updated_by || null;
+    }
+
+    function clearCloudConflict() {
+      hasCloudConflict = false;
+      if (conflictBanner) conflictBanner.hidden = true;
+      if (conflictBannerText) conflictBannerText.textContent = "";
+    }
+
+    function resolveEditorName(userId) {
+      if (!userId) return "其他人";
+      if (userId === cloudUserId) return "你";
+      var editors = getPresenceEditors();
+      for (var i = 0; i < editors.length; i++) {
+        if (editors[i].userId === userId) {
+          return editors[i].username || "其他人";
+        }
+      }
+      return "其他人";
+    }
+
+    function showCloudConflict(remoteRow) {
+      hasCloudConflict = true;
+      if (cloudSyncTimer) {
+        clearTimeout(cloudSyncTimer);
+        cloudSyncTimer = null;
+      }
+      var who = resolveEditorName(remoteRow && remoteRow.updated_by);
+      var message = "衝突警報：" + who + " 已更新雲端資料，您目前的變更尚未同步，請重新載入以免覆蓋。";
+      if (conflictBannerText) conflictBannerText.textContent = message;
+      if (conflictBanner) conflictBanner.hidden = false;
+      setCloudStatus("偵測到雲端衝突，已暫停自動同步", true);
+    }
+
+    async function fetchCloudRevision() {
+      var result = await supabase
+        .from(BLANK_PAGE_STATES_TABLE)
+        .select("updated_at, updated_by")
+        .eq("page_key", BLANK_PAGE_KEY)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result.data;
+    }
+
+    async function detectCloudConflict() {
+      if (!lastKnownCloudUpdatedAt) return null;
+      var remote = await fetchCloudRevision();
+      if (!remote || !remote.updated_at) return null;
+      if (parseCloudTime(remote.updated_at) > parseCloudTime(lastKnownCloudUpdatedAt)) {
+        return remote;
+      }
+      return null;
+    }
+
+    function getPresenceEditors() {
+      if (!presenceChannel) return [];
+      var state = presenceChannel.presenceState();
+      var map = {};
+      Object.keys(state).forEach(function (key) {
+        (state[key] || []).forEach(function (meta) {
+          var userId = meta.user_id || key;
+          if (!map[userId]) {
+            map[userId] = {
+              userId: userId,
+              username: String(meta.username || "").trim() || "使用者"
+            };
+          }
+        });
+      });
+      return Object.keys(map).map(function (id) {
+        return map[id];
+      });
+    }
+
+    function renderActiveEditors() {
+      if (!activeEditorsEl) return;
+      var editors = getPresenceEditors();
+      if (!editors.length) {
+        activeEditorsEl.textContent = "";
+        activeEditorsEl.hidden = true;
+        return;
+      }
+      var names = editors.map(function (editor) {
+        if (editor.userId === cloudUserId) return "你";
+        return editor.username || "使用者";
+      });
+      activeEditorsEl.textContent = "編輯中：" + names.join("、");
+      activeEditorsEl.hidden = false;
+    }
+
+    function refreshPresenceTrack() {
+      if (!presenceChannel || !cloudUserId) return;
+      presenceChannel.track({
+        user_id: cloudUserId,
+        username: cachedUsername || "使用者"
+      });
+      renderActiveEditors();
+    }
+
+    function teardownRealtime() {
+      if (presenceHeartbeatTimer) {
+        clearInterval(presenceHeartbeatTimer);
+        presenceHeartbeatTimer = null;
+      }
+      if (presenceChannel) {
+        presenceChannel.untrack();
+        supabase.removeChannel(presenceChannel);
+        presenceChannel = null;
+      }
+      if (stateRealtimeChannel) {
+        supabase.removeChannel(stateRealtimeChannel);
+        stateRealtimeChannel = null;
+      }
+      if (activeEditorsEl) {
+        activeEditorsEl.textContent = "";
+        activeEditorsEl.hidden = true;
+      }
+    }
+
+    function setupRealtime() {
+      if (!supabase || !cloudUserId) return;
+      teardownRealtime();
+
+      presenceChannel = supabase.channel("blank-page:" + BLANK_PAGE_KEY, {
+        config: { presence: { key: cloudUserId } }
+      });
+      presenceChannel.on("presence", { event: "sync" }, renderActiveEditors);
+      presenceChannel.on("presence", { event: "join" }, renderActiveEditors);
+      presenceChannel.on("presence", { event: "leave" }, renderActiveEditors);
+      presenceChannel.subscribe(function (status) {
+        if (status === "SUBSCRIBED") {
+          refreshPresenceTrack();
+        }
+      });
+      presenceHeartbeatTimer = setInterval(refreshPresenceTrack, 25000);
+
+      stateRealtimeChannel = supabase
+        .channel("blank-page-state:" + BLANK_PAGE_KEY)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: BLANK_PAGE_STATES_TABLE,
+            filter: "page_key=eq." + BLANK_PAGE_KEY
+          },
+          function (payload) {
+            handleRemoteStateChange(payload.new);
+          }
+        )
+        .subscribe();
+    }
+
+    function handleRemoteStateChange(row) {
+      if (!row || !row.updated_at) return;
+      var remoteAt = parseCloudTime(row.updated_at);
+      var knownAt = parseCloudTime(lastKnownCloudUpdatedAt);
+      if (!knownAt || remoteAt <= knownAt) return;
+
+      var isOwnSave = row.updated_by && row.updated_by === cloudUserId;
+      if (isOwnSave && cloudSyncInFlight) {
+        setCloudRevision(row);
+        return;
+      }
+
+      setCloudRevision(row);
+      showCloudConflict(row);
+    }
+
+    async function reloadCloudData() {
+      clearCloudConflict();
+      try {
+        await loadFromSupabase();
+      } catch (err) {
+        setCloudStatus("重新載入失敗：" + formatSupabaseError(err), true);
+      }
     }
 
     function canWriteCloud() {
@@ -1195,7 +1459,7 @@
     }
 
     function scheduleCloudSave() {
-      if (suppressCloudSave || !supabase || !canWriteCloud()) return;
+      if (suppressCloudSave || hasCloudConflict || !supabase || !canWriteCloud()) return;
       if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
       cloudSyncTimer = setTimeout(function () {
         saveToSupabase();
@@ -1264,7 +1528,7 @@
         setCloudStatus((statusPrefix || "已連線") + "｜讀取雲端資料中…");
         var result = await supabase
           .from(BLANK_PAGE_STATES_TABLE)
-          .select("click_state, table_state, updated_at")
+          .select("click_state, table_state, updated_at, updated_by")
           .eq("page_key", BLANK_PAGE_KEY)
           .maybeSingle();
         if (result.error) {
@@ -1272,6 +1536,8 @@
         }
       if (result.data) {
         suppressCloudSave = true;
+        clearCloudConflict();
+        setCloudRevision(result.data);
         if (result.data.click_state) {
           applyClickStateFromCloud(result.data.click_state);
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -1295,6 +1561,7 @@
         if (cachedWorkZone) doneText += "｜工區 " + cachedWorkZone;
         doneText += "｜已載入雲端資料";
         setCloudStatus(doneText);
+        setupRealtime();
         return;
       }
         var localText = "已登入：" + (cachedUsername || cloudUserId);
@@ -1302,6 +1569,7 @@
         if (cachedWorkZone) localText += "｜工區 " + cachedWorkZone;
         localText += "｜尚無雲端資料，使用本機資料";
         setCloudStatus(localText);
+        setupRealtime();
       } catch (err) {
         setCloudStatus("雲端讀取失敗：" + formatSupabaseError(err), true);
       }
@@ -1309,14 +1577,26 @@
 
     async function saveToSupabase() {
       if (!supabase || !canWriteCloud()) return;
+      if (hasCloudConflict) return;
       if (cloudSyncInFlight) return;
       cloudSyncInFlight = true;
       try {
+        var conflict = await detectCloudConflict();
+        if (conflict) {
+          setCloudRevision(conflict);
+          showCloudConflict(conflict);
+          return;
+        }
         var payload = buildCloudPayload();
         var result = await supabase
           .from(BLANK_PAGE_STATES_TABLE)
           .upsert(payload, { onConflict: "page_key" });
         if (result.error) throw result.error;
+        setCloudRevision({
+          updated_at: payload.updated_at,
+          updated_by: payload.updated_by
+        });
+        clearCloudConflict();
         showSyncSuccessStatus();
       } catch (err) {
         setCloudStatus("雲端同步失敗：" + formatSupabaseError(err), true);
@@ -2263,6 +2543,10 @@
     });
 
     saveBtn.addEventListener("click", function () {
+      if (hasCloudConflict) {
+        alert("雲端資料已有衝突，請先重新載入雲端資料後再儲存。");
+        return;
+      }
       var items = collectEntriesFromForm();
       if (!items.length) {
         alert("請至少保留一項內容");
@@ -2327,9 +2611,29 @@
           return;
         }
         setEditMode(false);
+        if (hasCloudConflict) {
+          alert("雲端資料已有衝突，請先重新載入雲端資料後再儲存。");
+          return;
+        }
         saveToSupabase();
       });
     }
+
+    if (conflictReloadBtn) {
+      conflictReloadBtn.addEventListener("click", function () {
+        reloadCloudData();
+      });
+    }
+
+    window.addEventListener("beforeunload", function () {
+      if (presenceChannel) presenceChannel.untrack();
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") {
+        refreshPresenceTrack();
+      }
+    });
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
@@ -2354,6 +2658,7 @@
         });
       }
       if (event === "SIGNED_OUT") {
+        teardownRealtime();
         redirectToLogin();
       }
     });
