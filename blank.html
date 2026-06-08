@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>空白頁面</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --danger: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 100% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 72px 16px 24px;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .gear-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: color 0.2s, border-color 0.2s, transform 0.15s;
+      z-index: 10;
+    }
+
+    .gear-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .gear-btn:active {
+      transform: scale(0.95);
+    }
+
+    .gear-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .table-panel {
+      width: 100%;
+      --checkbox-col-width: 36px;
+      --label-col-width: 140px;
+      --data-col-width: 273px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .table-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-toolbar button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .table-toolbar button:hover {
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .toolbar-edit-mode-btn.is-active {
+      background: rgba(61, 139, 253, 0.2);
+      color: #fff;
+    }
+
+    .toolbar-edit-mode-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      color: var(--muted);
+      border-color: var(--border);
+    }
+
+    .toolbar-cloud-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    .toolbar-cloud-status.is-error {
+      color: var(--danger);
+    }
+
+    body:not(.is-edit-mode) .edit-reveal,
+    body:not(.is-edit-mode) .data-table .move-btns {
+      display: none !important;
+    }
+
+    body:not(.is-edit-mode) .header-wrap {
+      grid-template-columns: 1fr;
+    }
+
+    body:not(.is-edit-mode) .row-label-wrap {
+      grid-template-columns: 1fr;
+    }
+
+    .toolbar-widths {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .width-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      min-width: 220px;
+    }
+
+    .width-control input[type="text"] {
+      width: 88px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .width-control input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .width-unit {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-wrap {
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: calc(100vh - 180px);
+    }
+
+    .data-table {
+      width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+
+    .data-table col.checkbox-col {
+      width: var(--checkbox-col-width);
+    }
+
+    .data-table col.label-col {
+      width: var(--label-col-width);
+    }
+
+    .data-table col.data-col {
+      width: var(--data-col-width);
+    }
+
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 0;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .data-table th {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .data-table input {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .data-table input:focus {
+      outline: none;
+      background: rgba(61, 139, 253, 0.08);
+    }
+
+    .data-table .table-header-input,
+    .data-table .table-row-label-input {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .data-table .table-row-label-input-standalone {
+      font-size: calc(18px * 1.3);
+      font-weight: 700;
+    }
+
+    .checkbox-corner-cell,
+    .data-table .row-checkbox-cell {
+      width: var(--checkbox-col-width);
+      text-align: center;
+      vertical-align: middle;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .data-table .row-standalone-checkbox {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .data-table .row-standalone-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+    }
+
+    .data-table .row-standalone-wrap .table-row-label-input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .data-table tr.row-standalone td {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .data-table .header-wrap,
+    .data-table .row-label-wrap {
+      display: grid;
+      gap: 2px;
+      align-items: center;
+      padding: 2px;
+    }
+
+    .data-table .header-wrap {
+      grid-template-columns: 1fr 26px;
+    }
+
+    .data-table .row-label-wrap {
+      grid-template-columns: 30px 1fr 26px;
+    }
+
+    .data-table .move-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .data-table .move-btn {
+      width: 26px;
+      height: 14px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .data-table .move-btn:hover:not(:disabled) {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .data-table .move-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .data-table .cell-btn {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 2px 4px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #4d9bff 0%, #3d8bfd 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(61, 139, 253, 0.28);
+      transition: transform 0.15s, filter 0.2s, background 0.25s, box-shadow 0.25s;
+    }
+
+    .data-table .cell-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .data-table .cell-btn:active {
+      transform: scale(0.97);
+    }
+
+    .data-table .cell-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+    }
+
+    .data-table .cell-meta {
+      width: 100%;
+      text-align: center;
+      line-height: 1.35;
+    }
+
+    .data-table .cell-meta-date,
+    .data-table .cell-meta-operator {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+
+    .data-table .cell-meta-operator {
+      color: var(--text);
+    }
+
+    .data-table .header-wrap button,
+    .data-table .row-label-wrap button:not(.move-btn) {
+      width: 22px;
+      height: 22px;
+      margin: 2px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .data-table .header-wrap button:hover,
+    .data-table .row-label-wrap button:not(.move-btn):hover {
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .corner-cell {
+      width: var(--label-col-width);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .data-table tr.data-row + tr.row-insert-slot th,
+    .data-table tr.data-row + tr.row-insert-slot td {
+      border-top: none;
+    }
+
+    .data-table tr.row-insert-slot th,
+    .data-table tr.row-insert-slot td {
+      height: 0;
+      line-height: 0;
+      padding: 0;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-top: none;
+      border-bottom: none;
+      overflow: visible;
+      background: transparent;
+    }
+
+    .data-table tr.row-insert-slot th {
+      position: relative;
+      width: var(--label-col-width);
+    }
+
+    .data-table .row-insert-btn {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: 2px solid var(--panel);
+      border-radius: 50%;
+      background: #22c55e;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: 0 2px 10px rgba(34, 197, 94, 0.35);
+      opacity: 0.55;
+      transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+
+    .data-table tr.data-row:hover + tr.row-insert-slot .row-insert-btn,
+    .data-table tr.row-insert-slot:hover .row-insert-btn,
+    .data-table .row-insert-btn:focus-visible {
+      opacity: 1;
+    }
+
+    .data-table .row-insert-btn:hover {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.5);
+    }
+
+    .cell-action {
+      width: 40px;
+      min-width: 40px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .cell-action button {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .cell-action button:hover {
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 100;
+    }
+
+    .overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 560px;
+      max-height: min(85vh, 640px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .modal-body {
+      padding: 16px 18px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-desc {
+      margin: 0 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .entry-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .entry-row,
+    .entry-row-head {
+      display: grid;
+      grid-template-columns: 40px 52px minmax(0, 1fr) 60px 76px 34px;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .entry-row-head {
+      margin-bottom: 4px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .entry-row-head span:nth-child(4),
+    .entry-row-head span:nth-child(5) {
+      text-align: center;
+    }
+
+    .entry-row-default {
+      margin-bottom: 8px;
+    }
+
+    .move-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .move-btn {
+      width: 30px;
+      height: 15px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .move-btn:hover:not(:disabled) {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .move-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .color-field {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .transparent-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .transparent-toggle input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .color-input:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .entry-row-head span:nth-child(2) {
+      padding-left: 0;
+    }
+
+    .color-input {
+      width: 56px;
+      height: 44px;
+      flex-shrink: 0;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      cursor: pointer;
+    }
+
+    .color-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .color-input::-webkit-color-swatch {
+      border: none;
+      border-radius: 6px;
+    }
+
+    .color-input::-moz-color-swatch {
+      border: none;
+      border-radius: 6px;
+    }
+
+    .entry-label {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .entry-row .entry-text-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .entry-row .entry-text-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .entry-row .color-input {
+      width: 56px;
+      height: 44px;
+    }
+
+    .entry-row .transparent-toggle {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .remove-btn {
+      width: 30px;
+      height: 30px;
+      justify-self: center;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--danger);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .remove-btn:hover {
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      padding: 14px 18px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .add-btn {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .add-btn:hover {
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .save-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .save-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .setting-section {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .setting-section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .operator-name-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .operator-name-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    @media (max-width: 520px) {
+      .entry-row,
+      .entry-row-head {
+        grid-template-columns: 34px 44px minmax(0, 1fr) 52px 68px 30px;
+        gap: 6px;
+      }
+
+      .entry-row-head {
+        display: none;
+      }
+
+      .entry-row .color-input {
+        width: 48px;
+        height: 40px;
+      }
+
+      .transparent-toggle {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="gear-btn" id="gearBtn" type="button" aria-label="設定">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+
+  <div class="page" id="page">
+    <div class="table-panel" id="tablePanel">
+      <div class="table-toolbar">
+        <button type="button" id="addTableRow" class="edit-reveal">新增列</button>
+        <button type="button" id="addTableCol" class="edit-reveal">新增欄</button>
+        <button type="button" id="editModeToggle" class="toolbar-edit-mode-btn" aria-pressed="false">編輯模式</button>
+        <span id="cloudStatus" class="toolbar-cloud-status" aria-live="polite"></span>
+        <div class="toolbar-widths">
+          <label class="width-control" for="labelColWidth">
+            <span>首欄寬度</span>
+            <input type="text" id="labelColWidth" inputmode="numeric" value="140" aria-label="首欄寬度">
+            <span class="width-unit">px</span>
+          </label>
+          <label class="width-control" for="frameWidth">
+            <span>框架寬度</span>
+            <input type="text" id="frameWidth" inputmode="numeric" value="960" aria-label="框架寬度">
+            <span class="width-unit">px</span>
+          </label>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="dataTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h2 id="modalTitle">設定</h2>
+        <button class="close-btn" id="closeBtn" type="button" aria-label="關閉">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">設定表格按鈕點擊時的文字與底色，依序循環。</p>
+        <div class="entry-row-head">
+          <span></span>
+          <span></span>
+          <span>按鈕文字</span>
+          <span>底色</span>
+          <span>透明</span>
+          <span></span>
+        </div>
+        <div class="entry-row entry-row-default">
+          <span></span>
+          <div class="entry-label">尚未點擊</div>
+          <input id="defaultBtnText" class="entry-text-input" type="text" placeholder="例如：點我">
+          <div class="color-field">
+            <input id="defaultBtnColor" class="color-input" type="color" value="#3d8bfd">
+          </div>
+          <label class="transparent-toggle">
+            <input id="defaultBtnTransparent" type="checkbox">
+            透明
+          </label>
+          <span></span>
+        </div>
+        <div class="entry-list" id="entryList"></div>
+        <div class="setting-section">
+          <h3>操作人員</h3>
+          <input id="operatorName" class="entry-text-input operator-name-input" type="text" placeholder="例如：李冠宏" aria-label="操作人員名稱">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="add-btn" id="addBtn" type="button">新增項目</button>
+        <button class="save-btn" id="saveBtn" type="button">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    var STORAGE_KEY = "blank-page-click-contents";
+    var TABLE_STORAGE_KEY = "blank-page-table-data";
+    var SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    var SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    var PROFILE_TABLE = "profiles";
+    var BLANK_PAGE_STATES_TABLE = "blank_page_states";
+    var BLANK_PAGE_KEY = "default";
+
+    var supabase = null;
+    var cloudUserId = null;
+    var cachedPermissionLevel = null;
+    var cachedUsername = null;
+    var cachedWorkZone = null;
+    var cloudSyncTimer = null;
+    var cloudSyncInFlight = false;
+    var suppressCloudSave = false;
+    var isEditMode = false;
+
+    var defaultAccent = "#3d8bfd";
+    var defaultContents = [
+      { text: "再點一次", color: "#3d8bfd" },
+      { text: "繼續", color: "#22c55e" },
+      { text: "點我", color: "#f59e0b" }
+    ];
+    var defaultBtnText = "點我";
+    var defaultTable = {
+      headers: ["欄 1", "欄 2", "欄 3"],
+      rowLabels: ["列 1", "列 2"],
+      cells: [
+        [
+          { text: "按鈕", color: "#3d8bfd" },
+          { text: "按鈕", color: "#3d8bfd" },
+          { text: "按鈕", color: "#3d8bfd" }
+        ],
+        [
+          { text: "按鈕", color: "#3d8bfd" },
+          { text: "按鈕", color: "#3d8bfd" },
+          { text: "按鈕", color: "#3d8bfd" }
+        ]
+      ]
+    };
+
+    var defaultFrameWidth = 960;
+    var defaultLabelColWidth = 140;
+
+    var state = {
+      contents: [],
+      defaultBtnText: defaultBtnText,
+      defaultBtnColor: defaultAccent,
+      operatorName: "",
+      clickCount: 0
+    };
+
+    var gearBtn = document.getElementById("gearBtn");
+    var pageEl = document.getElementById("page");
+    var tablePanel = document.getElementById("tablePanel");
+    var frameWidthInput = document.getElementById("frameWidth");
+    var labelColWidthInput = document.getElementById("labelColWidth");
+    var defaultBtnTextInput = document.getElementById("defaultBtnText");
+    var defaultBtnColorInput = document.getElementById("defaultBtnColor");
+    var defaultBtnTransparentInput = document.getElementById("defaultBtnTransparent");
+    var operatorNameInput = document.getElementById("operatorName");
+    var overlay = document.getElementById("overlay");
+    var closeBtn = document.getElementById("closeBtn");
+    var entryList = document.getElementById("entryList");
+    var addBtn = document.getElementById("addBtn");
+    var saveBtn = document.getElementById("saveBtn");
+    var dataTable = document.getElementById("dataTable");
+    var addTableRowBtn = document.getElementById("addTableRow");
+    var addTableColBtn = document.getElementById("addTableCol");
+    var editModeToggle = document.getElementById("editModeToggle");
+    var cloudStatusEl = document.getElementById("cloudStatus");
+
+    var tableState = {
+      headers: [],
+      rowLabels: [],
+      rowStandalone: [],
+      cells: [],
+      frameWidth: defaultFrameWidth,
+      labelColWidth: defaultLabelColWidth
+    };
+
+    function normalizeFrameWidth(value) {
+      var width = Number(String(value).replace(/[^\d.]/g, ""));
+      if (!width) return defaultFrameWidth;
+      return Math.min(1920, Math.max(320, Math.round(width)));
+    }
+
+    function normalizeLabelColWidth(value) {
+      var width = Number(String(value).replace(/[^\d.]/g, ""));
+      if (!width) return defaultLabelColWidth;
+      return Math.min(800, Math.max(80, Math.round(width)));
+    }
+
+    function initSupabase() {
+      try {
+        var g = window.supabase;
+        var createClient = g && typeof g.createClient === "function"
+          ? g.createClient
+          : g && g.default && typeof g.default.createClient === "function"
+            ? g.default.createClient
+            : null;
+        if (createClient && SUPABASE_URL && SUPABASE_ANON_KEY) {
+          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true,
+              storage: typeof localStorage !== "undefined" ? localStorage : undefined
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Supabase 初始化失敗", e);
+      }
+    }
+
+    function formatSupabaseError(err) {
+      var msg = err && err.message ? err.message : String(err || "未知錯誤");
+      if (/failed to fetch/i.test(msg)) {
+        if (window.location.protocol === "file:") {
+          return "無法連線 Supabase：請勿用本機檔案直接開啟，改以網站伺服器或已部署網址開啟此頁";
+        }
+        return "無法連線 Supabase：請確認網路、防火牆，或暫時關閉會阻擋外連的瀏覽器擴充功能";
+      }
+      if (/blank_page_states|42P01|PGRST205/i.test(msg)) {
+        return "資料表尚未建立，請至 Supabase Dashboard → SQL Editor 執行 SQL/blank_page_states.sql";
+      }
+      return msg;
+    }
+
+    function setCloudStatus(message, isError) {
+      if (!cloudStatusEl) return;
+      cloudStatusEl.textContent = message || "";
+      cloudStatusEl.classList.toggle("is-error", !!isError);
+    }
+
+    function normalizePermissionLevel(value) {
+      if (value === null || value === undefined || value === "") return null;
+      var level = Number(String(value).trim());
+      return Number.isFinite(level) ? level : null;
+    }
+
+    function canUseEditMode() {
+      var level = normalizePermissionLevel(cachedPermissionLevel);
+      return level === 0 || level === 1;
+    }
+
+    function getEditModeBlockReason() {
+      if (!cloudUserId) return "請先至 login.html 登入";
+      var level = normalizePermissionLevel(cachedPermissionLevel);
+      if (level === null) return "無法讀取 permission_level，請確認 profiles 資料";
+      if (level !== 0 && level !== 1) {
+        return "目前權限等級 " + level + "，僅 0 或 1 可使用編輯模式";
+      }
+      return "";
+    }
+
+    async function resolveAuthUser() {
+      var sessionResult = await supabase.auth.getSession();
+      var session = sessionResult.data && sessionResult.data.session;
+      if (session && session.user) return session.user;
+      var userResult = await supabase.auth.getUser();
+      return userResult.data && userResult.data.user ? userResult.data.user : null;
+    }
+
+    function applyProfileFromRow(profile, userId) {
+      cloudUserId = userId;
+      cachedUsername = String(profile.username || "").trim();
+      cachedPermissionLevel = normalizePermissionLevel(profile.permission_level);
+      cachedWorkZone = String(profile["工區"] || "").trim();
+      if (!state.operatorName && cachedUsername) {
+        state.operatorName = cachedUsername;
+      }
+    }
+
+    function canWriteCloud() {
+      if (!cloudUserId) return false;
+      var level = normalizePermissionLevel(cachedPermissionLevel);
+      if (level === null) return false;
+      return level !== 3;
+    }
+
+    function syncEditModeUi() {
+      if (!editModeToggle) return;
+      var allowed = canUseEditMode();
+      if (!allowed) {
+        isEditMode = false;
+        editModeToggle.disabled = true;
+        editModeToggle.title = getEditModeBlockReason();
+      } else {
+        editModeToggle.disabled = false;
+        editModeToggle.title = "";
+      }
+      editModeToggle.hidden = false;
+      editModeToggle.setAttribute("aria-pressed", isEditMode ? "true" : "false");
+      editModeToggle.textContent = isEditMode ? "完成編輯" : "編輯模式";
+      editModeToggle.classList.toggle("is-active", isEditMode);
+      if (isEditMode && allowed) {
+        document.body.classList.add("is-edit-mode");
+      } else {
+        document.body.classList.remove("is-edit-mode");
+      }
+      applyTableColumnWidths();
+    }
+
+    function setEditMode(on) {
+      isEditMode = !!on;
+      syncEditModeUi();
+    }
+
+    function applyClickStateFromCloud(clickState) {
+      if (!clickState || typeof clickState !== "object") return;
+      if (Array.isArray(clickState.contents) && clickState.contents.length) {
+        state.contents = clickState.contents.map(normalizeItem).filter(Boolean);
+      }
+      state.defaultBtnText = String(clickState.defaultBtnText || defaultBtnText).trim() || defaultBtnText;
+      state.defaultBtnColor = normalizeColor(clickState.defaultBtnColor);
+      state.operatorName = String(clickState.operatorName || "").trim();
+      state.clickCount = Number(clickState.clickCount) || 0;
+    }
+
+    function buildCloudPayload() {
+      return {
+        page_key: BLANK_PAGE_KEY,
+        click_state: {
+          contents: state.contents,
+          defaultBtnText: state.defaultBtnText,
+          defaultBtnColor: state.defaultBtnColor,
+          operatorName: state.operatorName,
+          clickCount: state.clickCount
+        },
+        table_state: tableState,
+        updated_at: new Date().toISOString(),
+        updated_by: cloudUserId
+      };
+    }
+
+    function scheduleCloudSave() {
+      if (suppressCloudSave || !supabase || !canWriteCloud()) return;
+      if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = setTimeout(function () {
+        saveToSupabase();
+      }, 1200);
+    }
+
+    async function loadProfile() {
+      if (!supabase) return;
+      var user = null;
+      try {
+        user = await resolveAuthUser();
+        if (!user) {
+          cloudUserId = null;
+          cachedPermissionLevel = null;
+          cachedUsername = null;
+          cachedWorkZone = null;
+          setCloudStatus("未登入：使用本機資料（請先至 login.html 登入）");
+          syncEditModeUi();
+          return;
+        }
+        var profileResult = await supabase
+          .from(PROFILE_TABLE)
+          .select("id, username, permission_level, approved, 工區")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profileResult.error) {
+          throw profileResult.error;
+        }
+        var profile = profileResult.data;
+        if (!profile) {
+          cloudUserId = user.id;
+          cachedPermissionLevel = null;
+          cachedUsername = null;
+          cachedWorkZone = null;
+          setCloudStatus("找不到 profiles 資料（id=" + user.id + "）", true);
+          syncEditModeUi();
+          return;
+        }
+        if (profile.approved === false) {
+          applyProfileFromRow(profile, user.id);
+          setCloudStatus("帳號尚未核准", true);
+          syncEditModeUi();
+          return;
+        }
+        applyProfileFromRow(profile, user.id);
+        var statusText = "已登入：" + (cachedUsername || user.id);
+        statusText += "（權限 " + (cachedPermissionLevel === null ? "未設定" : cachedPermissionLevel) + "）";
+        if (cachedWorkZone) statusText += "｜工區 " + cachedWorkZone;
+        setCloudStatus(statusText);
+        syncEditModeUi();
+      } catch (err) {
+        if (user && user.id) cloudUserId = user.id;
+        cachedPermissionLevel = null;
+        cachedUsername = null;
+        cachedWorkZone = null;
+        setCloudStatus("讀取權限失敗：" + formatSupabaseError(err), true);
+        syncEditModeUi();
+      }
+    }
+
+    async function loadFromSupabase() {
+      if (!supabase) {
+        setCloudStatus("Supabase 用戶端未載入", true);
+        return;
+      }
+      try {
+        await loadProfile();
+        if (!cloudUserId) return;
+        setCloudStatus("讀取雲端資料中…");
+        var result = await supabase
+          .from(BLANK_PAGE_STATES_TABLE)
+          .select("click_state, table_state, updated_at")
+          .eq("page_key", BLANK_PAGE_KEY)
+          .maybeSingle();
+        if (result.error) {
+          throw result.error;
+        }
+      if (result.data) {
+        suppressCloudSave = true;
+        if (result.data.click_state) {
+          applyClickStateFromCloud(result.data.click_state);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            contents: state.contents,
+            defaultBtnText: state.defaultBtnText,
+            defaultBtnColor: state.defaultBtnColor,
+            operatorName: state.operatorName,
+            clickCount: state.clickCount
+          }));
+        }
+        if (result.data.table_state) {
+          tableState = normalizeTable(result.data.table_state);
+          applyFrameWidth(tableState.frameWidth);
+          applyLabelColWidth(tableState.labelColWidth);
+          localStorage.setItem(TABLE_STORAGE_KEY, JSON.stringify(tableState));
+        }
+        suppressCloudSave = false;
+        renderTable();
+        setCloudStatus("已載入雲端資料");
+        return;
+      }
+        setCloudStatus("尚無雲端資料，使用本機資料");
+      } catch (err) {
+        setCloudStatus("雲端讀取失敗：" + formatSupabaseError(err), true);
+      }
+    }
+
+    async function saveToSupabase() {
+      if (!supabase || !canWriteCloud()) return;
+      if (cloudSyncInFlight) return;
+      cloudSyncInFlight = true;
+      try {
+        var payload = buildCloudPayload();
+        var result = await supabase
+          .from(BLANK_PAGE_STATES_TABLE)
+          .upsert(payload, { onConflict: "page_key" });
+        if (result.error) throw result.error;
+        setCloudStatus("已同步至雲端");
+      } catch (err) {
+        setCloudStatus("雲端同步失敗：" + formatSupabaseError(err), true);
+      } finally {
+        cloudSyncInFlight = false;
+      }
+    }
+
+    function applyTableColumnWidths() {
+      var count = tableState.headers.length;
+      var frameWidth = tableState.frameWidth;
+      var checkboxWidth = isEditMode ? 36 : 0;
+      var minDataCol = 48;
+
+      if (!count) {
+        tablePanel.style.setProperty("--checkbox-col-width", checkboxWidth + "px");
+        tablePanel.style.setProperty("--label-col-width", tableState.labelColWidth + "px");
+        return;
+      }
+
+      var maxLabel = Math.max(80, frameWidth - checkboxWidth - count * minDataCol);
+      var labelWidth = Math.min(tableState.labelColWidth, maxLabel);
+      var remaining = frameWidth - checkboxWidth - labelWidth;
+      var dataColWidth = Math.floor(remaining / count);
+      var checkboxPercent = (checkboxWidth / frameWidth) * 100;
+      var labelPercent = (labelWidth / frameWidth) * 100;
+      var dataPercent = (dataColWidth / frameWidth) * 100;
+
+      tableState.labelColWidth = labelWidth;
+      labelColWidthInput.value = String(labelWidth);
+      tablePanel.style.setProperty("--checkbox-col-width", checkboxPercent + "%");
+      tablePanel.style.setProperty("--label-col-width", labelPercent + "%");
+      tablePanel.style.setProperty("--data-col-width", dataPercent + "%");
+
+      var checkboxColEl = dataTable.querySelector("col.checkbox-col");
+      if (checkboxColEl) checkboxColEl.style.width = checkboxPercent + "%";
+      var labelColEl = dataTable.querySelector("col.label-col");
+      if (labelColEl) labelColEl.style.width = labelPercent + "%";
+      dataTable.querySelectorAll("col.data-col").forEach(function (col) {
+        col.style.width = dataPercent + "%";
+      });
+    }
+
+    function applyFrameWidth(width) {
+      var next = normalizeFrameWidth(width);
+      pageEl.style.maxWidth = next + "px";
+      frameWidthInput.value = String(next);
+      tableState.frameWidth = next;
+      applyTableColumnWidths();
+    }
+
+    function applyLabelColWidth(width) {
+      tableState.labelColWidth = normalizeLabelColWidth(width);
+      labelColWidthInput.value = String(tableState.labelColWidth);
+      applyTableColumnWidths();
+    }
+
+    function commitFrameWidth() {
+      applyFrameWidth(frameWidthInput.value);
+      persistTableState();
+    }
+
+    function commitLabelColWidth() {
+      applyLabelColWidth(labelColWidthInput.value);
+      persistTableState();
+    }
+
+    function isTransparentColor(color) {
+      return String(color || "").trim().toLowerCase() === "transparent";
+    }
+
+    function normalizeColor(color) {
+      var value = String(color || "").trim();
+      if (isTransparentColor(value)) return "transparent";
+      if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
+      return defaultAccent;
+    }
+
+    function readColorValue(colorInput, transparentInput) {
+      if (transparentInput && transparentInput.checked) return "transparent";
+      return normalizeColor(colorInput ? colorInput.value : defaultAccent);
+    }
+
+    function setupColorField(colorInput, transparentInput, colorValue) {
+      var transparent = isTransparentColor(colorValue);
+      transparentInput.checked = transparent;
+      colorInput.value = transparent ? defaultAccent : normalizeColor(colorValue);
+      colorInput.disabled = transparent;
+      transparentInput.onchange = function () {
+        colorInput.disabled = transparentInput.checked;
+      };
+    }
+
+    function normalizeItem(item) {
+      if (item && typeof item === "object") {
+        var text = String(item.text || item.button || "").trim();
+        if (!text) return null;
+        return { text: text, color: normalizeColor(item.color) };
+      }
+      var value = String(item || "").trim();
+      if (!value) return null;
+      return { text: value, color: defaultAccent };
+    }
+
+    function hexToRgb(hex) {
+      if (isTransparentColor(hex)) return { r: 61, g: 139, b: 253 };
+      var value = normalizeColor(hex).slice(1);
+      return {
+        r: parseInt(value.slice(0, 2), 16),
+        g: parseInt(value.slice(2, 4), 16),
+        b: parseInt(value.slice(4, 6), 16)
+      };
+    }
+
+    function lightenColor(hex, amount) {
+      var rgb = hexToRgb(hex);
+      var mix = function (channel) {
+        return Math.min(255, Math.round(channel + (255 - channel) * amount));
+      };
+      return "rgb(" + mix(rgb.r) + ", " + mix(rgb.g) + ", " + mix(rgb.b) + ")";
+    }
+
+    function colorShadow(hex, alpha) {
+      var rgb = hexToRgb(hex);
+      return "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", " + alpha + ")";
+    }
+
+    function applyCellButtonStyle(button, text, color) {
+      button.textContent = text || "按鈕";
+      if (isTransparentColor(color)) {
+        button.style.background = "transparent";
+        button.style.boxShadow = "none";
+        button.style.border = "1px solid var(--border)";
+        button.style.color = "var(--text)";
+        return;
+      }
+      button.style.border = "none";
+      button.style.color = "#fff";
+      var base = normalizeColor(color);
+      button.style.background = "linear-gradient(180deg, " + lightenColor(base, 0.18) + " 0%, " + base + " 100%)";
+      button.style.boxShadow = "0 6px 18px " + colorShadow(base, 0.28);
+    }
+
+    function normalizeCell(cell, fallbackText) {
+      if (cell && typeof cell === "object") {
+        return {
+          text: String(cell.text || fallbackText || "按鈕").trim() || "按鈕",
+          color: normalizeColor(cell.color),
+          clickCount: Number(cell.clickCount) || 0,
+          lastOperatedAt: cell.lastOperatedAt || null,
+          lastOperator: String(cell.lastOperator || "").trim()
+        };
+      }
+      var value = String(cell || fallbackText || "按鈕").trim();
+      return {
+        text: value || "按鈕",
+        color: defaultAccent,
+        clickCount: 0,
+        lastOperatedAt: null,
+        lastOperator: ""
+      };
+    }
+
+    function pad2(value) {
+      return value < 10 ? "0" + value : String(value);
+    }
+
+    function formatOperationDate(value) {
+      var date = value instanceof Date ? value : new Date(value);
+      if (isNaN(date.getTime())) return "";
+      return date.getFullYear() + "/" + pad2(date.getMonth() + 1) + "/" + pad2(date.getDate());
+    }
+
+    function getCurrentOperatorName() {
+      var name = String(state.operatorName || "").trim();
+      return name || "未設定";
+    }
+
+    function updateCellMeta(cell, metaEl) {
+      if (!metaEl) return;
+      var dateEl = metaEl.querySelector(".cell-meta-date");
+      var operatorEl = metaEl.querySelector(".cell-meta-operator");
+      if (!cell.lastOperatedAt) {
+        metaEl.hidden = true;
+        if (dateEl) dateEl.textContent = "";
+        if (operatorEl) operatorEl.textContent = "";
+        return;
+      }
+      metaEl.hidden = false;
+      if (dateEl) dateEl.textContent = formatOperationDate(cell.lastOperatedAt);
+      if (operatorEl) operatorEl.textContent = cell.lastOperator || "";
+    }
+
+    function buildCellWrap(cell, rowIndex, colIndex) {
+      var wrap = document.createElement("div");
+      wrap.className = "cell-wrap";
+
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "cell-btn";
+      applyCellDisplay(cell, button);
+
+      var meta = document.createElement("div");
+      meta.className = "cell-meta";
+      var dateEl = document.createElement("div");
+      dateEl.className = "cell-meta-date";
+      var operatorEl = document.createElement("div");
+      operatorEl.className = "cell-meta-operator";
+      meta.appendChild(dateEl);
+      meta.appendChild(operatorEl);
+      updateCellMeta(cell, meta);
+
+      button.addEventListener("click", function () {
+        handleCellButtonClick(rowIndex, colIndex, button, meta);
+      });
+
+      wrap.appendChild(button);
+      wrap.appendChild(meta);
+      return wrap;
+    }
+
+    function createEmptyCell() {
+      return {
+        text: state.defaultBtnText || "按鈕",
+        color: state.defaultBtnColor || defaultAccent,
+        clickCount: 0
+      };
+    }
+
+    function getCellButtonDisplay(cell) {
+      if (!state.contents.length) {
+        return { text: state.defaultBtnText, color: state.defaultBtnColor };
+      }
+      if (!cell.clickCount) {
+        return { text: state.defaultBtnText, color: state.defaultBtnColor };
+      }
+      var index = ((cell.clickCount - 1) % state.contents.length + state.contents.length) % state.contents.length;
+      var item = state.contents[index];
+      return {
+        text: item.text || state.defaultBtnText,
+        color: item.color || state.defaultBtnColor
+      };
+    }
+
+    function applyCellDisplay(cell, button) {
+      var display = getCellButtonDisplay(cell);
+      cell.text = display.text;
+      cell.color = display.color;
+      applyCellButtonStyle(button, display.text, display.color);
+    }
+
+    function handleCellButtonClick(rowIndex, colIndex, button, metaEl) {
+      if (!state.contents.length) {
+        openModal();
+        return;
+      }
+      var cell = tableState.cells[rowIndex][colIndex];
+      cell.clickCount = (cell.clickCount || 0) + 1;
+      cell.lastOperatedAt = new Date().toISOString();
+      cell.lastOperator = getCurrentOperatorName();
+      applyCellDisplay(cell, button);
+      updateCellMeta(cell, metaEl);
+      persistTableState();
+    }
+
+    function cloneTable(table) {
+      return {
+        headers: table.headers.slice(),
+        rowLabels: table.rowLabels.slice(),
+        rowStandalone: Array.isArray(table.rowStandalone)
+          ? table.rowStandalone.slice()
+          : table.rowLabels.map(function () { return false; }),
+        cells: table.cells.map(function (row) {
+          return row.map(function (cell) {
+            return {
+              text: cell.text,
+              color: cell.color,
+              clickCount: cell.clickCount || 0,
+              lastOperatedAt: cell.lastOperatedAt || null,
+              lastOperator: String(cell.lastOperator || "").trim()
+            };
+          });
+        }),
+        frameWidth: normalizeFrameWidth(table.frameWidth),
+        labelColWidth: normalizeLabelColWidth(table.labelColWidth)
+      };
+    }
+
+    function normalizeRowStandalone(rowStandalone, rowCount) {
+      var result = Array.isArray(rowStandalone) ? rowStandalone.slice(0, rowCount) : [];
+      while (result.length < rowCount) {
+        result.push(false);
+      }
+      return result.map(Boolean);
+    }
+
+    function ensureTableShape(table) {
+      var headers = table.headers.length ? table.headers : ["欄 1"];
+      var rowLabels = table.rowLabels.length ? table.rowLabels : ["列 1"];
+      var cells = rowLabels.map(function (_, rowIndex) {
+        var sourceRow = table.cells[rowIndex] || [];
+        return headers.map(function (_, colIndex) {
+          return normalizeCell(sourceRow[colIndex], "按鈕");
+        });
+      });
+
+      return {
+        headers: headers.map(function (value, index) {
+          return String(value || ("欄 " + (index + 1)));
+        }),
+        rowLabels: rowLabels.map(function (value, index) {
+          return String(value || ("列 " + (index + 1)));
+        }),
+        rowStandalone: normalizeRowStandalone(table.rowStandalone, rowLabels.length),
+        cells: cells,
+        frameWidth: normalizeFrameWidth(table.frameWidth),
+        labelColWidth: normalizeLabelColWidth(table.labelColWidth)
+      };
+    }
+
+    function normalizeTable(table) {
+      if (!table || typeof table !== "object") {
+        return cloneTable(defaultTable);
+      }
+
+      var frameWidth = normalizeFrameWidth(table.frameWidth);
+      var labelColWidth = normalizeLabelColWidth(table.labelColWidth);
+
+      if (Array.isArray(table.cells)) {
+        var shaped = ensureTableShape({
+          headers: Array.isArray(table.headers) ? table.headers : defaultTable.headers.slice(),
+          rowLabels: Array.isArray(table.rowLabels) ? table.rowLabels : defaultTable.rowLabels.slice(),
+          cells: table.cells,
+          frameWidth: frameWidth,
+          labelColWidth: labelColWidth
+        });
+        shaped.frameWidth = frameWidth;
+        shaped.labelColWidth = labelColWidth;
+        return shaped;
+      }
+
+      var headers = Array.isArray(table.headers) ? table.headers.map(String) : defaultTable.headers.slice();
+      var legacyRows = Array.isArray(table.rows) ? table.rows : defaultTable.cells.slice();
+      return ensureTableShape({
+        headers: headers,
+        rowLabels: legacyRows.map(function (_, index) {
+          return "列 " + (index + 1);
+        }),
+        cells: legacyRows.map(function (row) {
+          return Array.isArray(row) ? row.map(function (cell) {
+            return normalizeCell(cell, "按鈕");
+          }) : [];
+        }),
+        frameWidth: frameWidth,
+        labelColWidth: labelColWidth
+      });
+    }
+
+    function loadTableState() {
+      try {
+        var raw = localStorage.getItem(TABLE_STORAGE_KEY);
+        if (raw) {
+          tableState = normalizeTable(JSON.parse(raw));
+          applyFrameWidth(tableState.frameWidth);
+          applyLabelColWidth(tableState.labelColWidth);
+          return;
+        }
+      } catch (e) {}
+      tableState = cloneTable(defaultTable);
+      applyFrameWidth(tableState.frameWidth);
+      applyLabelColWidth(tableState.labelColWidth);
+    }
+
+    function persistTableState() {
+      localStorage.setItem(TABLE_STORAGE_KEY, JSON.stringify(tableState));
+      scheduleCloudSave();
+    }
+
+    function syncTableFromDom() {
+      var headerInputs = dataTable.querySelectorAll(".table-header-input");
+      var rowLabelInputs = dataTable.querySelectorAll(".table-row-label-input");
+
+      tableState.headers = Array.prototype.map.call(headerInputs, function (input) {
+        return input.value;
+      });
+      tableState.rowLabels = Array.prototype.map.call(rowLabelInputs, function (input) {
+        return input.value;
+      });
+    }
+
+    function moveTableRow(rowIndex, direction) {
+      syncTableFromDom();
+      var target = rowIndex + direction;
+      if (target < 0 || target >= tableState.cells.length) return;
+      var tempLabel = tableState.rowLabels[rowIndex];
+      tableState.rowLabels[rowIndex] = tableState.rowLabels[target];
+      tableState.rowLabels[target] = tempLabel;
+      var tempCells = tableState.cells[rowIndex];
+      tableState.cells[rowIndex] = tableState.cells[target];
+      tableState.cells[target] = tempCells;
+      var tempStandalone = tableState.rowStandalone[rowIndex];
+      tableState.rowStandalone[rowIndex] = tableState.rowStandalone[target];
+      tableState.rowStandalone[target] = tempStandalone;
+      renderTable();
+      persistTableState();
+    }
+
+    function createRowLabelInput(rowIndex) {
+      var rowLabelInput = document.createElement("input");
+      rowLabelInput.type = "text";
+      rowLabelInput.value = tableState.rowLabels[rowIndex] || ("列 " + (rowIndex + 1));
+      rowLabelInput.placeholder = "列名稱";
+      rowLabelInput.className = "table-row-label-input";
+      rowLabelInput.addEventListener("input", function () {
+        syncTableFromDom();
+        persistTableState();
+      });
+      return rowLabelInput;
+    }
+
+    function createRowStandaloneCheckbox(rowIndex) {
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "row-standalone-checkbox edit-reveal";
+      checkbox.checked = !!tableState.rowStandalone[rowIndex];
+      checkbox.setAttribute("aria-label", "第 " + (rowIndex + 1) + " 列獨立顯示");
+      checkbox.addEventListener("change", function () {
+        syncTableFromDom();
+        tableState.rowStandalone[rowIndex] = checkbox.checked;
+        renderTable();
+        persistTableState();
+      });
+      return checkbox;
+    }
+
+    function appendRowInsertSlot(tbody, insertIndex) {
+      var insertTr = document.createElement("tr");
+      insertTr.className = "row-insert-slot edit-reveal";
+
+      var insertCheckboxTd = document.createElement("td");
+      insertCheckboxTd.className = "edit-reveal";
+      insertTr.appendChild(insertCheckboxTd);
+
+      var insertTh = document.createElement("th");
+      var insertBtn = document.createElement("button");
+      insertBtn.type = "button";
+      insertBtn.className = "row-insert-btn edit-reveal";
+      insertBtn.textContent = "＋";
+      var aria;
+      if (insertIndex === 0) {
+        aria = "在第 1 列前插入新列";
+      } else if (insertIndex === tableState.cells.length) {
+        aria = "在最底部插入新列";
+      } else {
+        // insertIndex 是 0-based 的目標列索引，顯示用 1-based
+        aria = "在第 " + (insertIndex + 1) + " 列前插入新列";
+      }
+      insertBtn.setAttribute("aria-label", aria);
+      insertBtn.addEventListener("click", function () {
+        insertTableRowAt(insertIndex);
+      });
+      insertTh.appendChild(insertBtn);
+      insertTr.appendChild(insertTh);
+
+      tableState.headers.forEach(function () {
+        var spacer = document.createElement("td");
+        insertTr.appendChild(spacer);
+      });
+
+      tbody.appendChild(insertTr);
+    }
+
+    function renderTable() {
+      tableState = ensureTableShape(tableState);
+      dataTable.innerHTML = "";
+
+      var colgroup = document.createElement("colgroup");
+      var checkboxCol = document.createElement("col");
+      checkboxCol.className = "checkbox-col edit-reveal";
+      colgroup.appendChild(checkboxCol);
+      var labelCol = document.createElement("col");
+      labelCol.className = "label-col";
+      colgroup.appendChild(labelCol);
+      tableState.headers.forEach(function () {
+        var dataCol = document.createElement("col");
+        dataCol.className = "data-col";
+        colgroup.appendChild(dataCol);
+      });
+      dataTable.appendChild(colgroup);
+
+      var thead = document.createElement("thead");
+      var headRow = document.createElement("tr");
+
+      var checkboxCorner = document.createElement("th");
+      checkboxCorner.className = "checkbox-corner-cell edit-reveal";
+      headRow.appendChild(checkboxCorner);
+
+      var corner = document.createElement("th");
+      corner.className = "corner-cell";
+      headRow.appendChild(corner);
+
+      tableState.headers.forEach(function (header, colIndex) {
+        var th = document.createElement("th");
+        var wrap = document.createElement("div");
+        wrap.className = "header-wrap";
+
+        var input = document.createElement("input");
+        input.type = "text";
+        input.value = header;
+        input.placeholder = "欄位名稱";
+        input.className = "table-header-input";
+        input.addEventListener("input", function () {
+          syncTableFromDom();
+          persistTableState();
+        });
+
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "edit-reveal";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", "刪除第 " + (colIndex + 1) + " 欄");
+        remove.addEventListener("click", function () {
+          if (tableState.headers.length <= 1) return;
+          syncTableFromDom();
+          tableState.headers.splice(colIndex, 1);
+          tableState.cells = tableState.cells.map(function (row) {
+            row.splice(colIndex, 1);
+            return row;
+          });
+          renderTable();
+          persistTableState();
+        });
+
+        wrap.appendChild(input);
+        wrap.appendChild(remove);
+        th.appendChild(wrap);
+        headRow.appendChild(th);
+      });
+
+      thead.appendChild(headRow);
+      dataTable.appendChild(thead);
+
+      var tbody = document.createElement("tbody");
+      var totalCols = 2 + tableState.headers.length;
+
+      // 最頂：在第一列之前可插入
+      appendRowInsertSlot(tbody, 0);
+      tableState.cells.forEach(function (row, rowIndex) {
+        var tr = document.createElement("tr");
+        var isStandalone = !!tableState.rowStandalone[rowIndex];
+
+        if (isStandalone) {
+          tr.className = "data-row row-standalone";
+          var mergedCell = document.createElement("td");
+          mergedCell.colSpan = totalCols;
+
+          var standaloneWrap = document.createElement("div");
+          standaloneWrap.className = "row-standalone-wrap";
+          standaloneWrap.appendChild(createRowStandaloneCheckbox(rowIndex));
+
+          var standaloneLabelInput = createRowLabelInput(rowIndex);
+          standaloneLabelInput.classList.add("table-row-label-input-standalone");
+          standaloneWrap.appendChild(standaloneLabelInput);
+          mergedCell.appendChild(standaloneWrap);
+          tr.appendChild(mergedCell);
+          tbody.appendChild(tr);
+
+          if (rowIndex < tableState.cells.length - 1) {
+            appendRowInsertSlot(tbody, rowIndex + 1);
+          }
+          return;
+        }
+
+        tr.className = "data-row";
+
+        var checkboxCell = document.createElement("td");
+        checkboxCell.className = "row-checkbox-cell edit-reveal";
+        checkboxCell.appendChild(createRowStandaloneCheckbox(rowIndex));
+        tr.appendChild(checkboxCell);
+
+        var labelCell = document.createElement("th");
+        var labelWrap = document.createElement("div");
+        labelWrap.className = "row-label-wrap";
+
+        var moveWrap = document.createElement("div");
+        moveWrap.className = "move-btns edit-reveal";
+
+        var upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.className = "move-btn edit-reveal";
+        upBtn.textContent = "↑";
+        upBtn.setAttribute("aria-label", "上移第 " + (rowIndex + 1) + " 列");
+        upBtn.disabled = rowIndex === 0;
+        upBtn.addEventListener("click", function () {
+          moveTableRow(rowIndex, -1);
+        });
+
+        var downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.className = "move-btn edit-reveal";
+        downBtn.textContent = "↓";
+        downBtn.setAttribute("aria-label", "下移第 " + (rowIndex + 1) + " 列");
+        downBtn.disabled = rowIndex === tableState.cells.length - 1;
+        downBtn.addEventListener("click", function () {
+          moveTableRow(rowIndex, 1);
+        });
+
+        moveWrap.appendChild(upBtn);
+        moveWrap.appendChild(downBtn);
+
+        var rowLabelInput = createRowLabelInput(rowIndex);
+
+        var removeRow = document.createElement("button");
+        removeRow.type = "button";
+        removeRow.className = "edit-reveal";
+        removeRow.textContent = "×";
+        removeRow.setAttribute("aria-label", "刪除第 " + (rowIndex + 1) + " 列");
+        removeRow.addEventListener("click", function () {
+          if (tableState.cells.length <= 1) return;
+          syncTableFromDom();
+          tableState.rowLabels.splice(rowIndex, 1);
+          tableState.rowStandalone.splice(rowIndex, 1);
+          tableState.cells.splice(rowIndex, 1);
+          renderTable();
+          persistTableState();
+        });
+
+        labelWrap.appendChild(moveWrap);
+        labelWrap.appendChild(rowLabelInput);
+        labelWrap.appendChild(removeRow);
+        labelCell.appendChild(labelWrap);
+        tr.appendChild(labelCell);
+
+        row.forEach(function (cell, colIndex) {
+          var td = document.createElement("td");
+          td.appendChild(buildCellWrap(cell, rowIndex, colIndex));
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+
+        if (rowIndex < tableState.cells.length - 1) {
+          appendRowInsertSlot(tbody, rowIndex + 1);
+        }
+      });
+
+      // 最底：在最後一列之後可插入
+      appendRowInsertSlot(tbody, tableState.cells.length);
+      dataTable.appendChild(tbody);
+      applyTableColumnWidths();
+    }
+
+    function addTableColumn() {
+      syncTableFromDom();
+      tableState.headers.push("欄 " + (tableState.headers.length + 1));
+      tableState.cells = tableState.cells.map(function (row) {
+        row.push(createEmptyCell());
+        return row;
+      });
+      renderTable();
+      persistTableState();
+    }
+
+    function insertTableRowAt(insertIndex) {
+      syncTableFromDom();
+      tableState.rowLabels.splice(insertIndex, 0, "列 " + (tableState.rowLabels.length + 1));
+      tableState.rowStandalone.splice(insertIndex, 0, false);
+      tableState.cells.splice(insertIndex, 0, tableState.headers.map(function () {
+        return createEmptyCell();
+      }));
+      renderTable();
+      persistTableState();
+    }
+
+    function addTableRow() {
+      syncTableFromDom();
+      insertTableRowAt(tableState.rowLabels.length);
+    }
+
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          state.operatorName = String(parsed.operatorName || "").trim();
+          if (Array.isArray(parsed.contents) && parsed.contents.length) {
+            state.contents = parsed.contents.map(normalizeItem).filter(Boolean);
+            state.defaultBtnText = String(parsed.defaultBtnText || defaultBtnText).trim() || defaultBtnText;
+            state.defaultBtnColor = normalizeColor(parsed.defaultBtnColor);
+            state.clickCount = Number(parsed.clickCount) || 0;
+            if (state.contents.length) return;
+          }
+        }
+      } catch (e) {}
+      state.contents = defaultContents.map(function (item) {
+        return { text: item.text, color: item.color };
+      });
+      state.defaultBtnText = defaultBtnText;
+      state.defaultBtnColor = defaultAccent;
+      state.operatorName = state.operatorName || "";
+      state.clickCount = 0;
+    }
+
+    function persistState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        contents: state.contents,
+        defaultBtnText: state.defaultBtnText,
+        defaultBtnColor: state.defaultBtnColor,
+        operatorName: state.operatorName,
+        clickCount: state.clickCount
+      }));
+      scheduleCloudSave();
+    }
+
+    function readEntriesFromDom() {
+      var rows = entryList.querySelectorAll(".entry-row:not(.entry-row-default)");
+      return Array.prototype.map.call(rows, function (row) {
+        var textInput = row.querySelector(".entry-text-input");
+        var colorInput = row.querySelector(".entry-color-input");
+        var transparentInput = row.querySelector(".entry-transparent-input");
+        return {
+          text: textInput ? textInput.value.trim() : "",
+          color: readColorValue(colorInput, transparentInput)
+        };
+      });
+    }
+
+    function moveEntry(index, direction) {
+      var items = readEntriesFromDom();
+      var target = index + direction;
+      if (target < 0 || target >= items.length) return;
+      var temp = items[index];
+      items[index] = items[target];
+      items[target] = temp;
+      state.contents = items;
+      renderEntryList();
+    }
+
+    function renderEntryList() {
+      entryList.innerHTML = "";
+      defaultBtnTextInput.value = state.defaultBtnText;
+      operatorNameInput.value = state.operatorName || "";
+      setupColorField(defaultBtnColorInput, defaultBtnTransparentInput, state.defaultBtnColor);
+
+      state.contents.forEach(function (item, i) {
+        var row = document.createElement("div");
+        row.className = "entry-row";
+
+        var moveWrap = document.createElement("div");
+        moveWrap.className = "move-btns";
+
+        var upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.className = "move-btn";
+        upBtn.textContent = "↑";
+        upBtn.setAttribute("aria-label", "上移第 " + (i + 1) + " 項");
+        upBtn.disabled = i === 0;
+        upBtn.addEventListener("click", function () {
+          moveEntry(i, -1);
+        });
+
+        var downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.className = "move-btn";
+        downBtn.textContent = "↓";
+        downBtn.setAttribute("aria-label", "下移第 " + (i + 1) + " 項");
+        downBtn.disabled = i === state.contents.length - 1;
+        downBtn.addEventListener("click", function () {
+          moveEntry(i, 1);
+        });
+
+        moveWrap.appendChild(upBtn);
+        moveWrap.appendChild(downBtn);
+
+        var label = document.createElement("div");
+        label.className = "entry-label";
+        label.textContent = "第 " + (i + 1) + " 次";
+
+        var input = document.createElement("input");
+        input.type = "text";
+        input.value = item.text;
+        input.placeholder = "按鈕文字";
+        input.className = "entry-text-input";
+
+        var colorField = document.createElement("div");
+        colorField.className = "color-field";
+
+        var colorInput = document.createElement("input");
+        colorInput.type = "color";
+        colorInput.className = "color-input entry-color-input";
+        colorInput.setAttribute("aria-label", "第 " + (i + 1) + " 次底色");
+
+        var transparentLabel = document.createElement("label");
+        transparentLabel.className = "transparent-toggle";
+        var transparentInput = document.createElement("input");
+        transparentInput.type = "checkbox";
+        transparentInput.className = "entry-transparent-input";
+        transparentLabel.appendChild(transparentInput);
+        transparentLabel.appendChild(document.createTextNode("透明"));
+
+        setupColorField(colorInput, transparentInput, item.color);
+        colorField.appendChild(colorInput);
+
+        var remove = document.createElement("button");
+        remove.className = "remove-btn";
+        remove.type = "button";
+        remove.setAttribute("aria-label", "刪除第 " + (i + 1) + " 項");
+        remove.textContent = "×";
+        remove.addEventListener("click", function () {
+          var items = readEntriesFromDom();
+          items.splice(i, 1);
+          state.contents = items;
+          renderEntryList();
+        });
+
+        row.appendChild(moveWrap);
+        row.appendChild(label);
+        row.appendChild(input);
+        row.appendChild(colorField);
+        row.appendChild(transparentLabel);
+        row.appendChild(remove);
+        entryList.appendChild(row);
+      });
+    }
+
+    function collectEntriesFromForm() {
+      return readEntriesFromDom().filter(function (item) {
+        return item.text;
+      });
+    }
+
+    function openModal() {
+      renderEntryList();
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
+    gearBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    addBtn.addEventListener("click", function () {
+      var items = readEntriesFromDom();
+      items.push({ text: "", color: defaultAccent });
+      state.contents = items;
+      renderEntryList();
+      var inputs = entryList.querySelectorAll(".entry-text-input");
+      var last = inputs[inputs.length - 1];
+      if (last) last.focus();
+    });
+
+    saveBtn.addEventListener("click", function () {
+      var items = collectEntriesFromForm();
+      if (!items.length) {
+        alert("請至少保留一項內容");
+        return;
+      }
+      state.defaultBtnText = defaultBtnTextInput.value.trim() || defaultBtnText;
+      state.defaultBtnColor = readColorValue(defaultBtnColorInput, defaultBtnTransparentInput);
+      state.operatorName = operatorNameInput.value.trim();
+      state.contents = items;
+      tableState.cells.forEach(function (row) {
+        row.forEach(function (cell) {
+          if (cell.clickCount > 0 && state.contents.length) {
+            cell.clickCount = ((cell.clickCount - 1) % state.contents.length) + 1;
+          } else {
+            cell.clickCount = 0;
+          }
+        });
+      });
+      persistState();
+      renderTable();
+      closeModal();
+    });
+
+    frameWidthInput.addEventListener("change", commitFrameWidth);
+    frameWidthInput.addEventListener("blur", commitFrameWidth);
+    frameWidthInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        commitFrameWidth();
+        frameWidthInput.blur();
+      }
+    });
+
+    labelColWidthInput.addEventListener("change", commitLabelColWidth);
+    labelColWidthInput.addEventListener("blur", commitLabelColWidth);
+    labelColWidthInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        commitLabelColWidth();
+        labelColWidthInput.blur();
+      }
+    });
+
+    addTableRowBtn.addEventListener("click", function () {
+      if (!isEditMode) return;
+      addTableRow();
+    });
+    addTableColBtn.addEventListener("click", function () {
+      if (!isEditMode) return;
+      addTableColumn();
+    });
+
+    if (editModeToggle) {
+      editModeToggle.addEventListener("click", function () {
+        if (!canUseEditMode()) {
+          alert("權限不足：僅權限等級 0 或 1 可使用編輯模式。");
+          return;
+        }
+        if (!isEditMode) {
+          setEditMode(true);
+          return;
+        }
+        setEditMode(false);
+        saveToSupabase();
+      });
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+    });
+
+    function bootstrap() {
+      initSupabase();
+      loadState();
+      loadTableState();
+      renderTable();
+      syncEditModeUi();
+      loadFromSupabase().catch(function (err) {
+        setCloudStatus("雲端連線失敗：" + formatSupabaseError(err), true);
+      });
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
