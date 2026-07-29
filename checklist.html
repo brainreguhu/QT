@@ -311,6 +311,12 @@
       text-decoration: none;
       word-break: normal;
     }
+    .photo-thumb-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+    }
     .photo-thumb-wrap {
       display: block;
       width: fit-content;
@@ -327,75 +333,75 @@
       max-width: 400px;
       height: auto;
     }
-    .photo-lightbox {
+    .missing-photo-link {
+      color: rgba(140, 190, 255, 0.95);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .missing-photo-link:hover {
+      color: #fff;
+    }
+    .photo-modal[hidden] { display: none; }
+    .photo-modal {
       position: fixed;
       inset: 0;
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 14px;
     }
-    .photo-lightbox[hidden] {
-      display: none !important;
-    }
-    .photo-lightbox-backdrop {
+    .photo-modal-backdrop {
       position: absolute;
       inset: 0;
       background: rgba(0, 0, 0, 0.72);
-      cursor: pointer;
     }
-    .photo-lightbox-dialog {
+    .photo-modal-dialog {
       position: relative;
       z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      max-width: min(92vw, 720px);
-      max-height: min(88vh, 640px);
-      width: 100%;
-      background: var(--panel);
+      width: min(92vw, 720px);
+      max-height: 90vh;
+      background: #0f1419;
       border: 1px solid var(--border);
       border-radius: 12px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-      overflow: hidden;
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .photo-lightbox-img-wrap {
-      flex: 1;
-      min-height: 0;
+    .photo-modal-img-wrap {
+      min-height: 120px;
+      max-height: calc(90vh - 90px);
+      overflow: auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px;
+      border: 1px solid rgba(70, 92, 128, 0.45);
+      border-radius: 8px;
       background: rgba(0, 0, 0, 0.25);
+      padding: 6px;
     }
-    .photo-lightbox-img-wrap img {
+    .photo-modal-img {
       max-width: 100%;
-      max-height: min(72vh, 520px);
-      width: auto;
       height: auto;
-      object-fit: contain;
-      vertical-align: middle;
+      display: block;
     }
-    .photo-lightbox-close {
-      flex-shrink: 0;
-      width: 100%;
-      margin: 0;
-      padding: 12px 16px;
+    .photo-modal-close {
+      align-self: center;
+      width: 80px;
       border: none;
-      border-top: 1px solid var(--border);
-      background: var(--btn-secondary-bg);
-      color: var(--text);
-      font-size: 20px;
+      border-radius: 8px;
+      padding: 8px 0;
+      font-size: 16px;
       font-weight: 700;
-      line-height: 1;
+      background: var(--btn-secondary-bg);
+      color: #fff;
       cursor: pointer;
       font-family: inherit;
     }
-    .photo-lightbox-close:hover {
-      background: var(--btn-secondary-hover);
-      color: #fff;
-    }
+    .photo-modal-close:hover { background: var(--btn-secondary-hover); }
     .filter-panel {
       margin-bottom: 16px;
       padding: 14px 16px 16px;
@@ -691,18 +697,29 @@
     .photo-link:hover {
       color: #fff;
     }
+    .work-zone-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(61, 139, 253, 0.45);
+      background: rgba(61, 139, 253, 0.12);
+      color: rgba(180, 210, 255, 0.95);
+      font-size: 13px;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
   <main>
     <div class="card">
       <div class="toolbar">
-        <h1>69紀錄清單</h1>
+        <h1 id="page-title">紀錄清單</h1>
         <div class="toolbar-actions">
+          <span class="work-zone-tag" id="work-zone-display" title="工區"></span>
           <a class="back-btn" href="./index.html">↩ 返回</a>
         </div>
       </div>
-      <p class="hint">資料來源：<code>records</code>。「完成／覆核」勾選會寫回資料庫；勾選時寫入當日時間，取消勾選會清空對應時間欄位。。</p>
+      <p class="hint">資料來源：<code>records</code>（僅顯示工區 <strong id="work-zone-hint"></strong>）。「完成／覆核」勾選會寫回資料庫；勾選時寫入當日時間，取消勾選會清空對應時間欄位。</p>
       <div class="filter-panel">
         <div class="filter-panel-head">
           <h1 class="filter-panel-title">篩選條件</h1>
@@ -775,25 +792,32 @@
     </div>
   </main>
 
-  <div id="photo-lightbox" class="photo-lightbox" hidden aria-hidden="true">
-    <div class="photo-lightbox-backdrop" aria-hidden="true"></div>
-    <div
-      class="photo-lightbox-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-label="照片預覽"
-    >
-      <div class="photo-lightbox-img-wrap">
-        <img id="photo-lightbox-img" src="" alt="" />
+  <div id="photo-modal" class="photo-modal" hidden aria-hidden="true">
+    <div class="photo-modal-backdrop" aria-hidden="true"></div>
+    <div class="photo-modal-dialog" role="dialog" aria-modal="true" aria-label="照片預覽">
+      <div class="photo-modal-img-wrap">
+        <img id="photo-modal-img" class="photo-modal-img" alt="照片預覽" />
       </div>
-      <button type="button" class="photo-lightbox-close" id="photo-lightbox-close" aria-label="關閉">
-        ✕
-      </button>
+      <button type="button" id="photo-modal-close" class="photo-modal-close">X</button>
     </div>
   </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    function getWorkZoneFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = (params.get("zone") || params.get("工區") || "").trim();
+      if (/^\d+$/.test(fromQuery)) return fromQuery;
+
+      const file = (window.location.pathname.split("/").pop() || "checklist.html").toLowerCase();
+      const match = file.match(/^checklist(\d+)\.html$/);
+      if (match) return match[1];
+
+      return "69";
+    }
+
+    const WORK_ZONE_VALUE = getWorkZoneFromUrl();
 
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
@@ -868,6 +892,50 @@
     const vendor2FilterEl = document.getElementById("vendor2-filter");
     const viewModeToggleEl = document.getElementById("view-mode-toggle");
     const viewModeTextEl = document.getElementById("view-mode-text");
+    const pageTitleEl = document.getElementById("page-title");
+    const workZoneDisplayEl = document.getElementById("work-zone-display");
+    const workZoneHintEl = document.getElementById("work-zone-hint");
+    const photoModalEl = document.getElementById("photo-modal");
+    const photoModalImgEl = document.getElementById("photo-modal-img");
+    const photoModalCloseEl = document.getElementById("photo-modal-close");
+
+    function applyWorkZone(zone) {
+      if (pageTitleEl) pageTitleEl.textContent = `${zone}紀錄清單`;
+      if (workZoneDisplayEl) {
+        workZoneDisplayEl.textContent = zone;
+        workZoneDisplayEl.title = `工區 ${zone}`;
+      }
+      if (workZoneHintEl) workZoneHintEl.textContent = zone;
+      document.title = `${zone}紀錄清單`;
+    }
+
+    applyWorkZone(WORK_ZONE_VALUE);
+
+    function openPhotoModal(url) {
+      photoModalImgEl.src = url;
+      photoModalEl.hidden = false;
+      photoModalEl.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePhotoModal() {
+      photoModalEl.hidden = true;
+      photoModalEl.setAttribute("aria-hidden", "true");
+      photoModalImgEl.removeAttribute("src");
+      document.body.style.overflow = "";
+    }
+
+    photoModalCloseEl?.addEventListener("click", closePhotoModal);
+    photoModalEl?.addEventListener("click", (e) => {
+      if (e.target instanceof HTMLElement && e.target.classList.contains("photo-modal-backdrop")) {
+        closePhotoModal();
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && photoModalEl && !photoModalEl.hidden) {
+        closePhotoModal();
+      }
+    });
 
     let recordsCache = null;
     let viewMode = "card"; // 'card'（大圖顯示） | 'list'（清單式顯示）
@@ -978,47 +1046,6 @@
       o.textContent = opt;
       floorFilterEl.appendChild(o);
     }
-    const photoLightbox = document.getElementById("photo-lightbox");
-    const photoLightboxImg = document.getElementById("photo-lightbox-img");
-
-    function openPhotoLightbox(url) {
-      photoLightboxImg.src = url;
-      photoLightboxImg.alt = "照片預覽";
-      photoLightbox.hidden = false;
-      photoLightbox.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closePhotoLightbox() {
-      photoLightbox.hidden = true;
-      photoLightbox.setAttribute("aria-hidden", "true");
-      photoLightboxImg.removeAttribute("src");
-      photoLightboxImg.alt = "";
-      document.body.style.overflow = "";
-    }
-
-    document.addEventListener("click", (e) => {
-      const opener = e.target.closest(".photo-open");
-      if (opener instanceof HTMLElement && opener.dataset.photoUrl) {
-        e.preventDefault();
-        openPhotoLightbox(opener.dataset.photoUrl);
-        return;
-      }
-      if (e.target.classList.contains("photo-lightbox-backdrop")) {
-        closePhotoLightbox();
-        return;
-      }
-      if (e.target.closest("#photo-lightbox-close")) {
-        closePhotoLightbox();
-      }
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !photoLightbox.hidden) {
-        closePhotoLightbox();
-      }
-    });
-
     function setStatus(msg, kind) {
       statusEl.textContent = msg || "";
       statusEl.className = kind === "error" ? "error" : kind === "ok" ? "ok" : "";
@@ -1096,6 +1123,32 @@
       return String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
     }
 
+    const PHOTO_URL_DELIMITER = "\n";
+
+    /** 與 check.html 一致：支援換行分隔或 JSON 陣列 */
+    function parsePhotoUrls(raw) {
+      if (raw === null || raw === undefined) return [];
+      const text = String(raw).trim();
+      if (!text) return [];
+      if (text.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            return parsed.map((u) => String(u).trim()).filter((u) => /^https?:\/\//i.test(u));
+          }
+        } catch (_) {}
+      }
+      return text
+        .split(PHOTO_URL_DELIMITER)
+        .map((u) => u.trim())
+        .filter((u) => /^https?:\/\//i.test(u));
+    }
+
+    function photoThumbButtonHtml(url, ariaLabel = "預覽照片（放大）") {
+      const safe = escapeAttr(url);
+      return `<button type="button" class="photo-open photo-thumb-btn" data-photo-url="${safe}" aria-label="${escapeAttr(ariaLabel)}"><span class="photo-thumb-wrap"><img class="photo-thumb" src="${safe}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></span></button>`;
+    }
+
     /**
      * 刪除／更新需能唯一指定列：優先 id（uuid 或 bigint），否則用非空「編號」。
      * 若兩者皆無，Supabase 無法安全刪除（舊資料常為 NULL）。
@@ -1119,12 +1172,19 @@
         return escapeHtml(formatDateYMD(value));
       }
       const str = String(value);
-      const isUrl = /^https?:\/\//i.test(str.trim());
       const isPhotoCol = columnKey === "照片" || /photo|url|link/i.test(columnKey);
+      if (isPhotoCol) {
+        const urls = parsePhotoUrls(value);
+        if (urls.length) {
+          const thumbs = urls
+            .map((u, i) => photoThumbButtonHtml(u, urls.length > 1 ? `預覽照片 ${i + 1}` : "預覽照片（放大）"))
+            .join("");
+          return `<div class="photo-thumb-group">${thumbs}</div>`;
+        }
+      }
+      const isUrl = /^https?:\/\//i.test(str.trim());
       if (isUrl && isPhotoCol) {
-        const u = str.trim();
-        const safe = escapeAttr(u);
-        return `<button type="button" class="photo-open photo-thumb-btn" data-photo-url="${safe}" aria-label="預覽照片（放大）"><span class="photo-thumb-wrap"><img class="photo-thumb" src="${safe}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></span></button>`;
+        return photoThumbButtonHtml(str.trim());
       }
       if (isUrl && str.length > 200) {
         const safe = escapeHtml(str.trim());
@@ -1428,11 +1488,19 @@
     }
 
     function photoLinkCellHtml(urlRaw) {
-      if (urlRaw === null || urlRaw === undefined) return "";
-      const u = String(urlRaw).trim();
-      if (!/^https?:\/\//i.test(u)) return escapeHtml(u);
-      const safe = escapeAttr(u);
-      return `<a href="${safe}" class="photo-open photo-link" data-photo-url="${safe}">照片</a>`;
+      const urls = parsePhotoUrls(urlRaw);
+      if (!urls.length) {
+        const u = String(urlRaw ?? "").trim();
+        if (!u) return "";
+        return escapeHtml(u);
+      }
+      return urls
+        .map((url, index) => {
+          const label = urls.length > 1 ? `照片${index + 1}` : "照片";
+          const safe = escapeAttr(url);
+          return `<a href="${safe}" class="missing-photo-link" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+        })
+        .join(" ");
     }
 
     function renderFilteredTable() {
@@ -1513,7 +1581,10 @@
         return;
       }
 
-      const { data, error } = await supabase.from("records").select("*");
+      const { data, error } = await supabase
+        .from("records")
+        .select("*")
+        .eq("工區", WORK_ZONE_VALUE);
 
       if (error) {
         setFilterResult("");
@@ -1544,13 +1615,30 @@
     }
 
     recordsListEl.addEventListener("click", async (e) => {
+      const target = e.target;
+      if (target instanceof HTMLElement) {
+        const photoLink = target.closest(".missing-photo-link");
+        if (photoLink instanceof HTMLAnchorElement) {
+          e.preventDefault();
+          const href = photoLink.getAttribute("href") || "";
+          if (href) openPhotoModal(href);
+          return;
+        }
+        const photoBtn = target.closest(".photo-open");
+        if (photoBtn instanceof HTMLElement && photoBtn.dataset.photoUrl) {
+          e.preventDefault();
+          openPhotoModal(photoBtn.dataset.photoUrl);
+          return;
+        }
+      }
+
       const btn = e.target.closest(".btn-delete");
       if (!(btn instanceof HTMLButtonElement)) return;
 
       if (!confirm("確定要刪除此筆紀錄？刪除後無法復原。")) return;
 
       btn.disabled = true;
-      let q = supabase.from("records").delete();
+      let q = supabase.from("records").delete().eq("工區", WORK_ZONE_VALUE);
       if (btn.dataset.pkId) {
         q = q.eq("id", btn.dataset.pkId);
       } else if (btn.dataset.pkSerial !== undefined && btn.dataset.pkSerial !== "") {
@@ -1597,7 +1685,7 @@
         patch[userKey] = userName;
       }
 
-      let q = supabase.from("records").update(patch);
+      let q = supabase.from("records").update(patch).eq("工區", WORK_ZONE_VALUE);
       if (t.dataset.pkId) {
         q = q.eq("id", t.dataset.pkId);
       } else if (t.dataset.pkSerial !== undefined && t.dataset.pkSerial !== "") {

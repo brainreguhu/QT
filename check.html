@@ -143,10 +143,123 @@
       color: #fff;
     }
     .photo-selected-name {
-      margin: 4px 0 0;
+      margin: 0;
       font-size: 13px;
       color: var(--muted);
-      word-break: break-all;
+      line-height: 1.4;
+    }
+    .photo-pending-panel {
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .photo-pending-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .photo-pending-title {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .photo-pending-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .photo-pending-empty {
+      margin: 0;
+      padding: 14px 8px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+    }
+    .photo-pending-empty[hidden] {
+      display: none;
+    }
+    .photo-selected-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .photo-selected-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .photo-selected-thumb-btn {
+      flex-shrink: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: zoom-in;
+    }
+    .photo-selected-thumb-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .photo-selected-thumb {
+      display: block;
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .photo-selected-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .photo-selected-meta span {
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .photo-selected-meta small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .photo-selected-remove {
+      flex-shrink: 0;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .photo-selected-remove:hover {
+      border-color: var(--danger);
+      background: rgba(248, 113, 113, 0.12);
+    }
+    .photo-picker-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
     .select-with-reset {
       display: flex;
@@ -187,6 +300,433 @@
       background: var(--btn-secondary-hover);
       border-color: var(--accent);
       color: #fff;
+    }
+    .cascade-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .cascade-row.is-label-left .cascade-field {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .cascade-row.is-label-top .cascade-field {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 4px 6px;
+      min-width: 0;
+    }
+    .cascade-row.is-label-top .cascade-field > label {
+      grid-column: 1 / -1;
+    }
+    .cascade-row.is-label-top .cascade-field > select {
+      grid-column: 1;
+    }
+    .cascade-row.is-label-top .cascade-field > .cascade-clear-btn {
+      grid-column: 2;
+      align-self: stretch;
+    }
+    .cascade-field > label {
+      flex: 0 0 auto;
+      font-size: var(--cascade-label-size, 13px);
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .cascade-field > select {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+    .cascade-clear-btn {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      min-height: 42px;
+      background: var(--btn-secondary-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .cascade-clear-btn:hover:not(:disabled) {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .cascade-clear-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .location-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .location-section-head .section-title {
+      margin: 0;
+    }
+    .location-gear-btn {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .location-gear-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .location-gear-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .loc-cascade-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    .loc-cascade-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .loc-cascade-modal {
+      width: 100%;
+      max-width: 640px;
+      max-height: min(calc(88vh * 1.3), calc(720px * 1.3));
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      font-size: 15px;
+    }
+    .loc-cascade-modal input,
+    .loc-cascade-modal button,
+    .loc-cascade-modal textarea {
+      font-size: inherit;
+    }
+    .loc-cascade-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .loc-cascade-modal-header h2 {
+      margin: 0;
+    }
+    .loc-cascade-close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      line-height: 1;
+      cursor: pointer;
+    }
+    .loc-cascade-close-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .loc-cascade-modal-body {
+      padding: 12px 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .loc-cascade-modal-desc {
+      margin: 0 0 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .loc-cascade-settings-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .loc-cascade-depth-setting,
+    .loc-cascade-label-position-setting {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .loc-cascade-label-position-setting {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .loc-cascade-label-position-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .loc-cascade-label-position-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+    }
+    .loc-cascade-label-position-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .loc-cascade-label-size-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .loc-cascade-depth-setting label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .loc-cascade-depth-setting input[type="number"],
+    .loc-cascade-label-size-field input[type="number"] {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .loc-cascade-setting-hint {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .loc-cascade-level-labels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 6px;
+    }
+    .loc-cascade-level-labels .level-label-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .loc-cascade-level-labels .level-label-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .loc-cascade-level-labels .level-label-input {
+      padding: 7px 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .loc-cascade-level-label-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .loc-cascade-level-label-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .loc-cascade-level-label-field input[type="text"] {
+      padding: 7px 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .loc-cascade-tree-editor {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+      padding: 8px;
+      min-height: 160px;
+    }
+    .loc-cascade-tree-editor .tree-node[data-depth="1"] { margin-left: 14px; }
+    .loc-cascade-tree-editor .tree-node[data-depth="2"] { margin-left: 28px; }
+    .loc-cascade-tree-editor .tree-node[data-depth="3"] { margin-left: 42px; }
+    .loc-cascade-tree-editor .tree-node[data-depth="4"] { margin-left: 56px; }
+    .loc-cascade-tree-editor .tree-node-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .loc-cascade-tree-editor .tree-node-index {
+      flex-shrink: 0;
+      min-width: 2.8em;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: right;
+    }
+    .loc-cascade-tree-editor .tree-node-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .loc-cascade-tree-editor .tree-btn {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .loc-cascade-tree-editor .tree-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .loc-cascade-tree-editor .tree-btn.remove:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .loc-cascade-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .loc-cascade-modal-actions button {
+      flex: 1;
+      min-width: 96px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .loc-cascade-add-root-btn {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .loc-cascade-import-btn {
+      background: transparent;
+      color: var(--muted);
+    }
+    .loc-cascade-save-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .loc-cascade-json-area {
+      width: 100%;
+      min-height: 160px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, Consolas, monospace;
+      resize: vertical;
+      display: none;
+    }
+    .loc-cascade-json-area.is-visible {
+      display: block;
+    }
+    .loc-cascade-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 130;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    .loc-cascade-confirm-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .loc-cascade-confirm-card {
+      width: min(92vw, 280px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 15px;
+    }
+    .loc-cascade-confirm-card button {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: #fff;
+    }
+    .loc-cascade-confirm-ok-btn {
+      background: linear-gradient(145deg, #991b1b 0%, #7f1d1d 100%);
+    }
+    .loc-cascade-confirm-cancel-btn {
+      background: linear-gradient(145deg, #15803d 0%, #166534 100%);
     }
     select:focus, textarea:focus {
       outline: none;
@@ -586,8 +1126,8 @@
       <div class="serial-block">
         <div class="serial-header">
           <div class="work-zone-inline">
-            <span class="section-title work-zone-heading">工區</span>
-            <span class="work-zone-tag" id="work-zone-display" title="工區">67</span>
+            <span class="section-title work-zone-heading" id="work-zone-heading">工區</span>
+            <span class="work-zone-tag" id="work-zone-display" title="工區"></span>
           </div>
           <div class="serial-header-actions">
             <label class="header-toggle" for="header-toggle" title="分割檢視：左側查詢列表、右側新增表單">
@@ -597,7 +1137,35 @@
             <a class="back-btn" href="./index.html">↩ 返回</a>
           </div>
         </div>
-        <input type="hidden" id="work-zone" name="workZone" value="67" />
+        <input type="hidden" id="work-zone" name="workZone" value="" />
+        <script>
+          (function () {
+            function readWorkZoneFromUrl() {
+              var params = new URLSearchParams(location.search);
+              var zone = (params.get("zone") || params.get("工區") || "").trim();
+              if (/^\d+$/.test(zone)) return zone;
+              var file = (location.pathname.split("/").pop() || "check.html").toLowerCase();
+              var match = file.match(/^check(\d+)\.html$/);
+              return match ? match[1] : "69";
+            }
+            window.__applyCheckWorkZone = function (zone) {
+              var display = document.getElementById("work-zone-display");
+              var hidden = document.getElementById("work-zone");
+              var heading = document.getElementById("work-zone-heading");
+              if (display) {
+                display.textContent = zone;
+                display.title = "工區 " + zone;
+              }
+              if (hidden) hidden.value = zone;
+              if (heading) {
+                heading.textContent = "工區";
+                heading.title = "工區 " + zone;
+              }
+              document.title = "記錄送出（工區 " + zone + "）";
+            };
+            window.__applyCheckWorkZone(readWorkZoneFromUrl());
+          })();
+        </script>
         <div class="serial-number-row">
           <label for="serial" class="section-title">編號</label>
           <input id="serial" name="serial" type="text" readonly />
@@ -605,33 +1173,29 @@
       </div>
 
       <div>
-        <p class="section-title">樓層</p>
-        <div class="select-with-reset">
-          <select id="floor" name="floor" required>
-            <option value="" disabled selected>請選擇</option>
-          </select>
-          <button type="button" id="clear-floor-btn" class="select-reset-btn">清除</button>
+        <div class="location-section-head">
+          <p class="section-title">樓層</p>
+          <button type="button" class="location-gear-btn" id="floorGearBtn" aria-label="設定樓層選單">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
         </div>
+        <div id="floorCascade" class="cascade-row is-label-left" aria-label="樓層選擇"></div>
       </div>
 
       <div>
-        <p class="section-title">位置</p>
-        <div class="select-with-reset">
-          <select id="loc1" name="loc1" required>
-            <option value="" disabled selected>請選擇</option>
-          </select>
-          <button type="button" id="clear-loc1-btn" class="select-reset-btn">清除</button>
+        <div class="location-section-head">
+          <p class="section-title">位置</p>
+          <button type="button" class="location-gear-btn" id="locationGearBtn" aria-label="設定位置選單">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
         </div>
-        <div style="margin-top:5px;">
-          <select id="loc2" name="loc2" required disabled>
-            <option value="" disabled selected>請先選擇 位置1</option>
-          </select>
-        </div>
-        <div style="margin-top:5px;">
-          <select id="loc3" name="loc3" required disabled>
-            <option value="" disabled selected>請先選擇 位置2</option>
-          </select>
-        </div>
+        <div id="locationCascade" class="cascade-row is-label-left" aria-label="位置選擇"></div>
       </div>
 
       <div>
@@ -662,17 +1226,24 @@
       </div>
       <div>
         <p class="section-title">照片</p>
-        <input type="file" id="photo-camera" class="visually-hidden-file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" />
-        <input type="file" id="photo-gallery" class="visually-hidden-file" accept="image/*" tabindex="-1" aria-hidden="true" />
         <div class="photo-picker-row">
           <button type="button" id="photo-camera-btn" class="photo-picker-btn">拍照</button>
           <button type="button" id="photo-gallery-btn" class="photo-picker-btn">從相簿選擇</button>
         </div>
-        <p id="photo-selected-name" class="photo-selected-name" aria-live="polite">尚未選擇照片</p>
+        <div class="photo-pending-panel" id="photo-pending-panel">
+          <div class="photo-pending-head">
+            <p class="photo-pending-title">待上傳照片</p>
+            <span id="photo-selected-count" class="photo-pending-count">0 / 3</span>
+          </div>
+          <p id="photo-pending-empty" class="photo-pending-empty">尚無待上傳照片，請拍照或從相簿選擇。</p>
+          <ul id="photo-selected-list" class="photo-selected-list" aria-label="待上傳照片列表"></ul>
+        </div>
       </div>
       <button type="submit" id="submit-btn">送出至 Supabase</button>
       <p id="status" role="status" aria-live="polite"></p>
     </form>
+    <input type="file" id="photo-camera" class="visually-hidden-file" accept="image/*,.heic,.heif" capture="environment" tabindex="-1" aria-hidden="true" />
+    <input type="file" id="photo-gallery" class="visually-hidden-file" accept="image/*,.heic,.heif" multiple tabindex="-1" aria-hidden="true" />
       </div>
     <section class="query-card page-layout-query" aria-label="查詢缺失卡片">
       <button type="button" id="query-missing-btn">查詢缺失</button>
@@ -698,8 +1269,133 @@
     </div>
   </div>
 
+  <div class="loc-cascade-overlay" id="floorCascadeOverlay" aria-hidden="true">
+    <div class="loc-cascade-modal" role="dialog" aria-labelledby="floorCascadeModalTitle">
+      <div class="loc-cascade-modal-header">
+        <h2 id="floorCascadeModalTitle">設定樓層選單</h2>
+        <button type="button" class="loc-cascade-close-btn" id="floorCascadeCloseBtn" aria-label="關閉">&times;</button>
+      </div>
+      <div class="loc-cascade-modal-body">
+        <p class="loc-cascade-modal-desc">編輯樹狀選項：「⊕」新增子項目，「＋」新增同層項目，「×」刪除節點及其子項。</p>
+        <div class="loc-cascade-settings-stack">
+          <div class="loc-cascade-depth-setting">
+            <label for="floorLayerCountInput">
+              <span>層數</span>
+              <input type="number" id="floorLayerCountInput" min="1" max="8" step="1" value="1">
+            </label>
+            <span class="loc-cascade-setting-hint">可設定 1～8 層。</span>
+          </div>
+          <div class="loc-cascade-label-position-setting">
+            <span class="loc-cascade-label-position-title">標籤位置</span>
+            <div class="loc-cascade-label-position-options">
+              <label class="loc-cascade-label-position-option">
+                <input type="radio" name="floorLabelPosition" value="left" checked>
+                選單左側
+              </label>
+              <label class="loc-cascade-label-position-option">
+                <input type="radio" name="floorLabelPosition" value="top">
+                選單上方
+              </label>
+            </div>
+            <label class="loc-cascade-label-size-field" for="floorLabelFontSizeInput">
+              <span>標籤文字大小</span>
+              <input type="number" id="floorLabelFontSizeInput" min="10" max="28" step="1" value="13">
+              <span class="loc-cascade-setting-hint">px</span>
+            </label>
+          </div>
+          <div class="loc-cascade-level-labels" id="floorLevelLabels"></div>
+        </div>
+        <div class="loc-cascade-tree-editor" id="floorTreeEditor"></div>
+        <textarea class="loc-cascade-json-area" id="floorJsonArea" spellcheck="false" aria-label="JSON 匯入匯出"></textarea>
+      </div>
+      <div class="loc-cascade-modal-actions">
+        <button type="button" class="loc-cascade-add-root-btn" id="floorAddRootBtn">新增根項目</button>
+        <button type="button" class="loc-cascade-import-btn" id="floorToggleJsonBtn">JSON 匯入/匯出</button>
+        <button type="button" class="loc-cascade-save-btn" id="floorSaveBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loc-cascade-confirm-overlay" id="floorConfirmOverlay" aria-hidden="true">
+    <div class="loc-cascade-confirm-card" role="dialog" aria-modal="true" aria-label="刪除確認">
+      <button type="button" class="loc-cascade-confirm-ok-btn" id="floorConfirmOkBtn">確定</button>
+      <button type="button" class="loc-cascade-confirm-cancel-btn" id="floorConfirmCancelBtn">取消</button>
+    </div>
+  </div>
+
+  <div class="loc-cascade-overlay" id="locationCascadeOverlay" aria-hidden="true">
+    <div class="loc-cascade-modal" role="dialog" aria-labelledby="locationCascadeModalTitle">
+      <div class="loc-cascade-modal-header">
+        <h2 id="locationCascadeModalTitle">設定位置選單</h2>
+        <button type="button" class="loc-cascade-close-btn" id="locationCascadeCloseBtn" aria-label="關閉">&times;</button>
+      </div>
+      <div class="loc-cascade-modal-body">
+        <p class="loc-cascade-modal-desc">編輯樹狀選項：「⊕」新增子項目，「＋」新增同層項目，「×」刪除節點及其子項。</p>
+        <div class="loc-cascade-settings-stack">
+          <div class="loc-cascade-depth-setting">
+            <label for="locationLayerCountInput">
+              <span>層數</span>
+              <input type="number" id="locationLayerCountInput" min="1" max="8" step="1" value="3">
+            </label>
+            <span class="loc-cascade-setting-hint">可設定 1～8 層。</span>
+          </div>
+          <div class="loc-cascade-label-position-setting">
+            <span class="loc-cascade-label-position-title">標籤位置</span>
+            <div class="loc-cascade-label-position-options">
+              <label class="loc-cascade-label-position-option">
+                <input type="radio" name="locLabelPosition" value="left" checked>
+                選單左側
+              </label>
+              <label class="loc-cascade-label-position-option">
+                <input type="radio" name="locLabelPosition" value="top">
+                選單上方
+              </label>
+            </div>
+            <label class="loc-cascade-label-size-field" for="locationLabelFontSizeInput">
+              <span>標籤文字大小</span>
+              <input type="number" id="locationLabelFontSizeInput" min="10" max="28" step="1" value="13">
+              <span class="loc-cascade-setting-hint">px</span>
+            </label>
+          </div>
+          <div class="loc-cascade-level-labels" id="locationLevelLabels"></div>
+        </div>
+        <div class="loc-cascade-tree-editor" id="locationTreeEditor"></div>
+        <textarea class="loc-cascade-json-area" id="locationJsonArea" spellcheck="false" aria-label="JSON 匯入匯出"></textarea>
+      </div>
+      <div class="loc-cascade-modal-actions">
+        <button type="button" class="loc-cascade-add-root-btn" id="locationAddRootBtn">新增根項目</button>
+        <button type="button" class="loc-cascade-import-btn" id="locationToggleJsonBtn">JSON 匯入/匯出</button>
+        <button type="button" class="loc-cascade-save-btn" id="locationSaveBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loc-cascade-confirm-overlay" id="locationConfirmOverlay" aria-hidden="true">
+    <div class="loc-cascade-confirm-card" role="dialog" aria-modal="true" aria-label="刪除確認">
+      <button type="button" class="loc-cascade-confirm-ok-btn" id="locationConfirmOkBtn">確定</button>
+      <button type="button" class="loc-cascade-confirm-cancel-btn" id="locationConfirmCancelBtn">取消</button>
+    </div>
+  </div>
+
+  <script src="./check-location-cascade.js"></script>
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    function getWorkZoneFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = (params.get("zone") || params.get("工區") || "").trim();
+      if (/^\d+$/.test(fromQuery)) return fromQuery;
+
+      const file = (window.location.pathname.split("/").pop() || "check.html").toLowerCase();
+      const match = file.match(/^check(\d+)\.html$/);
+      if (match) return match[1];
+
+      return "69";
+    }
+
+    /** 由網址 ?zone= 或檔名後綴決定工區，例如 check.html?zone=67 */
+    const WORK_ZONE_VALUE = getWorkZoneFromUrl();
+    const CURRENT_CHECK_PAGE = `check.html?zone=${WORK_ZONE_VALUE}`;
 
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
@@ -779,23 +1475,26 @@
 };
     const STORAGE_BUCKET = "Public";
     const STORAGE_OBJECT_PREFIX = "Rublic";
-    /** 與畫面「工區」標籤一致，寫入 records.工區；編號前綴使用此字串 */
-    const WORK_ZONE_VALUE = "67";
+
+    (function applyWorkZoneToPage() {
+      if (typeof window.__applyCheckWorkZone === "function") {
+        window.__applyCheckWorkZone(WORK_ZONE_VALUE);
+      }
+    })();
+
+    const FLOOR_STORAGE_KEY = `${window.CHECK_FLOOR_STORAGE_KEY}-${WORK_ZONE_VALUE}`;
+    const LOCATION_STORAGE_KEY = `${window.CHECK_LOCATION_STORAGE_KEY}-${WORK_ZONE_VALUE}`;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const LOGIN_URL = "./login.html?next=check.html";
+    const LOGIN_URL = `./login.html?next=${encodeURIComponent(CURRENT_CHECK_PAGE)}`;
 
     const form = document.getElementById("record-form");
     const serialInput = document.getElementById("serial");
-    const floorSelect = document.getElementById("floor");
+    const floorCascadeEl = document.getElementById("floorCascade");
     const categorySelect = document.getElementById("category");
-    const loc1Select = document.getElementById("loc1");
-    const loc2Select = document.getElementById("loc2");
-    const loc3Select = document.getElementById("loc3");
+    const locationCascadeEl = document.getElementById("locationCascade");
     const vendor1Select = document.getElementById("vendor1");
     const vendor2Select = document.getElementById("vendor2");
-    const clearFloorBtn = document.getElementById("clear-floor-btn");
-    const clearLoc1Btn = document.getElementById("clear-loc1-btn");
     const clearVendor2Btn = document.getElementById("clear-vendor2-btn");
     const clearCategoryBtn = document.getElementById("clear-category-btn");
     const descriptionEl = document.getElementById("description");
@@ -803,7 +1502,9 @@
     const photoGalleryInput = document.getElementById("photo-gallery");
     const photoCameraBtn = document.getElementById("photo-camera-btn");
     const photoGalleryBtn = document.getElementById("photo-gallery-btn");
-    const photoSelectedNameEl = document.getElementById("photo-selected-name");
+    const photoSelectedListEl = document.getElementById("photo-selected-list");
+    const photoSelectedCountEl = document.getElementById("photo-selected-count");
+    const photoPendingEmptyEl = document.getElementById("photo-pending-empty");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
     const authStatusEl = document.getElementById("auth-status");
@@ -818,38 +1519,335 @@
     const photoModalCloseEl = document.getElementById("photo-modal-close");
     const appMainEl = document.getElementById("app-main");
     const headerToggleEl = document.getElementById("header-toggle");
-    const SPLIT_LAYOUT_KEY = "check:splitLayout";
+    const SPLIT_LAYOUT_KEY = `check:${WORK_ZONE_VALUE}:splitLayout`;
     let statusTimer = null;
     let queryWarningTimer = null;
     let missingRowsCache = [];
     let hideCompletedItems = false;
     let cachedUserName = null;
-    let selectedPhotoFile = null;
+    let selectedPhotoFiles = [];
+    const MAX_PHOTO_COUNT = 3;
+    const PHOTO_URL_DELIMITER = "\n";
 
-    function setSelectedPhoto(file) {
-      selectedPhotoFile = file || null;
-      photoSelectedNameEl.textContent = selectedPhotoFile
-        ? `已選擇：${selectedPhotoFile.name}`
-        : "尚未選擇照片";
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
+
+    function escapeAttr(str) {
+      return escapeHtml(str);
+    }
+    let locationPicker = null;
+    let floorPicker = null;
+    try {
+      if (window.CheckLocationCascade && floorCascadeEl) {
+        const floorFallbackConfig = window.createDefaultFloorConfig(FLOOR_OPTIONS);
+        floorPicker = new window.CheckLocationCascade({
+          container: floorCascadeEl,
+          storageKey: FLOOR_STORAGE_KEY,
+          labelPositionRadioName: "floorLabelPosition",
+          fallbackConfig: floorFallbackConfig,
+          editor: {
+            gearBtn: document.getElementById("floorGearBtn"),
+            overlay: document.getElementById("floorCascadeOverlay"),
+            closeBtn: document.getElementById("floorCascadeCloseBtn"),
+            layerCountInput: document.getElementById("floorLayerCountInput"),
+            labelFontSizeInput: document.getElementById("floorLabelFontSizeInput"),
+            levelLabels: document.getElementById("floorLevelLabels"),
+            treeEditor: document.getElementById("floorTreeEditor"),
+            jsonArea: document.getElementById("floorJsonArea"),
+            addRootBtn: document.getElementById("floorAddRootBtn"),
+            toggleJsonBtn: document.getElementById("floorToggleJsonBtn"),
+            saveBtn: document.getElementById("floorSaveBtn"),
+            confirmOverlay: document.getElementById("floorConfirmOverlay"),
+            confirmOkBtn: document.getElementById("floorConfirmOkBtn"),
+            confirmCancelBtn: document.getElementById("floorConfirmCancelBtn"),
+          },
+        });
+      }
+    } catch (err) {
+      console.error("樓層選單初始化失敗：", err);
+      if (floorCascadeEl) {
+        floorCascadeEl.textContent = "樓層選單載入失敗，請重新整理頁面。";
+      }
+    }
+    try {
+      if (window.CheckLocationCascade && locationCascadeEl) {
+        const locationFallbackConfig = window.createDefaultLocationConfig(LOCATION_TREE);
+        locationPicker = new window.CheckLocationCascade({
+          container: locationCascadeEl,
+          storageKey: LOCATION_STORAGE_KEY,
+          fallbackConfig: locationFallbackConfig,
+          editor: {
+            gearBtn: document.getElementById("locationGearBtn"),
+            overlay: document.getElementById("locationCascadeOverlay"),
+            closeBtn: document.getElementById("locationCascadeCloseBtn"),
+            layerCountInput: document.getElementById("locationLayerCountInput"),
+            labelFontSizeInput: document.getElementById("locationLabelFontSizeInput"),
+            levelLabels: document.getElementById("locationLevelLabels"),
+            treeEditor: document.getElementById("locationTreeEditor"),
+            jsonArea: document.getElementById("locationJsonArea"),
+            addRootBtn: document.getElementById("locationAddRootBtn"),
+            toggleJsonBtn: document.getElementById("locationToggleJsonBtn"),
+            saveBtn: document.getElementById("locationSaveBtn"),
+            confirmOverlay: document.getElementById("locationConfirmOverlay"),
+            confirmOkBtn: document.getElementById("locationConfirmOkBtn"),
+            confirmCancelBtn: document.getElementById("locationConfirmCancelBtn"),
+          },
+        });
+      }
+    } catch (err) {
+      console.error("位置選單初始化失敗：", err);
+      if (locationCascadeEl) {
+        locationCascadeEl.textContent = "位置選單載入失敗，請重新整理頁面。";
+      }
+    }
+
+    function getFloorValue() {
+      if (!floorPicker) return "";
+      return floorPicker.getSelectedLabels().filter(Boolean).join("/");
+    }
+
+    function isFloorComplete() {
+      if (!floorPicker) return false;
+      const required = floorPicker.getLayerCount();
+      const labels = floorPicker.getSelectedLabels();
+      for (let i = 0; i < required; i++) {
+        if (!labels[i]) return false;
+      }
+      return true;
+    }
+
+    function resetFloorPicker() {
+      floorPicker?.clearAll();
+    }
+
+    function getLocationValues() {
+      if (!locationPicker) return { loc1: "", loc2: "", loc3: "" };
+      const values = locationPicker.getValues(3);
+      return {
+        loc1: values[0] || "",
+        loc2: values[1] || "",
+        loc3: values[2] || ""
+      };
+    }
+
+    function isLocationComplete() {
+      if (!locationPicker) return false;
+      const required = Math.min(3, locationPicker.getLayerCount());
+      const labels = locationPicker.getSelectedLabels();
+      for (let i = 0; i < required; i++) {
+        if (!labels[i]) return false;
+      }
+      return true;
+    }
+
+    function resetLocationPicker() {
+      locationPicker?.clearAll();
+    }
+
+    function parsePhotoUrls(raw) {
+      if (raw === null || raw === undefined) return [];
+      const text = String(raw).trim();
+      if (!text) return [];
+      if (text.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            return parsed.map((u) => String(u).trim()).filter((u) => /^https?:\/\//i.test(u));
+          }
+        } catch (_) {}
+      }
+      return text
+        .split(PHOTO_URL_DELIMITER)
+        .map((u) => u.trim())
+        .filter((u) => /^https?:\/\//i.test(u));
+    }
+
+    function serializePhotoUrls(urls) {
+      return urls.filter(Boolean).slice(0, MAX_PHOTO_COUNT).join(PHOTO_URL_DELIMITER);
+    }
+
+    function formatBytes(size) {
+      if (!Number.isFinite(size) || size <= 0) return "";
+      if (size < 1024) return `${size} B`;
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+      return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function isImageFile(file) {
+      if (!file) return false;
+      const type = String(file.type || "").toLowerCase();
+      if (type.startsWith("image/")) return true;
+      const name = String(file.name || "").toLowerCase();
+      return /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg|avif)$/i.test(name);
+    }
+
+    function updatePhotoPickerButtons() {
+      const atLimit = selectedPhotoFiles.length >= MAX_PHOTO_COUNT;
+      if (photoCameraBtn) photoCameraBtn.disabled = atLimit;
+      if (photoGalleryBtn) photoGalleryBtn.disabled = atLimit;
+    }
+
+    function renderPhotoList() {
+      if (!photoSelectedListEl) return;
+      photoSelectedListEl.innerHTML = "";
+      selectedPhotoFiles.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "photo-selected-item";
+        li.dataset.photoId = item.id;
+
+        const previewBtn = document.createElement("button");
+        previewBtn.type = "button";
+        previewBtn.className = "photo-selected-thumb-btn";
+        previewBtn.dataset.photoId = item.id;
+        previewBtn.setAttribute("aria-label", `預覽照片 ${index + 1}`);
+        const thumb = document.createElement("img");
+        thumb.className = "photo-selected-thumb";
+        thumb.src = item.previewUrl;
+        thumb.alt = `照片 ${index + 1}`;
+        previewBtn.appendChild(thumb);
+
+        const meta = document.createElement("div");
+        meta.className = "photo-selected-meta";
+        const nameEl = document.createElement("span");
+        nameEl.textContent = item.file.name || `照片 ${index + 1}`;
+        const sizeEl = document.createElement("small");
+        sizeEl.textContent = `待上傳 · ${formatBytes(item.file.size)}`;
+        meta.appendChild(nameEl);
+        meta.appendChild(sizeEl);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "photo-selected-remove";
+        removeBtn.dataset.photoId = item.id;
+        removeBtn.setAttribute("aria-label", `刪除照片 ${index + 1}`);
+        removeBtn.textContent = "刪除";
+
+        li.appendChild(previewBtn);
+        li.appendChild(meta);
+        li.appendChild(removeBtn);
+        photoSelectedListEl.appendChild(li);
+      });
+
+      if (photoSelectedCountEl) {
+        photoSelectedCountEl.textContent = `${selectedPhotoFiles.length} / ${MAX_PHOTO_COUNT}`;
+      }
+      if (photoPendingEmptyEl) {
+        photoPendingEmptyEl.hidden = selectedPhotoFiles.length > 0;
+      }
+      updatePhotoPickerButtons();
+    }
+
+    function addPhotoFiles(fileList) {
+      const picked = Array.from(fileList || []);
+      const files = picked.filter(isImageFile);
+      if (!files.length) {
+        if (picked.length) {
+          setStatus("無法加入所選檔案，請選擇圖片格式。", "error");
+        }
+        return;
+      }
+      const remaining = MAX_PHOTO_COUNT - selectedPhotoFiles.length;
+      if (remaining <= 0) {
+        setStatus(`最多只能選擇 ${MAX_PHOTO_COUNT} 張照片。`, "error");
+        return;
+      }
+      const toAdd = files.slice(0, remaining);
+      if (files.length > remaining) {
+        setStatus(`僅加入前 ${remaining} 張，最多 ${MAX_PHOTO_COUNT} 張。`, "error");
+      }
+      toAdd.forEach((file) => {
+        selectedPhotoFiles.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      });
+      renderPhotoList();
+      if (statusEl.className === "error" && selectedPhotoFiles.length) {
+        setStatus("", "");
+      }
+    }
+
+    function removeSelectedPhoto(photoId) {
+      const index = selectedPhotoFiles.findIndex((item) => item.id === photoId);
+      if (index === -1) return;
+      URL.revokeObjectURL(selectedPhotoFiles[index].previewUrl);
+      selectedPhotoFiles.splice(index, 1);
+      renderPhotoList();
+    }
+
     function clearPhotoInputs() {
+      selectedPhotoFiles.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      selectedPhotoFiles = [];
       photoCameraInput.value = "";
       photoGalleryInput.value = "";
-      setSelectedPhoto(null);
+      renderPhotoList();
     }
+
     function handlePhotoInputChange(e) {
       const input = e.target;
       if (!(input instanceof HTMLInputElement)) return;
-      const file = input.files?.[0] || null;
-      if (input === photoCameraInput) photoGalleryInput.value = "";
-      else photoCameraInput.value = "";
-      setSelectedPhoto(file);
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+      addPhotoFiles(files);
+      input.value = "";
     }
 
-    photoCameraBtn.addEventListener("click", () => photoCameraInput.click());
-    photoGalleryBtn.addEventListener("click", () => photoGalleryInput.click());
-    photoCameraInput.addEventListener("change", handlePhotoInputChange);
-    photoGalleryInput.addEventListener("change", handlePhotoInputChange);
+    function openPhotoPicker(input) {
+      if (!input) return;
+      try {
+        if (typeof input.showPicker === "function") {
+          input.showPicker();
+          return;
+        }
+      } catch (_) {}
+      input.click();
+    }
+
+    function formatMissingPhotoLinks(photoRaw) {
+      const urls = parsePhotoUrls(photoRaw);
+      if (!urls.length) return "（無）";
+      return urls
+        .map((url, index) => {
+          const label = urls.length > 1 ? `照片${index + 1}` : "照片";
+          return `<a class="missing-photo-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+        })
+        .join(" ");
+    }
+
+    photoCameraBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      openPhotoPicker(photoCameraInput);
+    });
+    photoGalleryBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      openPhotoPicker(photoGalleryInput);
+    });
+    photoCameraInput?.addEventListener("change", handlePhotoInputChange);
+    photoGalleryInput?.addEventListener("change", handlePhotoInputChange);
+    photoSelectedListEl?.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const removeBtn = target.closest(".photo-selected-remove");
+      if (removeBtn) {
+        const photoId = removeBtn.getAttribute("data-photo-id") || "";
+        if (photoId) removeSelectedPhoto(photoId);
+        return;
+      }
+      const previewBtn = target.closest(".photo-selected-thumb-btn");
+      if (previewBtn) {
+        const photoId = previewBtn.getAttribute("data-photo-id") || "";
+        const item = selectedPhotoFiles.find((entry) => entry.id === photoId);
+        if (item) openPhotoModal(item.previewUrl);
+      }
+    });
+    renderPhotoList();
 
     function applySplitLayout(enabled) {
       appMainEl.classList.toggle("split-layout", enabled);
@@ -930,9 +1928,22 @@
       const doneRaw = r["勾選1"] ?? r["完成"];
       return doneRaw === true || doneRaw === "true" || doneRaw === 1 || doneRaw === "1" || doneRaw === "Y";
     }
+    /** 與 #work-zone-display 工區標籤一致，篩選清單僅顯示編號前綴相符者 */
+    function getWorkZoneDisplayValue() {
+      const el = document.getElementById("work-zone-display");
+      const v = (el?.textContent ?? "").trim();
+      return v || WORK_ZONE_VALUE;
+    }
+    function rowMatchesWorkZoneSerial(row) {
+      const zone = getWorkZoneDisplayValue();
+      if (!zone) return true;
+      const serial = String(row[DB_COLUMNS.serial] ?? "").trim();
+      return serial.startsWith(zone);
+    }
     function getVisibleMissingRows() {
-      if (!hideCompletedItems) return missingRowsCache;
-      return missingRowsCache.filter((r) => !isRowDone(r));
+      let rows = missingRowsCache.filter(rowMatchesWorkZoneSerial);
+      if (hideCompletedItems) rows = rows.filter((r) => !isRowDone(r));
+      return rows;
     }
     function updateToggleCompletedLabel() {
       toggleCompletedBtn.textContent = hideCompletedItems ? "顯示完成項目" : "隱藏完成項目";
@@ -955,7 +1966,7 @@
           const loc1 = String(r[DB_COLUMNS.loc1] ?? "").trim();
           const loc2 = String(r[DB_COLUMNS.loc2] ?? "").trim();
           const loc3 = String(r[DB_COLUMNS.loc3] ?? "").trim();
-          const locDisplay = [floor, loc1, loc2, loc3].filter(Boolean).join("/");
+          const locDisplay = [floor, loc1, loc2, loc3].filter(Boolean).join(" / ");
           const vendor2 = String(r[DB_COLUMNS.vendor2] ?? "").trim() || "（無廠商2）";
           const desc = String(r[DB_COLUMNS.description] ?? "").trim() || "（無說明）";
           const photo = String(r[DB_COLUMNS.photo] ?? "").trim();
@@ -964,9 +1975,7 @@
           const checkDateDisplay = formatDateYMD(r[DB_COLUMNS.check1Time]);
           const done = isRowDone(r);
           const checkActionLabel = done ? "勾選" : "取消勾選";
-          const photoHtml = photo
-            ? `<a class="missing-photo-link" href="${escapeHtml(photo)}" target="_blank" rel="noopener noreferrer">照片</a>`
-            : "（無）";
+          const photoHtml = formatMissingPhotoLinks(photo);
           const checkHtml = serialKey
             ? `<input type="checkbox" class="missing-check" data-row-serial="${escapeHtml(serialKey)}" ${done ? "checked" : ""} aria-label="完成" />`
             : `<input type="checkbox" class="missing-check" disabled title="缺少編號，無法寫回" aria-label="完成" />`;
@@ -1013,14 +2022,6 @@
         "未知使用者";
       return cachedUserName;
     }
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-    }
     function resetSelect(select, placeholder) {
       select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
     }
@@ -1040,16 +2041,19 @@
       const m = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
       return m ? `.${m[1]}` : ".jpg";
     }
-    function generatePhotoObjectName(file) {
+    function generatePhotoObjectName(file, index) {
       const now = new Date();
       const p2 = (n) => String(n).padStart(2, "0");
       const p3 = (n) => String(n).padStart(3, "0");
-      return `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getSeconds())}${p3(now.getMilliseconds())}${getFileExt(file)}`;
+      const suffix = Number.isFinite(index) && index > 0 ? `-${index}` : "";
+      return `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getSeconds())}${p3(now.getMilliseconds())}${suffix}${getFileExt(file)}`;
     }
     function getWorkZoneTag() {
-      const el = document.getElementById("work-zone");
-      const v = (el?.value ?? WORK_ZONE_VALUE).toString().trim();
-      return v || WORK_ZONE_VALUE;
+      return getWorkZoneDisplayValue();
+    }
+    function syncWorkZoneHiddenInput() {
+      const hidden = document.getElementById("work-zone");
+      if (hidden) hidden.value = getWorkZoneDisplayValue();
     }
     /** 工區標籤-YYMMDD-三位數兩位英文；工區標籤與 records.工區 一致 */
     function generateSerialNumber() {
@@ -1064,44 +2068,17 @@
       return `${tag}-${yy}${mm}${dd}-${rnd3}${letter()}${letter()}`;
     }
 
-    fillSelect(floorSelect, FLOOR_OPTIONS);
     fillSelect(categorySelect, CATEGORY_OPTIONS);
-    fillSelectFromList(loc1Select, Object.keys(LOCATION_TREE), "請選擇");
     fillSelectFromList(vendor1Select, Object.keys(VENDOR_TREE), "請選擇");
-    resetSelect(loc2Select, "-"); //請先選擇位置1
-    resetSelect(loc3Select, "-"); //請先選擇位置2
     resetSelect(vendor2Select, "-"); //請先選擇廠商1
-    loc2Select.disabled = true;
-    loc3Select.disabled = true;
     vendor2Select.disabled = true;
+    syncWorkZoneHiddenInput();
     serialInput.value = generateSerialNumber();
 
-    loc1Select.addEventListener("change", () => {
-      const level2 = Object.keys(LOCATION_TREE[loc1Select.value] || {});
-      fillSelectFromList(loc2Select, level2, "請選擇");
-      loc2Select.disabled = level2.length === 0;
-      resetSelect(loc3Select, "請先選擇 位置2");
-      loc3Select.disabled = true;
-    });
-    loc2Select.addEventListener("change", () => {
-      const level3 = LOCATION_TREE[loc1Select.value]?.[loc2Select.value] || [];
-      fillSelectFromList(loc3Select, level3, "請選擇");
-      loc3Select.disabled = level3.length === 0;
-    });
     vendor1Select.addEventListener("change", () => {
       const level2 = VENDOR_TREE[vendor1Select.value] || [];
       fillSelectFromList(vendor2Select, level2, "請選擇");
       vendor2Select.disabled = level2.length === 0;
-    });
-    clearFloorBtn.addEventListener("click", () => {
-      floorSelect.selectedIndex = 0;
-    });
-    clearLoc1Btn.addEventListener("click", () => {
-      loc1Select.selectedIndex = 0;
-      resetSelect(loc2Select, "請先選擇 位置1");
-      resetSelect(loc3Select, "請先選擇 位置2");
-      loc2Select.disabled = true;
-      loc3Select.disabled = true;
     });
     clearVendor2Btn.addEventListener("click", () => {
       vendor2Select.selectedIndex = 0;
@@ -1123,10 +2100,8 @@
     })();
 
     queryMissingBtn.addEventListener("click", async () => {
-      const floor = floorSelect.value.trim();
-      const loc1 = loc1Select.value.trim();
-      const loc2 = loc2Select.value.trim();
-      const loc3 = loc3Select.value.trim();
+      const floor = getFloorValue();
+      const { loc1, loc2, loc3 } = getLocationValues();
       const vendor2 = vendor2Select.value.trim();
       const category = categorySelect.value.trim();
       const hasAnyFilter = Boolean(floor || loc1 || loc2 || loc3 || vendor2 || category);
@@ -1142,7 +2117,8 @@
       hideCompletedItems = false;
       updateToggleCompletedLabel();
 
-      let query = supabase.from("records").select("編號, 分類, 樓層, 位置1, 位置2, 位置3, 廠商2, 說明, 照片, 來自, 勾選1, 勾選人1, 勾選時間1"); //清單資料輸出
+      let query = supabase.from("records").select("編號, 工區, 分類, 樓層, 位置1, 位置2, 位置3, 廠商2, 說明, 照片, 來自, 勾選1, 勾選人1, 勾選時間1"); //清單資料輸出
+      query = query.eq(DB_COLUMNS.work_zone, getWorkZoneDisplayValue());
       if (floor) query = query.eq(DB_COLUMNS.floor, floor);
       if (loc1) query = query.eq(DB_COLUMNS.loc1, loc1);
       if (loc2) query = query.eq(DB_COLUMNS.loc2, loc2);
@@ -1188,7 +2164,11 @@
         [DB_COLUMNS.check1User]: userName,
         [DB_COLUMNS.check1Time]: operatedAt,
       };
-      const { error } = await supabase.from("records").update(patch).eq(DB_COLUMNS.serial, rowSerial);
+      const { error } = await supabase
+        .from("records")
+        .update(patch)
+        .eq(DB_COLUMNS.serial, rowSerial)
+        .eq(DB_COLUMNS.work_zone, getWorkZoneDisplayValue());
       target.disabled = false;
       if (error) {
         target.checked = !checked;
@@ -1224,43 +2204,46 @@
       const workZone = getWorkZoneTag();
       const serial = generateSerialNumber();
       serialInput.value = serial;
-      const floor = floorSelect.value.trim();
+      const floor = getFloorValue();
       const category = categorySelect.value.trim();
-      const loc1 = loc1Select.value.trim();
-      const loc2 = loc2Select.value.trim();
-      const loc3 = loc3Select.value.trim();
+      const { loc1, loc2, loc3 } = getLocationValues();
       const vendor1 = vendor1Select.value.trim();
       const vendor2 = vendor2Select.value.trim();
       const description = descriptionEl.value.trim();
-      const photoFile = selectedPhotoFile;
+      const photoFiles = selectedPhotoFiles.map((item) => item.file);
 
-      if (!floor || !category || !loc1 || !loc2 || !loc3 || !vendor1 || !vendor2 || !description) {
+      if (!isFloorComplete() || !category || !isLocationComplete() || !vendor1 || !vendor2 || !description) {
         setStatus("請完成樓層、分類、位置、廠商與說明。", "error");
         return;
       }
-      if (!photoFile) {
-        setStatus("請拍照或從相簿選擇照片。", "error");
+      if (!photoFiles.length) {
+        setStatus("請至少拍照或選擇一張照片。", "error");
         return;
       }
 
       submitBtn.disabled = true;
-      startLoadingStatus("上傳照片中");
-      const objectPath = `${STORAGE_OBJECT_PREFIX}/${generatePhotoObjectName(photoFile)}`;
-      const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(objectPath, photoFile, {
-        contentType: photoFile.type || "image/*",
-        upsert: false,
-      });
-      stopLoadingStatus();
-      if (uploadError) {
-        submitBtn.disabled = false;
-        setStatus(
-          `【照片上傳】${uploadError.message || "失敗"}（若為 RLS，請在 Supabase 執行 storage_public_rls.sql）`,
-          "error"
-        );
-        return;
+      const uploadedUrls = [];
+      for (let i = 0; i < photoFiles.length; i++) {
+        const photoFile = photoFiles[i];
+        startLoadingStatus(`上傳照片中 (${i + 1}/${photoFiles.length})`);
+        const objectPath = `${STORAGE_OBJECT_PREFIX}/${generatePhotoObjectName(photoFile, i)}`;
+        const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(objectPath, photoFile, {
+          contentType: photoFile.type || "image/*",
+          upsert: false,
+        });
+        if (uploadError) {
+          stopLoadingStatus();
+          submitBtn.disabled = false;
+          setStatus(
+            `【照片上傳】第 ${i + 1} 張失敗：${uploadError.message || "失敗"}（若為 RLS，請在 Supabase 執行 storage_public_rls.sql）`,
+            "error"
+          );
+          return;
+        }
+        const { data: publicData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
+        uploadedUrls.push(publicData?.publicUrl || objectPath);
       }
-
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
+      stopLoadingStatus();
 
       const { data: profile, error: profileError } = await supabase
         .from(PROFILE_TABLE)
@@ -1293,7 +2276,7 @@
         [DB_COLUMNS.vendor1]: vendor1,
         [DB_COLUMNS.vendor2]: vendor2,
         [DB_COLUMNS.description]: description,
-        [DB_COLUMNS.photo]: data?.publicUrl || objectPath,
+        [DB_COLUMNS.photo]: serializePhotoUrls(uploadedUrls),
         [DB_COLUMNS.from]: userName,
       };
 
@@ -1312,11 +2295,9 @@
       setStatus("已成功儲存。", "success");
       form.reset();
       clearPhotoInputs();
-      resetSelect(loc2Select, "請先選擇 位置1");
-      resetSelect(loc3Select, "請先選擇 位置2");
+      resetFloorPicker();
+      resetLocationPicker();
       resetSelect(vendor2Select, "請先選擇 廠商1");
-      loc2Select.disabled = true;
-      loc3Select.disabled = true;
       vendor2Select.disabled = true;
       serialInput.value = generateSerialNumber();
     });

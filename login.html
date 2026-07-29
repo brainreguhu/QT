@@ -256,11 +256,27 @@
       }
     })();
 
-    const ALLOWED_POST_LOGIN = new Set(["index.html", "check.html", "checklist.html", "admin.html"]);
+    const ALLOWED_POST_LOGIN = new Set([
+      "index.html",
+      "blank.html",
+      "check.html",
+      "checklist.html",
+      "records-audit.html",
+      "admin.html",
+      "field-share.html"
+    ]);
 
     function getPostLoginRedirect() {
-      const next = new URLSearchParams(window.location.search).get("next");
-      if (next && ALLOWED_POST_LOGIN.has(next)) {
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next");
+      const nextPath = next ? next.split("?")[0].split("#")[0] : "";
+      if (next && ALLOWED_POST_LOGIN.has(nextPath)) {
+        if (nextPath === "field-share.html") {
+          const id = params.get("id");
+          if (id) {
+            return `./field-share.html?id=${encodeURIComponent(id)}`;
+          }
+        }
         return `./${next}`;
       }
       return "./index.html";
