@@ -1377,7 +1377,708 @@
     </div>
   </div>
 
-  <script src="./check-location-cascade.js"></script>
+  <!-- 樓層／位置級聯選單（內嵌，避免部署漏傳 check-location-cascade.js） -->
+  <script>
+(function (global) {
+  "use strict";
+
+  var CHECK_LOCATION_STORAGE_KEY = "check-location-cascade-config";
+  var CHECK_FLOOR_STORAGE_KEY = "check-floor-cascade-config";
+  var ABS_MAX_DEPTH = 8;
+  var EMPTY_NODE = { label: "新項目", children: [] };
+
+  function cloneConfig(source) {
+    return JSON.parse(JSON.stringify(source));
+  }
+
+  function defaultLayerLabel(index) {
+    return "第 " + (index + 1) + " 層";
+  }
+
+  function padArray(list, size, fillValue) {
+    list = Array.isArray(list) ? list.slice() : [];
+    while (list.length < size) {
+      list.push(typeof fillValue === "function" ? fillValue(list.length) : fillValue);
+    }
+    return list.slice(0, size);
+  }
+
+  function normalizeLayerCount(value, fallback) {
+    var count = Number(value);
+    if (!Number.isFinite(count)) return fallback;
+    return Math.min(ABS_MAX_DEPTH, Math.max(1, Math.round(count)));
+  }
+
+  function normalizeLabelPosition(value) {
+    return value === "top" ? "top" : "left";
+  }
+
+  function normalizeLabelFontSize(value, fallback) {
+    var size = Number(value);
+    if (!Number.isFinite(size)) return fallback;
+    return Math.min(28, Math.max(10, Math.round(size)));
+  }
+
+  function normalizeNode(node, maxDepth, depth) {
+    depth = depth || 1;
+    var label = String(node && node.label != null ? node.label : "").trim();
+    if (!label) return null;
+    var children = [];
+    if (depth < maxDepth && Array.isArray(node.children)) {
+      children = node.children
+        .map(function (child) { return normalizeNode(child, maxDepth, depth + 1); })
+        .filter(Boolean);
+    }
+    return { label: label, children: children };
+  }
+
+  function trimTreeToDepth(nodes, maxDepth, depth) {
+    depth = depth || 1;
+    return (nodes || []).map(function (node) {
+      return depth >= maxDepth
+        ? { label: node.label, children: [] }
+        : { label: node.label, children: trimTreeToDepth(node.children || [], maxDepth, depth + 1) };
+    });
+  }
+
+  function locationTreeToCascadeItems(tree) {
+    return Object.keys(tree || {}).map(function (key1) {
+      return {
+        label: key1,
+        children: Object.keys(tree[key1] || {}).map(function (key2) {
+          return {
+            label: key2,
+            children: (tree[key1][key2] || []).map(function (label3) {
+              return { label: label3, children: [] };
+            }),
+          };
+        }),
+      };
+    });
+  }
+
+  function createDefaultLocationConfig(tree, overrides) {
+    var config = {
+      layerCount: 3,
+      labelPosition: "left",
+      labelFontSize: 13,
+      levelLabels: ["位置1", "位置2", "位置3"],
+      levelLabelVisible: [true, true, true],
+      items: locationTreeToCascadeItems(tree),
+    };
+    return Object.assign(config, overrides || {});
+  }
+
+  function listToCascadeItems(list) {
+    return (list || []).map(function (label) {
+      return { label: String(label), children: [] };
+    });
+  }
+
+  function createDefaultFloorConfig(options, overrides) {
+    var config = {
+      layerCount: 1,
+      labelPosition: "left",
+      labelFontSize: 13,
+      levelLabels: ["樓層"],
+      levelLabelVisible: [true],
+      items: listToCascadeItems(options),
+    };
+    return Object.assign(config, overrides || {});
+  }
+
+  function normalizeConfig(raw, fallbackConfig) {
+    var base = cloneConfig(fallbackConfig);
+    if (!raw || typeof raw !== "object") return base;
+
+    var layerCount = normalizeLayerCount(
+      raw.layerCount || (Array.isArray(raw.levelLabels) && raw.levelLabels.length) || base.layerCount,
+      base.layerCount
+    );
+    var labels = Array.isArray(raw.levelLabels) && raw.levelLabels.length
+      ? raw.levelLabels.map(function (v) { return String(v || "").trim() || "選項"; })
+      : base.levelLabels.slice();
+    labels = padArray(labels, layerCount, defaultLayerLabel);
+
+    var visible = Array.isArray(raw.levelLabelVisible)
+      ? raw.levelLabelVisible.map(function (v) { return v !== false; })
+      : base.levelLabelVisible.slice();
+    visible = padArray(visible, layerCount, true);
+
+    var items = Array.isArray(raw.items)
+      ? raw.items.map(function (node) { return normalizeNode(node, layerCount); }).filter(Boolean)
+      : [];
+    if (!items.length) items = trimTreeToDepth(base.items, layerCount);
+
+    return {
+      layerCount: layerCount,
+      labelPosition: normalizeLabelPosition(raw.labelPosition),
+      labelFontSize: normalizeLabelFontSize(raw.labelFontSize, base.labelFontSize),
+      levelLabels: labels,
+      levelLabelVisible: visible,
+      items: items,
+    };
+  }
+
+  function loadConfig(storageKey, fallbackConfig) {
+    try {
+      var raw = localStorage.getItem(storageKey);
+      if (raw) return normalizeConfig(JSON.parse(raw), fallbackConfig);
+    } catch (e) {}
+    return cloneConfig(fallbackConfig);
+  }
+
+  function setOverlayOpen(el, open) {
+    if (!el) return;
+    el.classList.toggle("open", open);
+    el.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+
+  function CheckLocationCascade(options) {
+    options = options || {};
+    this.container = options.container;
+    this.storageKey = options.storageKey || CHECK_LOCATION_STORAGE_KEY;
+    this.labelPositionRadioName = options.labelPositionRadioName || "locLabelPosition";
+    this.fallbackConfig = cloneConfig(options.fallbackConfig);
+    this.editor = options.editor || {};
+    this.config = loadConfig(this.storageKey, this.fallbackConfig);
+    this.selections = [];
+    this.confirmResolve = null;
+    this._keydownBound = this._handleKeydown.bind(this);
+
+    if (!this.container) {
+      console.error("CheckLocationCascade: container not found");
+      return;
+    }
+
+    this.bindEditor();
+    this.render();
+  }
+
+  CheckLocationCascade.prototype.getLayerCount = function () {
+    return normalizeLayerCount(this.config.layerCount, this.fallbackConfig.layerCount);
+  };
+
+  CheckLocationCascade.prototype.getLevelLabel = function (level) {
+    return this.config.levelLabels[level] || defaultLayerLabel(level);
+  };
+
+  CheckLocationCascade.prototype.isLevelLabelVisible = function (level) {
+    return !Array.isArray(this.config.levelLabelVisible) || this.config.levelLabelVisible[level] !== false;
+  };
+
+  CheckLocationCascade.prototype.getNodesAtPath = function (path) {
+    var nodes = this.config.items;
+    for (var i = 0; i < path.length; i++) {
+      var idx = path[i];
+      if (!nodes[idx]) return [];
+      nodes = nodes[idx].children || [];
+    }
+    return nodes;
+  };
+
+  CheckLocationCascade.prototype.getSelectedLabels = function () {
+    var labels = [];
+    var nodes = this.config.items;
+    for (var i = 0; i < this.selections.length; i++) {
+      var node = nodes[this.selections[i]];
+      if (!node) break;
+      labels.push(node.label);
+      nodes = node.children || [];
+    }
+    return labels;
+  };
+
+  CheckLocationCascade.prototype.getValues = function (maxLevels) {
+    var labels = this.getSelectedLabels();
+    var count = maxLevels == null ? labels.length : maxLevels;
+    var values = [];
+    for (var i = 0; i < count; i++) values.push(labels[i] || "");
+    return values;
+  };
+
+  CheckLocationCascade.prototype.clearAll = function () {
+    this.selections = [];
+    this.render();
+  };
+
+  CheckLocationCascade.prototype.clearFromLevel = function (level) {
+    this.selections = this.selections.slice(0, level);
+    this.render();
+  };
+
+  CheckLocationCascade.prototype.applyLabelStyles = function () {
+    if (!this.container) return;
+    var position = normalizeLabelPosition(this.config.labelPosition);
+    this.container.classList.toggle("is-label-left", position === "left");
+    this.container.classList.toggle("is-label-top", position === "top");
+    this.container.style.setProperty(
+      "--cascade-label-size",
+      normalizeLabelFontSize(this.config.labelFontSize, this.fallbackConfig.labelFontSize) + "px"
+    );
+  };
+
+  CheckLocationCascade.prototype.render = function () {
+    if (!this.container) return;
+    var depth = this.getLayerCount();
+    var self = this;
+    this.applyLabelStyles();
+    this.container.innerHTML = "";
+    this.selections = this.selections.slice(0, depth);
+
+    for (var level = 0; level < depth; level++) {
+      (function (level) {
+        var levelLabel = self.getLevelLabel(level);
+        var nodes = self.getNodesAtPath(self.selections.slice(0, level));
+        var hasSelection = self.selections[level] !== undefined;
+        var disabled = (level > 0 && self.selections[level - 1] === undefined) || !nodes.length;
+
+        var select = document.createElement("select");
+        select.id = self.container.id + "-level-" + level;
+        select.dataset.level = String(level);
+        select.disabled = disabled;
+        select.setAttribute("aria-label", levelLabel);
+
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = levelLabel;
+        placeholder.disabled = true;
+        placeholder.selected = !hasSelection;
+        select.appendChild(placeholder);
+
+        nodes.forEach(function (node, index) {
+          var opt = document.createElement("option");
+          opt.value = String(index);
+          opt.textContent = node.label;
+          if (hasSelection && self.selections[level] === index) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener("change", function (e) {
+          var lv = Number(e.target.dataset.level);
+          self.selections = self.selections.slice(0, lv);
+          if (e.target.value !== "") self.selections[lv] = Number(e.target.value);
+          self.render();
+        });
+
+        var clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.className = "cascade-clear-btn";
+        clearBtn.textContent = "清除";
+        clearBtn.title = "清除此層選取";
+        clearBtn.dataset.level = String(level);
+        clearBtn.disabled = disabled || !hasSelection;
+        clearBtn.addEventListener("click", function () {
+          self.clearFromLevel(Number(clearBtn.dataset.level));
+        });
+
+        var field = document.createElement("div");
+        field.className = "cascade-field";
+        if (self.isLevelLabelVisible(level)) {
+          var heading = document.createElement("label");
+          heading.textContent = levelLabel;
+          heading.setAttribute("for", select.id);
+          field.appendChild(heading);
+        }
+        field.appendChild(select);
+        field.appendChild(clearBtn);
+        self.container.appendChild(field);
+      })(level);
+    }
+  };
+
+  CheckLocationCascade.prototype.persistConfig = function () {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.config));
+  };
+
+  CheckLocationCascade.prototype._handleKeydown = function (e) {
+    if (e.key !== "Escape") return;
+    var ed = this.editor;
+    if (ed.confirmOverlay && ed.confirmOverlay.classList.contains("open")) this.closeConfirmDialog(false);
+    else if (ed.overlay && ed.overlay.classList.contains("open")) this.closeEditor();
+  };
+
+  CheckLocationCascade.prototype.bindEditor = function () {
+    var ed = this.editor;
+    var self = this;
+    if (!ed.gearBtn || !ed.overlay) return;
+
+    if (ed.confirmOkBtn) ed.confirmOkBtn.addEventListener("click", function () { self.closeConfirmDialog(true); });
+    if (ed.confirmCancelBtn) ed.confirmCancelBtn.addEventListener("click", function () { self.closeConfirmDialog(false); });
+    if (ed.confirmOverlay) {
+      ed.confirmOverlay.addEventListener("click", function (e) {
+        if (e.target === ed.confirmOverlay) self.closeConfirmDialog(false);
+      });
+    }
+    ed.gearBtn.addEventListener("click", function () { self.openEditor(); });
+    if (ed.closeBtn) ed.closeBtn.addEventListener("click", function () { self.closeEditor(); });
+    ed.overlay.addEventListener("click", function (e) {
+      if (e.target === ed.overlay) self.closeEditor();
+    });
+    if (ed.layerCountInput) {
+      ed.layerCountInput.addEventListener("change", function () { self.applyLayerCountChange(); });
+      ed.layerCountInput.addEventListener("blur", function () { self.applyLayerCountChange(); });
+    }
+    if (ed.addRootBtn) {
+      ed.addRootBtn.addEventListener("click", function () {
+        self.syncEditorToConfig();
+        self.config.items.push({ label: "新根項目", children: [] });
+        self.renderTreeEditor();
+        self.focusLastInput(ed.treeEditor);
+      });
+    }
+    if (ed.toggleJsonBtn) {
+      ed.toggleJsonBtn.addEventListener("click", function () {
+        if (ed.jsonArea && ed.jsonArea.classList.toggle("is-visible")) {
+          self.syncEditorToConfig();
+          ed.jsonArea.value = JSON.stringify(self.config, null, 2);
+          ed.jsonArea.focus();
+        }
+      });
+    }
+    if (ed.saveBtn) ed.saveBtn.addEventListener("click", function () { self.saveFromEditor(); });
+    document.addEventListener("keydown", this._keydownBound);
+  };
+
+  CheckLocationCascade.prototype.destroy = function () {
+    document.removeEventListener("keydown", this._keydownBound);
+  };
+
+  CheckLocationCascade.prototype.showConfirmDialog = function () {
+    var self = this;
+    return new Promise(function (resolve) {
+      self.confirmResolve = resolve;
+      setOverlayOpen(self.editor.confirmOverlay, true);
+      if (self.editor.confirmOkBtn) self.editor.confirmOkBtn.focus();
+    });
+  };
+
+  CheckLocationCascade.prototype.closeConfirmDialog = function (result) {
+    setOverlayOpen(this.editor.confirmOverlay, false);
+    if (this.confirmResolve) {
+      this.confirmResolve(result);
+      this.confirmResolve = null;
+    }
+  };
+
+  CheckLocationCascade.prototype.openEditor = function () {
+    this.renderDepthSetting();
+    this.renderLabelPositionSetting();
+    this.renderLevelLabelsEditor();
+    this.renderTreeEditor();
+    if (this.editor.jsonArea) {
+      this.editor.jsonArea.classList.remove("is-visible");
+      this.editor.jsonArea.value = JSON.stringify(this.config, null, 2);
+    }
+    setOverlayOpen(this.editor.overlay, true);
+  };
+
+  CheckLocationCascade.prototype.closeEditor = function () {
+    setOverlayOpen(this.editor.overlay, false);
+  };
+
+  CheckLocationCascade.prototype.saveFromEditor = function () {
+    var ed = this.editor;
+    if (ed.jsonArea && ed.jsonArea.classList.contains("is-visible")) {
+      try {
+        this.config = normalizeConfig(JSON.parse(ed.jsonArea.value), this.fallbackConfig);
+      } catch (e) {
+        alert("JSON 格式錯誤，請修正後再儲存。");
+        return;
+      }
+    } else {
+      this.syncEditorToConfig();
+      this.config = normalizeConfig(this.config, this.fallbackConfig);
+    }
+    this.persistConfig();
+    this.selections = [];
+    this.render();
+    this.closeEditor();
+  };
+
+  CheckLocationCascade.prototype.renderDepthSetting = function () {
+    if (this.editor.layerCountInput) {
+      this.editor.layerCountInput.value = String(this.getLayerCount());
+    }
+  };
+
+  CheckLocationCascade.prototype.renderLabelPositionSetting = function () {
+    var position = normalizeLabelPosition(this.config.labelPosition);
+    var radioName = this.labelPositionRadioName;
+    if (this.editor.overlay) {
+      this.editor.overlay.querySelectorAll('input[name="' + radioName + '"]').forEach(function (radio) {
+        radio.checked = radio.value === position;
+      });
+    }
+    if (this.editor.labelFontSizeInput) {
+      this.editor.labelFontSizeInput.value = String(
+        normalizeLabelFontSize(this.config.labelFontSize, this.fallbackConfig.labelFontSize)
+      );
+    }
+  };
+
+  CheckLocationCascade.prototype.readLabelPositionFromDom = function () {
+    var radioName = this.labelPositionRadioName;
+    var checked = this.editor.overlay && this.editor.overlay.querySelector('input[name="' + radioName + '"]:checked');
+    return normalizeLabelPosition(checked ? checked.value : this.fallbackConfig.labelPosition);
+  };
+
+  CheckLocationCascade.prototype.readLabelFontSizeFromDom = function () {
+    return normalizeLabelFontSize(
+      this.editor.labelFontSizeInput ? this.editor.labelFontSizeInput.value : undefined,
+      this.fallbackConfig.labelFontSize
+    );
+  };
+
+  CheckLocationCascade.prototype.ensureLayerArrays = function (count) {
+    this.config.levelLabels = padArray(this.config.levelLabels, count, defaultLayerLabel);
+    this.config.levelLabelVisible = padArray(this.config.levelLabelVisible, count, true);
+  };
+
+  CheckLocationCascade.prototype.applyLayerCountChange = function () {
+    var ed = this.editor;
+    var nextCount = normalizeLayerCount(
+      ed.layerCountInput ? ed.layerCountInput.value : undefined,
+      this.fallbackConfig.layerCount
+    );
+    if (ed.layerCountInput) ed.layerCountInput.value = String(nextCount);
+    this.syncEditorToConfig();
+    this.config.layerCount = nextCount;
+    this.config.items = trimTreeToDepth(this.config.items, nextCount);
+    this.ensureLayerArrays(nextCount);
+    this.renderLevelLabelsEditor();
+    this.renderTreeEditor();
+  };
+
+  CheckLocationCascade.prototype.renderLevelLabelsEditor = function () {
+    var ed = this.editor;
+    if (!ed.levelLabels) return;
+    var count = this.getLayerCount();
+    this.ensureLayerArrays(count);
+    ed.levelLabels.innerHTML = "";
+    for (var i = 0; i < count; i++) {
+      var layerTitle = "第 " + (i + 1) + " 層標籤";
+      var meta = document.createElement("label");
+      meta.className = "level-label-meta";
+      meta.title = "勾選時於預覽區顯示此層標籤";
+      var title = document.createElement("span");
+      title.textContent = layerTitle;
+      var showInput = document.createElement("input");
+      showInput.type = "checkbox";
+      showInput.className = "level-label-show-input";
+      showInput.checked = this.config.levelLabelVisible[i] !== false;
+      showInput.setAttribute("aria-label", layerTitle + "顯示於預覽");
+      meta.appendChild(title);
+      meta.appendChild(showInput);
+
+      var input = document.createElement("input");
+      input.type = "text";
+      input.className = "level-label-input";
+      input.value = this.config.levelLabels[i] || "";
+      input.placeholder = defaultLayerLabel(i);
+
+      var wrap = document.createElement("div");
+      wrap.className = "level-label-field";
+      wrap.appendChild(meta);
+      wrap.appendChild(input);
+      ed.levelLabels.appendChild(wrap);
+    }
+  };
+
+  CheckLocationCascade.prototype.readLevelLabelsFromDom = function () {
+    return Array.prototype.map.call(
+      this.editor.levelLabels ? this.editor.levelLabels.querySelectorAll("input.level-label-input") : [],
+      function (input, i) {
+        return input.value.trim() || defaultLayerLabel(i);
+      }
+    );
+  };
+
+  CheckLocationCascade.prototype.readLevelLabelVisibleFromDom = function () {
+    return Array.prototype.map.call(
+      this.editor.levelLabels ? this.editor.levelLabels.querySelectorAll("input.level-label-show-input") : [],
+      function (input) { return input.checked; }
+    );
+  };
+
+  CheckLocationCascade.prototype.readTreeFromDom = function () {
+    var treeEditor = this.editor.treeEditor;
+    function readNodes(container) {
+      var result = [];
+      container.querySelectorAll(":scope > .tree-node").forEach(function (nodeEl) {
+        var input = nodeEl.querySelector(":scope > .tree-node-row > input");
+        var label = input ? input.value.trim() : "";
+        if (!label) return;
+        var childrenEl = nodeEl.querySelector(":scope > .tree-children");
+        var children = childrenEl ? readNodes(childrenEl) : [];
+        result.push({ label: label, children: children });
+      });
+      return result;
+    }
+    return treeEditor ? readNodes(treeEditor) : [];
+  };
+
+  CheckLocationCascade.prototype.renderTreeEditor = function () {
+    var treeEditor = this.editor.treeEditor;
+    if (!treeEditor) return;
+    treeEditor.innerHTML = "";
+    this.renderTreeNodes(this.config.items, treeEditor, 0, []);
+  };
+
+  CheckLocationCascade.prototype.makeTreeBtn = function (text, className, title, disabled, onClick) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = className;
+    btn.textContent = text;
+    btn.title = title;
+    btn.disabled = !!disabled;
+    btn.addEventListener("click", onClick);
+    return btn;
+  };
+
+  CheckLocationCascade.prototype.renderTreeNodes = function (nodes, container, depth, parentNumberPath) {
+    var self = this;
+    nodes.forEach(function (node, index) {
+      var numberPath = parentNumberPath.concat(index + 1);
+      container.appendChild(self.buildTreeNodeEl(node, depth, numberPath));
+    });
+  };
+
+  CheckLocationCascade.prototype.buildTreeNodeEl = function (node, depth, numberPath) {
+    var self = this;
+    var wrap = document.createElement("div");
+    wrap.className = "tree-node";
+    wrap.dataset.depth = String(depth);
+
+    var indexLabel = document.createElement("span");
+    indexLabel.className = "tree-node-index";
+    indexLabel.textContent = numberPath.join(".");
+    indexLabel.title = "層級編號";
+    indexLabel.setAttribute("aria-hidden", "true");
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = node.label;
+    input.placeholder = "項目名稱";
+
+    var childLimitReached = depth >= this.getLayerCount() - 1;
+    var addChildBtn = this.makeTreeBtn(
+      "⊕",
+      "tree-btn" + (childLimitReached ? " tree-btn--child-limit" : ""),
+      childLimitReached ? "已達最大層數" : "新增子項目",
+      childLimitReached,
+      function () {
+        self.syncEditorToConfig();
+        var target = self.getNodeByPath(self.getNodePath(wrap));
+        if (!target) return;
+        (target.children || (target.children = [])).push({ label: "新子項目", children: [] });
+        self.renderTreeEditor();
+        self.focusLastInput(wrap.querySelector(".tree-children"));
+      }
+    );
+
+    var addSiblingBtn = this.makeTreeBtn("＋", "tree-btn", "新增同層項目", false, function () {
+      self.syncEditorToConfig();
+      var path = self.getNodePath(wrap);
+      self.getParentList(path).splice(path[path.length - 1] + 1, 0, cloneConfig(EMPTY_NODE));
+      self.renderTreeEditor();
+    });
+
+    var removeBtn = this.makeTreeBtn("×", "tree-btn remove", "刪除此項目", false, function () {
+      self.showConfirmDialog().then(function (ok) {
+        if (!ok) return;
+        self.syncEditorToConfig();
+        var path = self.getNodePath(wrap);
+        self.getParentList(path).splice(path[path.length - 1], 1);
+        self.renderTreeEditor();
+      });
+    });
+
+    var row = document.createElement("div");
+    row.className = "tree-node-row";
+    row.appendChild(indexLabel);
+    row.appendChild(input);
+    row.appendChild(addChildBtn);
+    row.appendChild(addSiblingBtn);
+    row.appendChild(removeBtn);
+    wrap.appendChild(row);
+
+    if (node.children && node.children.length) {
+      var childrenEl = document.createElement("div");
+      childrenEl.className = "tree-children";
+      this.renderTreeNodes(node.children, childrenEl, depth + 1, numberPath);
+      wrap.appendChild(childrenEl);
+    }
+
+    return wrap;
+  };
+
+  CheckLocationCascade.prototype.getNodePath = function (nodeEl) {
+    var treeEditor = this.editor.treeEditor;
+    var path = [];
+    var current = nodeEl;
+    while (current && current !== treeEditor) {
+      if (current.classList && current.classList.contains("tree-node")) {
+        var parent = current.parentElement;
+        var siblings = parent.querySelectorAll(":scope > .tree-node");
+        var idx = Array.prototype.indexOf.call(siblings, current);
+        path.unshift(idx);
+      }
+      current = current.parentElement;
+    }
+    return path;
+  };
+
+  CheckLocationCascade.prototype.getNodeByPath = function (path) {
+    var list = this.config.items;
+    var node = null;
+    for (var i = 0; i < path.length; i++) {
+      node = list[path[i]];
+      if (!node) return null;
+      list = node.children || [];
+    }
+    return node;
+  };
+
+  CheckLocationCascade.prototype.getParentList = function (path) {
+    if (!path.length) return this.config.items;
+    var parent = this.getNodeByPath(path.slice(0, -1));
+    return parent ? parent.children || (parent.children = []) : this.config.items;
+  };
+
+  CheckLocationCascade.prototype.focusLastInput = function (container) {
+    if (!container) return;
+    var inputs = container.querySelectorAll("input");
+    var last = inputs[inputs.length - 1];
+    if (last) {
+      last.focus();
+      last.select();
+    }
+  };
+
+  CheckLocationCascade.prototype.syncEditorToConfig = function () {
+    var ed = this.editor;
+    this.config.layerCount = normalizeLayerCount(
+      ed.layerCountInput ? ed.layerCountInput.value : undefined,
+      this.fallbackConfig.layerCount
+    );
+    if (ed.layerCountInput) ed.layerCountInput.value = String(this.config.layerCount);
+    this.config.labelPosition = this.readLabelPositionFromDom();
+    this.config.labelFontSize = this.readLabelFontSizeFromDom();
+    if (ed.labelFontSizeInput) ed.labelFontSizeInput.value = String(this.config.labelFontSize);
+    this.config.levelLabels = this.readLevelLabelsFromDom().slice(0, this.config.layerCount);
+    this.config.levelLabelVisible = this.readLevelLabelVisibleFromDom().slice(0, this.config.layerCount);
+    this.config.items = trimTreeToDepth(this.readTreeFromDom(), this.config.layerCount);
+    if (!this.config.items.length) this.config.items = [cloneConfig(EMPTY_NODE)];
+  };
+
+  global.CheckLocationCascade = CheckLocationCascade;
+  global.createDefaultLocationConfig = createDefaultLocationConfig;
+  global.createDefaultFloorConfig = createDefaultFloorConfig;
+  global.CHECK_LOCATION_STORAGE_KEY = CHECK_LOCATION_STORAGE_KEY;
+  global.CHECK_FLOOR_STORAGE_KEY = CHECK_FLOOR_STORAGE_KEY;
+})(window);
+  </script>
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -1482,8 +2183,8 @@
       }
     })();
 
-    const FLOOR_STORAGE_KEY = `${window.CHECK_FLOOR_STORAGE_KEY}-${WORK_ZONE_VALUE}`;
-    const LOCATION_STORAGE_KEY = `${window.CHECK_LOCATION_STORAGE_KEY}-${WORK_ZONE_VALUE}`;
+    const FLOOR_STORAGE_KEY = `${window.CHECK_FLOOR_STORAGE_KEY || "check-floor-cascade-config"}-${WORK_ZONE_VALUE}`;
+    const LOCATION_STORAGE_KEY = `${window.CHECK_LOCATION_STORAGE_KEY || "check-location-cascade-config"}-${WORK_ZONE_VALUE}`;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const LOGIN_URL = `./login.html?next=${encodeURIComponent(CURRENT_CHECK_PAGE)}`;
@@ -1543,67 +2244,77 @@
     }
     let locationPicker = null;
     let floorPicker = null;
-    try {
-      if (window.CheckLocationCascade && floorCascadeEl) {
-        const floorFallbackConfig = window.createDefaultFloorConfig(FLOOR_OPTIONS);
-        floorPicker = new window.CheckLocationCascade({
-          container: floorCascadeEl,
-          storageKey: FLOOR_STORAGE_KEY,
-          labelPositionRadioName: "floorLabelPosition",
-          fallbackConfig: floorFallbackConfig,
-          editor: {
-            gearBtn: document.getElementById("floorGearBtn"),
-            overlay: document.getElementById("floorCascadeOverlay"),
-            closeBtn: document.getElementById("floorCascadeCloseBtn"),
-            layerCountInput: document.getElementById("floorLayerCountInput"),
-            labelFontSizeInput: document.getElementById("floorLabelFontSizeInput"),
-            levelLabels: document.getElementById("floorLevelLabels"),
-            treeEditor: document.getElementById("floorTreeEditor"),
-            jsonArea: document.getElementById("floorJsonArea"),
-            addRootBtn: document.getElementById("floorAddRootBtn"),
-            toggleJsonBtn: document.getElementById("floorToggleJsonBtn"),
-            saveBtn: document.getElementById("floorSaveBtn"),
-            confirmOverlay: document.getElementById("floorConfirmOverlay"),
-            confirmOkBtn: document.getElementById("floorConfirmOkBtn"),
-            confirmCancelBtn: document.getElementById("floorConfirmCancelBtn"),
-          },
-        });
-      }
-    } catch (err) {
-      console.error("樓層選單初始化失敗：", err);
+    if (!window.CheckLocationCascade || !window.createDefaultFloorConfig || !window.createDefaultLocationConfig) {
+      console.error("樓層／位置級聯選單腳本未載入（CheckLocationCascade 不存在）");
       if (floorCascadeEl) {
-        floorCascadeEl.textContent = "樓層選單載入失敗，請重新整理頁面。";
+        floorCascadeEl.textContent = "樓層選單腳本未載入，請確認已部署最新 check.html。";
       }
-    }
-    try {
-      if (window.CheckLocationCascade && locationCascadeEl) {
-        const locationFallbackConfig = window.createDefaultLocationConfig(LOCATION_TREE);
-        locationPicker = new window.CheckLocationCascade({
-          container: locationCascadeEl,
-          storageKey: LOCATION_STORAGE_KEY,
-          fallbackConfig: locationFallbackConfig,
-          editor: {
-            gearBtn: document.getElementById("locationGearBtn"),
-            overlay: document.getElementById("locationCascadeOverlay"),
-            closeBtn: document.getElementById("locationCascadeCloseBtn"),
-            layerCountInput: document.getElementById("locationLayerCountInput"),
-            labelFontSizeInput: document.getElementById("locationLabelFontSizeInput"),
-            levelLabels: document.getElementById("locationLevelLabels"),
-            treeEditor: document.getElementById("locationTreeEditor"),
-            jsonArea: document.getElementById("locationJsonArea"),
-            addRootBtn: document.getElementById("locationAddRootBtn"),
-            toggleJsonBtn: document.getElementById("locationToggleJsonBtn"),
-            saveBtn: document.getElementById("locationSaveBtn"),
-            confirmOverlay: document.getElementById("locationConfirmOverlay"),
-            confirmOkBtn: document.getElementById("locationConfirmOkBtn"),
-            confirmCancelBtn: document.getElementById("locationConfirmCancelBtn"),
-          },
-        });
-      }
-    } catch (err) {
-      console.error("位置選單初始化失敗：", err);
       if (locationCascadeEl) {
-        locationCascadeEl.textContent = "位置選單載入失敗，請重新整理頁面。";
+        locationCascadeEl.textContent = "位置選單腳本未載入，請確認已部署最新 check.html。";
+      }
+    } else {
+      try {
+        if (floorCascadeEl) {
+          const floorFallbackConfig = window.createDefaultFloorConfig(FLOOR_OPTIONS);
+          floorPicker = new window.CheckLocationCascade({
+            container: floorCascadeEl,
+            storageKey: FLOOR_STORAGE_KEY,
+            labelPositionRadioName: "floorLabelPosition",
+            fallbackConfig: floorFallbackConfig,
+            editor: {
+              gearBtn: document.getElementById("floorGearBtn"),
+              overlay: document.getElementById("floorCascadeOverlay"),
+              closeBtn: document.getElementById("floorCascadeCloseBtn"),
+              layerCountInput: document.getElementById("floorLayerCountInput"),
+              labelFontSizeInput: document.getElementById("floorLabelFontSizeInput"),
+              levelLabels: document.getElementById("floorLevelLabels"),
+              treeEditor: document.getElementById("floorTreeEditor"),
+              jsonArea: document.getElementById("floorJsonArea"),
+              addRootBtn: document.getElementById("floorAddRootBtn"),
+              toggleJsonBtn: document.getElementById("floorToggleJsonBtn"),
+              saveBtn: document.getElementById("floorSaveBtn"),
+              confirmOverlay: document.getElementById("floorConfirmOverlay"),
+              confirmOkBtn: document.getElementById("floorConfirmOkBtn"),
+              confirmCancelBtn: document.getElementById("floorConfirmCancelBtn"),
+            },
+          });
+        }
+      } catch (err) {
+        console.error("樓層選單初始化失敗：", err);
+        if (floorCascadeEl) {
+          floorCascadeEl.textContent = "樓層選單載入失敗，請重新整理頁面。";
+        }
+      }
+      try {
+        if (locationCascadeEl) {
+          const locationFallbackConfig = window.createDefaultLocationConfig(LOCATION_TREE);
+          locationPicker = new window.CheckLocationCascade({
+            container: locationCascadeEl,
+            storageKey: LOCATION_STORAGE_KEY,
+            fallbackConfig: locationFallbackConfig,
+            editor: {
+              gearBtn: document.getElementById("locationGearBtn"),
+              overlay: document.getElementById("locationCascadeOverlay"),
+              closeBtn: document.getElementById("locationCascadeCloseBtn"),
+              layerCountInput: document.getElementById("locationLayerCountInput"),
+              labelFontSizeInput: document.getElementById("locationLabelFontSizeInput"),
+              levelLabels: document.getElementById("locationLevelLabels"),
+              treeEditor: document.getElementById("locationTreeEditor"),
+              jsonArea: document.getElementById("locationJsonArea"),
+              addRootBtn: document.getElementById("locationAddRootBtn"),
+              toggleJsonBtn: document.getElementById("locationToggleJsonBtn"),
+              saveBtn: document.getElementById("locationSaveBtn"),
+              confirmOverlay: document.getElementById("locationConfirmOverlay"),
+              confirmOkBtn: document.getElementById("locationConfirmOkBtn"),
+              confirmCancelBtn: document.getElementById("locationConfirmCancelBtn"),
+            },
+          });
+        }
+      } catch (err) {
+        console.error("位置選單初始化失敗：", err);
+        if (locationCascadeEl) {
+          locationCascadeEl.textContent = "位置選單載入失敗，請重新整理頁面。";
+        }
       }
     }
 
