@@ -197,6 +197,12 @@
       background: rgba(255, 255, 255, 0.02);
       transition: all 0.15s ease;
     }
+    button.link-btn {
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      cursor: pointer;
+    }
     .link-btn:hover {
       border-color: var(--accent);
       background: rgba(61, 139, 253, 0.12);
@@ -476,11 +482,13 @@
       background: rgba(8, 12, 18, 0.72);
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
       transition: opacity 0.18s ease, visibility 0.18s ease;
     }
     .report-missing-overlay.is-open {
       opacity: 1;
       visibility: visible;
+      pointer-events: auto;
     }
     .report-missing-card {
       width: min(92vw, 320px);
@@ -524,6 +532,84 @@
       border-color: var(--muted);
       background: var(--btn-secondary-hover);
       color: var(--text);
+    }
+    .report-missing-zone-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .report-missing-add-panel {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .report-missing-add-panel[hidden] {
+      display: none;
+    }
+    .report-missing-add-panel input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      font-weight: 600;
+      text-align: center;
+    }
+    .report-missing-add-panel input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+    .report-missing-add-confirm {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .report-missing-add-confirm:hover {
+      background: rgba(61, 139, 253, 0.22);
+      color: #fff;
+    }
+    .report-missing-add-btn {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      padding: 12px 16px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .report-missing-add-btn:hover {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.1);
+      color: #fff;
+    }
+    .report-missing-add-error {
+      margin: 0;
+      font-size: 13px;
+      color: var(--danger);
+      text-align: center;
+      line-height: 1.35;
+    }
+    .report-missing-add-error[hidden] {
+      display: none;
     }
     .visually-hidden {
       position: absolute;
@@ -582,12 +668,12 @@
       </div>
       <div class="links-row-two">
         <button class="link-btn report-missing-open" type="button" id="report-missing-open">回報缺失</button>
-        <a class="link-btn" href="./checklist.html">缺失紀錄管理🖥️</a>
+        <button class="link-btn" type="button" id="checklist-manage-open">缺失紀錄管理🖥️</button>
       </div>
       <div class="links-row-three">
         <a class="link-btn" href="">查詢考勤🚧</a>
         <a class="link-btn" href="">預訂排休🚧</a>
-        <a class="link-btn" href="">填寫打卡🚧</a>
+        <a class="link-btn" href="diarytest.html">填寫打卡</a>
       </div>
       <a class="link-btn" href="">公司月行事曆🚧</a>
       <div class="links-row-two">
@@ -606,20 +692,23 @@
       <div class="tetris-btn-wrap">
         <a class="link-btn link-btn--tetris" href="./tetris.html">俄羅斯方塊</a>
         <a class="link-btn link-btn--tetris-vs" href="./tetris-vs.html">雙人對戰</a>
-        <a class="link-btn" href="./gogoman69.html">GogoMan69</a>
       </div>
     </div>
     </div>
   </main>
   <footer class="site-footer">© Reguhu 2026</footer>
 
-  <!-- 彈窗內容 -->
   <div class="report-missing-overlay" id="report-missing-overlay" hidden aria-hidden="true">
     <div class="report-missing-card" role="dialog" aria-modal="true" aria-labelledby="report-missing-title">
-      <p id="report-missing-title" class="visually-hidden">選擇工區回報缺失</p>
-      <a class="report-missing-item" href="./check67.html">67</a>
-      <a class="report-missing-item" href="./check69.html">69</a>
+      <p id="report-missing-title" class="visually-hidden">選擇工區</p>
+      <div id="report-missing-zone-list" class="report-missing-zone-list" role="list"></div>
       <button class="report-missing-item" type="button" id="report-missing-cancel">取消</button>
+      <div class="report-missing-add-panel" id="report-missing-add-panel" hidden>
+        <input type="text" id="report-missing-zone-input" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="工區號碼" aria-label="工區號碼" />
+        <button type="button" class="report-missing-add-confirm" id="report-missing-zone-confirm">確定</button>
+      </div>
+      <p id="report-missing-add-error" class="report-missing-add-error" hidden role="alert"></p>
+      <button type="button" class="report-missing-add-btn" id="report-missing-add-btn" aria-label="新增工區" aria-expanded="false" hidden>＋</button>
     </div>
   </div>
 
@@ -648,6 +737,10 @@
     }
 
     function canEditAnnouncement(profile) {
+      return Number(profile?.permission_level) === 0;
+    }
+
+    function canAddWorkZone(profile) {
       return Number(profile?.permission_level) === 0;
     }
 
@@ -686,6 +779,7 @@
       if (error) {
         userNameEl.textContent = `你好，${user.email || "未知使用者"}`;
         setAnnouncementFeedback(`讀取名稱失敗：${error.message}`, "error");
+        updateReportMissingAddAccess(false);
         await loadAnnouncement();
         return;
       }
@@ -701,6 +795,7 @@
         ? "您為最高權限等級，可編輯後按「儲存公告」。"
         : "不具有儲存公告的權限。";
       setAnnouncementFeedback("");
+      updateReportMissingAddAccess(canAddWorkZone(profile));
 
       await loadAnnouncement();
     }
@@ -770,28 +865,162 @@
     }
 
     const reportMissingOpen = document.getElementById("report-missing-open");
+    const checklistManageOpen = document.getElementById("checklist-manage-open");
     const reportMissingOverlay = document.getElementById("report-missing-overlay");
     const reportMissingCancel = document.getElementById("report-missing-cancel");
+    const reportMissingZoneList = document.getElementById("report-missing-zone-list");
+    const reportMissingAddBtn = document.getElementById("report-missing-add-btn");
+    const reportMissingAddPanel = document.getElementById("report-missing-add-panel");
+    const reportMissingZoneInput = document.getElementById("report-missing-zone-input");
+    const reportMissingZoneConfirm = document.getElementById("report-missing-zone-confirm");
+    const reportMissingAddError = document.getElementById("report-missing-add-error");
+    const REPORT_MISSING_DEFAULT_ZONES = ["67", "69"];
+    const REPORT_MISSING_ZONES_KEY = "index:customWorkZones";
+    let canAddWorkZoneCurrent = false;
+    let zonePickerTarget = "check";
 
-    function openReportMissingModal() {
+    function getZonePickerHref(zone) {
+      const base = zonePickerTarget === "checklist" ? "./checklist.html" : "./check.html";
+      return `${base}?zone=${encodeURIComponent(zone)}`;
+    }
+
+    function updateReportMissingAddAccess(allowed) {
+      canAddWorkZoneCurrent = Boolean(allowed);
+      if (reportMissingAddBtn) reportMissingAddBtn.hidden = !canAddWorkZoneCurrent;
+      if (!canAddWorkZoneCurrent) closeReportMissingAddPanel();
+    }
+
+    function loadCustomWorkZones() {
+      try {
+        const raw = localStorage.getItem(REPORT_MISSING_ZONES_KEY);
+        if (!raw) return [];
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return [];
+        return list.map((z) => String(z).trim()).filter((z) => /^\d+$/.test(z));
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveCustomWorkZones(zones) {
+      localStorage.setItem(REPORT_MISSING_ZONES_KEY, JSON.stringify(zones));
+    }
+
+    function getReportMissingZones() {
+      const merged = [...REPORT_MISSING_DEFAULT_ZONES, ...loadCustomWorkZones()];
+      return [...new Set(merged)].sort((a, b) => Number(a) - Number(b));
+    }
+
+    function renderReportMissingZones() {
+      if (!reportMissingZoneList) return;
+      const zones = getReportMissingZones();
+      reportMissingZoneList.innerHTML = zones
+        .map(
+          (zone) =>
+            `<a class="report-missing-item" role="listitem" href="${getZonePickerHref(zone)}">${zone}</a>`
+        )
+        .join("");
+    }
+
+    function setReportMissingAddError(msg) {
+      if (!reportMissingAddError) return;
+      if (msg) {
+        reportMissingAddError.textContent = msg;
+        reportMissingAddError.hidden = false;
+      } else {
+        reportMissingAddError.textContent = "";
+        reportMissingAddError.hidden = true;
+      }
+    }
+
+    function closeReportMissingAddPanel() {
+      if (!reportMissingAddPanel || !reportMissingAddBtn) return;
+      reportMissingAddPanel.hidden = true;
+      reportMissingAddBtn.setAttribute("aria-expanded", "false");
+      if (reportMissingZoneInput) reportMissingZoneInput.value = "";
+      setReportMissingAddError("");
+    }
+
+    function openReportMissingAddPanel() {
+      if (!canAddWorkZoneCurrent) return;
+      if (!reportMissingAddPanel || !reportMissingAddBtn) return;
+      setReportMissingAddError("");
+      reportMissingAddPanel.hidden = false;
+      reportMissingAddBtn.setAttribute("aria-expanded", "true");
+      reportMissingZoneInput?.focus();
+    }
+
+    function toggleReportMissingAddPanel() {
+      if (!canAddWorkZoneCurrent) return;
+      if (!reportMissingAddPanel) return;
+      if (reportMissingAddPanel.hidden) openReportMissingAddPanel();
+      else closeReportMissingAddPanel();
+    }
+
+    function confirmReportMissingZone() {
+      if (!canAddWorkZoneCurrent) {
+        setReportMissingAddError("僅權限等級 0 可新增工區。");
+        return;
+      }
+      const value = (reportMissingZoneInput?.value || "").trim();
+      if (!/^\d+$/.test(value)) {
+        setReportMissingAddError("請輸入數字工區號碼。");
+        reportMissingZoneInput?.focus();
+        return;
+      }
+      const zones = getReportMissingZones();
+      if (zones.includes(value)) {
+        setReportMissingAddError(`工區 ${value} 已存在。`);
+        reportMissingZoneInput?.focus();
+        return;
+      }
+      const custom = loadCustomWorkZones();
+      if (!custom.includes(value)) {
+        custom.push(value);
+        saveCustomWorkZones(custom);
+      }
+      renderReportMissingZones();
+      closeReportMissingAddPanel();
+    }
+
+    function openReportMissingModal(target = "check") {
+      zonePickerTarget = target === "checklist" ? "checklist" : "check";
+      closeReportMissingAddPanel();
+      renderReportMissingZones();
       reportMissingOverlay.hidden = false;
       reportMissingOverlay.setAttribute("aria-hidden", "false");
       reportMissingOverlay.classList.add("is-open");
     }
 
     function closeReportMissingModal() {
+      closeReportMissingAddPanel();
       reportMissingOverlay.classList.remove("is-open");
       reportMissingOverlay.setAttribute("aria-hidden", "true");
       reportMissingOverlay.hidden = true;
     }
 
-    reportMissingOpen?.addEventListener("click", openReportMissingModal);
+    renderReportMissingZones();
+    updateReportMissingAddAccess(false);
+    reportMissingOpen?.addEventListener("click", () => openReportMissingModal("check"));
+    checklistManageOpen?.addEventListener("click", () => openReportMissingModal("checklist"));
     reportMissingCancel?.addEventListener("click", closeReportMissingModal);
+    reportMissingAddBtn?.addEventListener("click", toggleReportMissingAddPanel);
+    reportMissingZoneConfirm?.addEventListener("click", confirmReportMissingZone);
+    reportMissingZoneInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        confirmReportMissingZone();
+      }
+    });
     reportMissingOverlay?.addEventListener("click", (e) => {
       if (e.target === reportMissingOverlay) closeReportMissingModal();
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && reportMissingOverlay?.classList.contains("is-open")) {
+        if (reportMissingAddPanel && !reportMissingAddPanel.hidden) {
+          closeReportMissingAddPanel();
+          return;
+        }
         closeReportMissingModal();
       }
     });
