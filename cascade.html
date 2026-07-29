@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>分層式下拉選單</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --danger: #f87171;
+      --ok: #22c55e;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 100% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 16px 12px;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .page-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      min-height: 34px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .back-btn {
+      position: absolute;
+      left: 0;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .back-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .preview-wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .preview-wrap .panel {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel-body {
+      padding: 10px 12px 12px;
+    }
+
+    .gear-btn {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .gear-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .gear-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .cascade-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cascade-row.is-label-left .cascade-field {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .cascade-row.is-label-top .cascade-field {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 4px 6px;
+      min-width: 0;
+    }
+
+    .cascade-row.is-label-top .cascade-field > label {
+      grid-column: 1 / -1;
+    }
+
+    .cascade-row.is-label-top .cascade-field > select {
+      grid-column: 1;
+    }
+
+    .cascade-row.is-label-top .cascade-field > .cascade-clear-btn {
+      grid-column: 2;
+      align-self: stretch;
+    }
+
+    .cascade-field > label {
+      flex: 0 0 auto;
+      font-size: var(--cascade-label-size, 13px);
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .cascade-field > select {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      padding: 9px 32px 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b9cb3' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .cascade-field > select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .cascade-field > select:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .cascade-clear-btn {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 10px;
+      min-height: 36px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .cascade-clear-btn:hover:not(:disabled) {
+      color: var(--text);
+      border-color: var(--muted);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .cascade-clear-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* Modal */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 100;
+    }
+
+    .overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 640px;
+      max-height: min(88vh, 720px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      font-size: 15px;
+    }
+
+    .modal input,
+    .modal button,
+    .modal textarea {
+      font-size: inherit;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .modal-body {
+      padding: 12px 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-desc {
+      margin: 0 0 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .settings-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .level-labels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 6px;
+    }
+
+    .level-label-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .level-label-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .level-label-meta span {
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .level-label-meta input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .level-label-field .level-label-input {
+      padding: 7px 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .level-label-field .level-label-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .tree-editor {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+      padding: 8px;
+      min-height: 160px;
+    }
+
+    .tree-node {
+      margin-left: 0;
+    }
+
+    .tree-node + .tree-node {
+      margin-top: 4px;
+    }
+
+    .tree-node[data-depth="1"] { margin-left: 14px; }
+    .tree-node[data-depth="2"] { margin-left: 28px; }
+    .tree-node[data-depth="3"] { margin-left: 42px; }
+    .tree-node[data-depth="4"] { margin-left: 56px; }
+    .tree-node[data-depth="5"] { margin-left: 70px; }
+    .tree-node[data-depth="6"] { margin-left: 84px; }
+    .tree-node[data-depth="7"] { margin-left: 98px; }
+
+    .depth-setting {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .depth-setting label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .depth-setting input[type="number"] {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .depth-setting input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .depth-setting-hint {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .label-position-setting {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .label-position-setting-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .label-position-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+    }
+
+    .label-position-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .label-position-option input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .label-size-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .label-size-field input[type="number"] {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .label-size-field input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .label-size-unit {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .tree-node-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tree-node-index {
+      flex-shrink: 0;
+      min-width: 2.8em;
+      font-weight: 600;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    .tree-node-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .tree-node-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .tree-btn {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .tree-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .tree-btn.remove:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .tree-btn.tree-btn--child-limit:disabled {
+      background: rgba(128, 128, 128, 0.1);
+      color: var(--muted);
+      border-color: var(--border);
+      opacity: 1;
+      cursor: default;
+    }
+
+    .tree-children {
+      margin-top: 4px;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-actions button {
+      flex: 1;
+      min-width: 96px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .add-root-btn {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .add-root-btn:hover {
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .import-btn {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .import-btn:hover {
+      color: var(--text);
+      border-color: var(--muted);
+    }
+
+    .save-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .save-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .json-area {
+      width: 100%;
+      min-height: 160px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      resize: vertical;
+      display: none;
+    }
+
+    .json-area.is-visible {
+      display: block;
+    }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+
+    .confirm-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .confirm-card {
+      width: min(92vw, 280px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      font-size: 15px;
+    }
+
+    .confirm-card button {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: #fff;
+      transition: filter 0.2s, border-color 0.2s;
+    }
+
+    .confirm-card .confirm-ok-btn {
+      background: linear-gradient(145deg, #991b1b 0%, #7f1d1d 100%);
+      border-color: #b91c1c;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .confirm-card .confirm-ok-btn:hover {
+      background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
+      border-color: #f87171;
+    }
+
+    .confirm-card .confirm-cancel-btn {
+      background: linear-gradient(145deg, #15803d 0%, #166534 100%);
+      border-color: #16a34a;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .confirm-card .confirm-cancel-btn:hover {
+      background: linear-gradient(145deg, #22c55e 0%, #16a34a 100%);
+      border-color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <a class="back-btn" href="./index.html">↩ 返回</a>
+      <h1 class="page-title">分層式下拉選單</h1>
+    </header>
+
+    <div class="preview-wrap">
+      <div class="panel">
+        <div class="panel-body">
+          <div class="cascade-row" id="cascadeRow"></div>
+        </div>
+      </div>
+      <button class="gear-btn" id="gearBtn" type="button" aria-label="設定選單內容">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h2 id="modalTitle">設定選單內容</h2>
+        <button class="close-btn" id="closeBtn" type="button" aria-label="關閉">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">編輯樹狀選項：「⊕」新增子項目，「＋」新增同層項目，「×」刪除節點及其子項。</p>
+        <div class="settings-stack">
+          <div class="depth-setting">
+            <label for="layerCountInput">
+              <span>層數</span>
+              <input type="number" id="layerCountInput" min="1" max="8" step="1" value="4" aria-describedby="layerCountHint">
+            </label>
+            <span class="depth-setting-hint" id="layerCountHint">可設定 1～8 層，預覽區會固定顯示對應數量的下拉選單。</span>
+          </div>
+          <div class="label-position-setting">
+            <span class="label-position-setting-title">標籤位置</span>
+            <div class="label-position-options">
+              <label class="label-position-option">
+                <input type="radio" name="labelPosition" value="left" checked>
+                選單左側
+              </label>
+              <label class="label-position-option">
+                <input type="radio" name="labelPosition" value="top">
+                選單上方
+              </label>
+            </div>
+            <label class="label-size-field" for="labelFontSizeInput">
+              <span>標籤文字大小</span>
+              <input type="number" id="labelFontSizeInput" min="10" max="28" step="1" value="13" aria-describedby="labelFontSizeHint">
+              <span class="label-size-unit">px</span>
+            </label>
+            <span class="depth-setting-hint" id="labelFontSizeHint">可設定 10～28 px。</span>
+          </div>
+          <div class="level-labels" id="levelLabels"></div>
+        </div>
+        <div class="tree-editor" id="treeEditor"></div>
+        <textarea class="json-area" id="jsonArea" spellcheck="false" aria-label="JSON 匯入匯出"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="add-root-btn" id="addRootBtn">新增根項目(開頭項)</button>
+        <button type="button" class="import-btn" id="toggleJsonBtn">JSON 匯入/匯出</button>
+        <button type="button" class="save-btn" id="saveBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay" aria-hidden="true">
+    <div class="confirm-card" role="dialog" aria-modal="true" aria-label="刪除確認">
+      <button type="button" class="confirm-ok-btn" id="confirmOkBtn">確定</button>
+      <button type="button" class="confirm-cancel-btn" id="confirmCancelBtn">取消</button>
+    </div>
+  </div>
+
+  <script>
+    var STORAGE_KEY = "cascade-dropdown-config";
+    var ABS_MAX_DEPTH = 8;
+    var EMPTY_NODE = { label: "新項目", children: [] };
+
+    var defaultConfig = {
+      layerCount: 4,
+      labelPosition: "left",
+      labelFontSize: 13,
+      levelLabels: ["大分類", "中分類", "小分類", "細項"],
+      levelLabelVisible: [true, true, true, true],
+      items: [
+        {
+          label: "北部",
+          children: [
+            {
+              label: "台北市",
+              children: [
+                { label: "信義區", children: [{ label: "101 商圈" }, { label: "市政府" }] },
+                { label: "大安區", children: [{ label: "科技大樓" }, { label: "師大商圈" }] }
+              ]
+            },
+            {
+              label: "新北市",
+              children: [
+                { label: "板橋區", children: [{ label: "車站前" }] },
+                { label: "新店區", children: [{ label: "七張" }] }
+              ]
+            }
+          ]
+        },
+        {
+          label: "中部",
+          children: [
+            {
+              label: "台中市",
+              children: [
+                { label: "西屯區", children: [{ label: "逢甲" }] },
+                { label: "北屯區", children: [{ label: "崇德" }] }
+              ]
+            }
+          ]
+        },
+        {
+          label: "南部",
+          children: [
+            {
+              label: "高雄市",
+              children: [
+                { label: "左營區", children: [{ label: "高鐵站" }] }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    var config = cloneConfig(defaultConfig);
+    var selections = [];
+    var confirmResolve = null;
+
+    var cascadeRow = document.getElementById("cascadeRow");
+    var gearBtn = document.getElementById("gearBtn");
+    var overlay = document.getElementById("overlay");
+    var closeBtn = document.getElementById("closeBtn");
+    var levelLabelsEl = document.getElementById("levelLabels");
+    var treeEditor = document.getElementById("treeEditor");
+    var addRootBtn = document.getElementById("addRootBtn");
+    var saveBtn = document.getElementById("saveBtn");
+    var toggleJsonBtn = document.getElementById("toggleJsonBtn");
+    var jsonArea = document.getElementById("jsonArea");
+    var layerCountInput = document.getElementById("layerCountInput");
+    var labelFontSizeInput = document.getElementById("labelFontSizeInput");
+    var confirmOverlay = document.getElementById("confirmOverlay");
+    var confirmOkBtn = document.getElementById("confirmOkBtn");
+    var confirmCancelBtn = document.getElementById("confirmCancelBtn");
+
+    function cloneConfig(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
+    function defaultLayerLabel(index) {
+      return "第 " + (index + 1) + " 層";
+    }
+
+    function padArray(list, size, fillValue) {
+      list = Array.isArray(list) ? list.slice() : [];
+      while (list.length < size) {
+        list.push(typeof fillValue === "function" ? fillValue(list.length) : fillValue);
+      }
+      return list.slice(0, size);
+    }
+
+    function normalizeLayerCount(value) {
+      var count = Number(value);
+      if (!Number.isFinite(count)) return defaultConfig.layerCount;
+      return Math.min(ABS_MAX_DEPTH, Math.max(1, Math.round(count)));
+    }
+
+    function normalizeLabelPosition(value) {
+      return value === "top" ? "top" : "left";
+    }
+
+    function normalizeLabelFontSize(value) {
+      var size = Number(value);
+      if (!Number.isFinite(size)) return defaultConfig.labelFontSize;
+      return Math.min(28, Math.max(10, Math.round(size)));
+    }
+
+    function getLabelPosition() {
+      return normalizeLabelPosition(config.labelPosition);
+    }
+
+    function getLabelFontSize() {
+      return normalizeLabelFontSize(config.labelFontSize);
+    }
+
+    function applyLabelStyles() {
+      var position = getLabelPosition();
+      cascadeRow.classList.toggle("is-label-left", position === "left");
+      cascadeRow.classList.toggle("is-label-top", position === "top");
+      cascadeRow.style.setProperty("--cascade-label-size", getLabelFontSize() + "px");
+    }
+
+    function getLayerCount() {
+      return normalizeLayerCount(config.layerCount);
+    }
+
+    function getLevelLabel(level) {
+      return config.levelLabels[level] || defaultLayerLabel(level);
+    }
+
+    function ensureLayerArrays(count) {
+      config.levelLabels = padArray(config.levelLabels, count, defaultLayerLabel);
+      config.levelLabelVisible = padArray(config.levelLabelVisible, count, true);
+    }
+
+    function isLevelLabelVisible(level) {
+      return !Array.isArray(config.levelLabelVisible) || config.levelLabelVisible[level] !== false;
+    }
+
+    function setOverlayOpen(el, open) {
+      el.classList.toggle("open", open);
+      el.setAttribute("aria-hidden", open ? "false" : "true");
+    }
+
+    function showConfirmDialog() {
+      return new Promise(function (resolve) {
+        confirmResolve = resolve;
+        setOverlayOpen(confirmOverlay, true);
+        confirmOkBtn.focus();
+      });
+    }
+
+    function closeConfirmDialog(result) {
+      setOverlayOpen(confirmOverlay, false);
+      if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
+      }
+    }
+
+    function normalizeNode(node, maxDepth, depth) {
+      depth = depth || 1;
+      var label = String(node && node.label != null ? node.label : "").trim();
+      if (!label) return null;
+      var children = [];
+      if (depth < maxDepth && Array.isArray(node.children)) {
+        children = node.children
+          .map(function (child) { return normalizeNode(child, maxDepth, depth + 1); })
+          .filter(Boolean);
+      }
+      return { label: label, children: children };
+    }
+
+    function trimTreeToDepth(nodes, maxDepth, depth) {
+      depth = depth || 1;
+      return (nodes || []).map(function (node) {
+        return depth >= maxDepth
+          ? { label: node.label, children: [] }
+          : { label: node.label, children: trimTreeToDepth(node.children || [], maxDepth, depth + 1) };
+      });
+    }
+
+    function normalizeConfig(raw) {
+      if (!raw || typeof raw !== "object") return cloneConfig(defaultConfig);
+      var layerCount = normalizeLayerCount(
+        raw.layerCount || (Array.isArray(raw.levelLabels) && raw.levelLabels.length) || defaultConfig.layerCount
+      );
+      var labels = Array.isArray(raw.levelLabels) && raw.levelLabels.length
+        ? raw.levelLabels.map(function (v) { return String(v || "").trim() || "選項"; })
+        : defaultConfig.levelLabels.slice();
+      labels = padArray(labels, layerCount, defaultLayerLabel);
+      var visible = Array.isArray(raw.levelLabelVisible)
+        ? raw.levelLabelVisible.map(function (v) { return v !== false; })
+        : defaultConfig.levelLabelVisible.slice();
+      visible = padArray(visible, layerCount, true);
+      var items = Array.isArray(raw.items)
+        ? raw.items.map(function (node) { return normalizeNode(node, layerCount); }).filter(Boolean)
+        : [];
+      if (!items.length) items = trimTreeToDepth(cloneConfig(defaultConfig).items, layerCount);
+      return {
+        layerCount: layerCount,
+        labelPosition: normalizeLabelPosition(raw.labelPosition),
+        labelFontSize: normalizeLabelFontSize(raw.labelFontSize),
+        levelLabels: labels,
+        levelLabelVisible: visible,
+        items: items
+      };
+    }
+
+    function getNodesAtPath(path) {
+      var nodes = config.items;
+      for (var i = 0; i < path.length; i++) {
+        var idx = path[i];
+        if (!nodes[idx]) return [];
+        nodes = nodes[idx].children || [];
+      }
+      return nodes;
+    }
+
+    function clearSelectionFromLevel(level) {
+      selections = selections.slice(0, level);
+    }
+
+    function renderCascade() {
+      var depth = getLayerCount();
+      applyLabelStyles();
+      cascadeRow.innerHTML = "";
+      selections = selections.slice(0, depth);
+
+      for (var level = 0; level < depth; level++) {
+        var levelLabel = getLevelLabel(level);
+        var nodes = getNodesAtPath(selections.slice(0, level));
+        var hasSelection = selections[level] !== undefined;
+        var disabled = (level > 0 && selections[level - 1] === undefined) || !nodes.length;
+
+        var select = document.createElement("select");
+        select.id = "cascade-level-" + level;
+        select.dataset.level = String(level);
+        select.disabled = disabled;
+
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = levelLabel;
+        placeholder.disabled = true;
+        placeholder.selected = !hasSelection;
+        select.appendChild(placeholder);
+
+        nodes.forEach(function (node, index) {
+          var opt = document.createElement("option");
+          opt.value = String(index);
+          opt.textContent = node.label;
+          if (hasSelection && selections[level] === index) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener("change", function (e) {
+          var lv = Number(e.target.dataset.level);
+          selections = selections.slice(0, lv);
+          if (e.target.value !== "") selections[lv] = Number(e.target.value);
+          renderCascade();
+        });
+
+        var clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.className = "cascade-clear-btn";
+        clearBtn.textContent = "清除";
+        clearBtn.title = "清除此層選取";
+        clearBtn.dataset.level = String(level);
+        clearBtn.disabled = disabled || !hasSelection;
+        clearBtn.addEventListener("click", function () {
+          clearSelectionFromLevel(Number(this.dataset.level));
+          renderCascade();
+        });
+
+        var field = document.createElement("div");
+        field.className = "cascade-field";
+        if (isLevelLabelVisible(level)) {
+          var heading = document.createElement("label");
+          heading.textContent = levelLabel;
+          heading.setAttribute("for", select.id);
+          field.appendChild(heading);
+        }
+        field.appendChild(select);
+        field.appendChild(clearBtn);
+        cascadeRow.appendChild(field);
+      }
+    }
+
+    function renderDepthSetting() {
+      layerCountInput.value = String(getLayerCount());
+    }
+
+    function renderLabelPositionSetting() {
+      var position = getLabelPosition();
+      var radios = document.querySelectorAll('input[name="labelPosition"]');
+      Array.prototype.forEach.call(radios, function (radio) {
+        radio.checked = radio.value === position;
+      });
+      if (labelFontSizeInput) {
+        labelFontSizeInput.value = String(getLabelFontSize());
+      }
+    }
+
+    function readLabelPositionFromDom() {
+      var checked = document.querySelector('input[name="labelPosition"]:checked');
+      return normalizeLabelPosition(checked ? checked.value : defaultConfig.labelPosition);
+    }
+
+    function readLabelFontSizeFromDom() {
+      return normalizeLabelFontSize(labelFontSizeInput ? labelFontSizeInput.value : defaultConfig.labelFontSize);
+    }
+
+    function applyLayerCountChange() {
+      var nextCount = normalizeLayerCount(layerCountInput.value);
+      layerCountInput.value = String(nextCount);
+      syncEditorToConfig();
+      config.layerCount = nextCount;
+      config.items = trimTreeToDepth(config.items, nextCount);
+      ensureLayerArrays(nextCount);
+      renderLevelLabelsEditor();
+      renderTreeEditor();
+    }
+
+    function renderLevelLabelsEditor() {
+      var count = getLayerCount();
+      ensureLayerArrays(count);
+      levelLabelsEl.innerHTML = "";
+      for (var i = 0; i < count; i++) {
+        var layerTitle = "第 " + (i + 1) + " 層標籤";
+        var meta = document.createElement("label");
+        meta.className = "level-label-meta";
+        meta.title = "勾選時於預覽區顯示此層標籤";
+        var title = document.createElement("span");
+        title.textContent = layerTitle;
+        var showInput = document.createElement("input");
+        showInput.type = "checkbox";
+        showInput.className = "level-label-show-input";
+        showInput.checked = config.levelLabelVisible[i] !== false;
+        showInput.setAttribute("aria-label", layerTitle + "顯示於預覽");
+        meta.appendChild(title);
+        meta.appendChild(showInput);
+
+        var input = document.createElement("input");
+        input.type = "text";
+        input.className = "level-label-input";
+        input.value = config.levelLabels[i] || "";
+        input.placeholder = defaultLayerLabel(i);
+
+        var wrap = document.createElement("div");
+        wrap.className = "level-label-field";
+        wrap.appendChild(meta);
+        wrap.appendChild(input);
+        levelLabelsEl.appendChild(wrap);
+      }
+    }
+
+    function readLevelLabelsFromDom() {
+      return Array.prototype.map.call(
+        levelLabelsEl.querySelectorAll("input.level-label-input"),
+        function (input, i) {
+          var val = input.value.trim();
+          return val || defaultLayerLabel(i);
+        }
+      );
+    }
+
+    function readLevelLabelVisibleFromDom() {
+      return Array.prototype.map.call(
+        levelLabelsEl.querySelectorAll("input.level-label-show-input"),
+        function (input) { return input.checked; }
+      );
+    }
+
+    function readTreeFromDom() {
+      function readNodes(container) {
+        var result = [];
+        var nodeEls = container.querySelectorAll(":scope > .tree-node");
+        Array.prototype.forEach.call(nodeEls, function (nodeEl) {
+          var input = nodeEl.querySelector(":scope > .tree-node-row > input");
+          var label = input ? input.value.trim() : "";
+          if (!label) return;
+          var childrenEl = nodeEl.querySelector(":scope > .tree-children");
+          var children = childrenEl ? readNodes(childrenEl) : [];
+          result.push({ label: label, children: children });
+        });
+        return result;
+      }
+      return readNodes(treeEditor);
+    }
+
+    function renderTreeEditor() {
+      treeEditor.innerHTML = "";
+      renderTreeNodes(config.items, treeEditor, 0, []);
+    }
+
+    function makeTreeBtn(text, className, title, disabled, onClick) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = className;
+      btn.textContent = text;
+      btn.title = title;
+      btn.disabled = !!disabled;
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    function renderTreeNodes(nodes, container, depth, parentNumberPath) {
+      nodes.forEach(function (node, index) {
+        var numberPath = parentNumberPath.concat(index + 1);
+        container.appendChild(buildTreeNodeEl(node, depth, numberPath));
+      });
+    }
+
+    function buildTreeNodeEl(node, depth, numberPath) {
+      var wrap = document.createElement("div");
+      wrap.className = "tree-node";
+      wrap.dataset.depth = String(depth);
+
+      var indexLabel = document.createElement("span");
+      indexLabel.className = "tree-node-index";
+      indexLabel.textContent = numberPath.join(".");
+      indexLabel.title = "層級編號";
+      indexLabel.setAttribute("aria-hidden", "true");
+
+      var input = document.createElement("input");
+      input.type = "text";
+      input.value = node.label;
+      input.placeholder = "項目名稱";
+
+      var childLimitReached = depth >= getLayerCount() - 1;
+      var addChildBtn = makeTreeBtn(
+        "⊕",
+        "tree-btn" + (childLimitReached ? " tree-btn--child-limit" : ""),
+        childLimitReached ? "已達最大層數" : "新增子項目",
+        childLimitReached,
+        function () {
+          syncEditorToConfig();
+          var target = getNodeByPath(getNodePath(wrap));
+          if (!target) return;
+          (target.children || (target.children = [])).push({ label: "新子項目", children: [] });
+          renderTreeEditor();
+          focusLastInput(wrap.querySelector(".tree-children"));
+        }
+      );
+
+      var addSiblingBtn = makeTreeBtn("＋", "tree-btn", "新增同層項目", false, function () {
+        syncEditorToConfig();
+        var path = getNodePath(wrap);
+        getParentList(path).splice(path[path.length - 1] + 1, 0, cloneConfig(EMPTY_NODE));
+        renderTreeEditor();
+      });
+
+      var removeBtn = makeTreeBtn("×", "tree-btn remove", "刪除此項目", false, function () {
+        showConfirmDialog().then(function (ok) {
+          if (!ok) return;
+          syncEditorToConfig();
+          var path = getNodePath(wrap);
+          getParentList(path).splice(path[path.length - 1], 1);
+          renderTreeEditor();
+        });
+      });
+
+      var row = document.createElement("div");
+      row.className = "tree-node-row";
+      row.appendChild(indexLabel);
+      row.appendChild(input);
+      row.appendChild(addChildBtn);
+      row.appendChild(addSiblingBtn);
+      row.appendChild(removeBtn);
+      wrap.appendChild(row);
+
+      if (node.children && node.children.length) {
+        var childrenEl = document.createElement("div");
+        childrenEl.className = "tree-children";
+        renderTreeNodes(node.children, childrenEl, depth + 1, numberPath);
+        wrap.appendChild(childrenEl);
+      }
+
+      return wrap;
+    }
+
+    function getNodePath(nodeEl) {
+      var path = [];
+      var current = nodeEl;
+      while (current && current !== treeEditor) {
+        if (current.classList && current.classList.contains("tree-node")) {
+          var parent = current.parentElement;
+          var siblings = parent.querySelectorAll(":scope > .tree-node");
+          var idx = Array.prototype.indexOf.call(siblings, current);
+          path.unshift(idx);
+        }
+        current = current.parentElement;
+      }
+      return path;
+    }
+
+    function getNodeByPath(path) {
+      var list = config.items;
+      var node = null;
+      for (var i = 0; i < path.length; i++) {
+        node = list[path[i]];
+        if (!node) return null;
+        list = node.children || [];
+      }
+      return node;
+    }
+
+    function getParentList(path) {
+      if (!path.length) return config.items;
+      var parent = getNodeByPath(path.slice(0, -1));
+      return parent ? (parent.children || (parent.children = [])) : config.items;
+    }
+
+    function focusLastInput(container) {
+      if (!container) return;
+      var inputs = container.querySelectorAll("input");
+      var last = inputs[inputs.length - 1];
+      if (last) {
+        last.focus();
+        last.select();
+      }
+    }
+
+    function syncEditorToConfig() {
+      config.layerCount = normalizeLayerCount(layerCountInput.value);
+      layerCountInput.value = String(config.layerCount);
+      config.labelPosition = readLabelPositionFromDom();
+      config.labelFontSize = readLabelFontSizeFromDom();
+      if (labelFontSizeInput) labelFontSizeInput.value = String(config.labelFontSize);
+      config.levelLabels = readLevelLabelsFromDom().slice(0, config.layerCount);
+      config.levelLabelVisible = readLevelLabelVisibleFromDom().slice(0, config.layerCount);
+      config.items = trimTreeToDepth(readTreeFromDom(), config.layerCount);
+      if (!config.items.length) config.items = [cloneConfig(EMPTY_NODE)];
+    }
+
+    function openModal() {
+      renderDepthSetting();
+      renderLabelPositionSetting();
+      renderLevelLabelsEditor();
+      renderTreeEditor();
+      jsonArea.classList.remove("is-visible");
+      jsonArea.value = JSON.stringify(config, null, 2);
+      setOverlayOpen(overlay, true);
+    }
+
+    function closeModal() {
+      setOverlayOpen(overlay, false);
+    }
+
+    function loadConfig() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          config = normalizeConfig(JSON.parse(raw));
+          return;
+        }
+      } catch (e) {}
+      config = cloneConfig(defaultConfig);
+    }
+
+    function saveConfigFromEditor() {
+      if (jsonArea.classList.contains("is-visible")) {
+        try {
+          config = normalizeConfig(JSON.parse(jsonArea.value));
+        } catch (e) {
+          alert("JSON 格式錯誤，請修正後再儲存。");
+          return false;
+        }
+      } else {
+        syncEditorToConfig();
+        config = normalizeConfig(config);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      selections = [];
+      renderCascade();
+      closeModal();
+      return true;
+    }
+
+    confirmOkBtn.addEventListener("click", function () { closeConfirmDialog(true); });
+    confirmCancelBtn.addEventListener("click", function () { closeConfirmDialog(false); });
+    confirmOverlay.addEventListener("click", function (e) {
+      if (e.target === confirmOverlay) closeConfirmDialog(false);
+    });
+    gearBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeModal();
+    });
+    layerCountInput.addEventListener("change", applyLayerCountChange);
+    layerCountInput.addEventListener("blur", applyLayerCountChange);
+    addRootBtn.addEventListener("click", function () {
+      syncEditorToConfig();
+      config.items.push({ label: "新根項目", children: [] });
+      renderTreeEditor();
+      focusLastInput(treeEditor);
+    });
+    toggleJsonBtn.addEventListener("click", function () {
+      if (jsonArea.classList.toggle("is-visible")) {
+        syncEditorToConfig();
+        jsonArea.value = JSON.stringify(config, null, 2);
+        jsonArea.focus();
+      }
+    });
+    saveBtn.addEventListener("click", saveConfigFromEditor);
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (confirmOverlay.classList.contains("open")) closeConfirmDialog(false);
+      else if (overlay.classList.contains("open")) closeModal();
+    });
+
+    loadConfig();
+    renderCascade();
+  </script>
+</body>
+</html>
