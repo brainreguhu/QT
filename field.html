@@ -446,6 +446,21 @@
       margin-bottom: 12px;
     }
 
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin: -4px 0 12px;
+    }
+
+    .pagination-info {
+      font-size: 0.82rem;
+      color: var(--subtle);
+      min-width: 112px;
+      text-align: center;
+    }
+
     .list {
       display: grid;
       gap: 8px;
@@ -613,6 +628,12 @@
       padding: 3px 10px;
       font-size: 0.82rem;
       border: 1px solid rgba(148, 163, 184, 0.45);
+    }
+
+    .chip-pending-approval {
+      background: transparent;
+      color: #ef4444;
+      border-color: #ef4444;
     }
 
     .chips .chip-edit-btn {
@@ -850,6 +871,7 @@
                 <option value="78">78</option>
                 <option value="79">79</option>
                 <option value="80">80</option>
+                <option value="82">82</option>
               </select>
             </div>
             <div class="field-group">
@@ -897,6 +919,7 @@
               <option value="78">78</option>
               <option value="79">79</option>
               <option value="80">80</option>
+              <option value="82">82</option>
             </select>
           </div>
           <div class="field-group">
@@ -934,6 +957,7 @@
         </div>
       </div>
       <div id="stats" class="stats"></div>
+      <div id="pagination" class="pagination"></div>
       <div id="list" class="list"></div>
     </div>
   </div>
@@ -962,6 +986,7 @@
           <option value="78">78</option>
           <option value="79">79</option>
           <option value="80">80</option>
+          <option value="82">82</option>
         </select>
       </div>
       <div class="field-group">
@@ -1020,6 +1045,7 @@
     const dateToFilter = document.getElementById("dateToFilter");
     const clearFilterBtn = document.getElementById("clearFilterBtn");
     const listEl = document.getElementById("list");
+    const paginationEl = document.getElementById("pagination");
     const statsEl = document.getElementById("stats");
     const userInfoEl = document.getElementById("userInfo");
     const editTagDialog = document.getElementById("editTagDialog");
@@ -1032,6 +1058,8 @@
     const deleteModalConfirmBtn = document.getElementById("delete-modal-confirm");
     const deleteModalCancelBtn = document.getElementById("delete-modal-cancel");
     const DELETE_CONFIRM_COUNTDOWN_SEC = 5;
+    // 分頁提示：資料清單每頁固定顯示 10 筆。
+    const LIST_PAGE_SIZE = 10;
 
     let records = [];
     let currentUserId = "";
@@ -1042,6 +1070,7 @@
     let editingRecordId = null;
     let deleteModalTimer = null;
     let pendingDeleteId = null;
+    let currentPage = 1;
 
     function setUploadPanelExpanded(expanded) {
       if (!toggleUploadPanelBtn || !uploadPanel) return;
@@ -1127,18 +1156,23 @@
       deleteModalConfirmBtn.textContent = `確認刪除（${DELETE_CONFIRM_COUNTDOWN_SEC}）`;
     }
 
-    function openDeleteModal(id, label) {
+    function openDeleteModal(id, label, skipCountdown) {
       if (deleteModalTimer != null) {
         clearInterval(deleteModalTimer);
         deleteModalTimer = null;
       }
       pendingDeleteId = id;
       deleteModalLabelEl.textContent = label || id;
+      deleteModalEl.classList.add("is-open");
+      deleteModalEl.setAttribute("aria-hidden", "false");
+      if (skipCountdown) {
+        deleteModalConfirmBtn.disabled = false;
+        deleteModalConfirmBtn.textContent = "確認刪除";
+        return;
+      }
       deleteModalConfirmBtn.disabled = true;
       let sec = DELETE_CONFIRM_COUNTDOWN_SEC;
       deleteModalConfirmBtn.textContent = `確認刪除（${sec}）`;
-      deleteModalEl.classList.add("is-open");
-      deleteModalEl.setAttribute("aria-hidden", "false");
       deleteModalTimer = setInterval(() => {
         sec -= 1;
         if (sec <= 0) {
@@ -1592,12 +1626,20 @@
 
       statsEl.textContent = `總筆數：${records.length}，符合篩選：${sorted.length}`;
 
+      const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
       if (!sorted.length) {
         listEl.innerHTML = '<div class="empty">目前沒有符合條件的資料</div>';
+        paginationEl.innerHTML = "";
         return;
       }
 
-      listEl.innerHTML = sorted.map(item => {
+      const pageStart = (currentPage - 1) * LIST_PAGE_SIZE;
+      const pageItems = sorted.slice(pageStart, pageStart + LIST_PAGE_SIZE);
+
+      listEl.innerHTML = pageItems.map(item => {
         const isLocked = !!item.locked;
         const isPinned = !!item.pinned;
         const canManage = isAdmin;
@@ -1617,6 +1659,8 @@
           `<button class="secondary chip-edit-btn" type="button" data-action="edit-tag" data-id="${id}" aria-label="編輯標籤" title="編輯標籤">編輯</button>`;
 
         const primaryChips = [];
+        if (approvalLabel && canManage)
+          primaryChips.push(`<span class="chip chip-pending-approval">${escapeHtml(approvalLabel)}</span>`);
         if (item.zone) primaryChips.push(`<span class="chip">${escapeHtml(`工區：${item.zone}`)}</span>`);
         if (item.orgType) {
           primaryChips.push(`<span class="chip">${escapeHtml(`分類：${item.orgType}`)}</span>`);
@@ -1628,7 +1672,6 @@
           primaryChips.push(`<span class="chip">${escapeHtml("已下架")}</span>`);
         }
         const extraChips = [];
-        if (approvalLabel && canManage) extraChips.push(`<span class="chip">${escapeHtml(approvalLabel)}</span>`);
         if (item.pendingZone) extraChips.push(`<span class="chip">${escapeHtml(`待核准工區：${item.pendingZone}`)}</span>`);
         if (item.pendingOrgType) extraChips.push(`<span class="chip">${escapeHtml(`待核准分類：${item.pendingOrgType}`)}</span>`);
         const primaryTagHtml = primaryChips.join("");
@@ -1675,6 +1718,14 @@
           </div>
         `;
       }).join("");
+
+      paginationEl.innerHTML = totalPages <= 1
+        ? ""
+        : `
+          <button class="secondary" type="button" data-page-action="prev" ${currentPage <= 1 ? "disabled" : ""}>上一頁</button>
+          <span class="pagination-info">第 ${currentPage} / ${totalPages} 頁</span>
+          <button class="secondary" type="button" data-page-action="next" ${currentPage >= totalPages ? "disabled" : ""}>下一頁</button>
+        `;
     }
 
     async function refreshProfileUsername() {
@@ -1815,11 +1866,16 @@
       }
     });
 
-    zoneFilter.addEventListener("change", renderList);
-    orgTypeFilter.addEventListener("change", renderList);
-    textFilter.addEventListener("input", renderList);
-    dateFromFilter.addEventListener("change", renderList);
-    dateToFilter.addEventListener("change", renderList);
+    function renderListFromFirstPage() {
+      currentPage = 1;
+      renderList();
+    }
+
+    zoneFilter.addEventListener("change", renderListFromFirstPage);
+    orgTypeFilter.addEventListener("change", renderListFromFirstPage);
+    textFilter.addEventListener("input", renderListFromFirstPage);
+    dateFromFilter.addEventListener("change", renderListFromFirstPage);
+    dateToFilter.addEventListener("change", renderListFromFirstPage);
 
     clearFilterBtn.addEventListener("click", () => {
       zoneFilter.value = "";
@@ -1827,6 +1883,20 @@
       textFilter.value = "";
       dateFromFilter.value = "";
       dateToFilter.value = "";
+      renderListFromFirstPage();
+    });
+
+    paginationEl.addEventListener("click", event => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const action = target.dataset.pageAction;
+      if (action === "prev") {
+        currentPage -= 1;
+      } else if (action === "next") {
+        currentPage += 1;
+      } else {
+        return;
+      }
       renderList();
     });
 
@@ -1927,7 +1997,7 @@
         }
         if (action === "delete") {
           const record = records.find(item => item.id === id);
-          openDeleteModal(id, record?.fileName || id.slice(0, 8));
+          openDeleteModal(id, record?.fileName || id.slice(0, 8), !!record?.locked);
         }
       } catch (error) {
         console.error("操作失敗", error);
