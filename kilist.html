@@ -365,6 +365,8 @@
     const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
     const PROFILE_TABLE = "profiles";
+    const KILIST_TABLE = "kilist_records";
+    const KILIST_COLUMNS = "id, work_zone, person_id, person_name, item, note, checked_by, checked_at, notes, created_at";
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
@@ -433,11 +435,13 @@
     }
 
     let currentUsername = "";
+    let currentUserId = "";
 
     async function loadCurrentUsername() {
       try {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
+        currentUserId = user.id;
         const { data: profile } = await sb
           .from(PROFILE_TABLE)
           .select("username")
@@ -450,6 +454,50 @@
     }
 
     const records = [];
+
+    function formatSupabaseError(err) {
+      const msg = err?.message ? err.message : String(err || "未知錯誤");
+      if (/kilist_records|42P01|PGRST205/i.test(msg)) {
+        return "資料表尚未建立，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql";
+      }
+      return msg;
+    }
+
+    function normalizeRow(row) {
+      return {
+        id: row.id,
+        person: String(row.person_name ?? "").trim(),
+        item: String(row.item ?? "").trim(),
+        note: String(row.note ?? "").trim(),
+        createdAt: row.created_at || "",
+        checkedBy: String(row.checked_by ?? "").trim(),
+        checkedAt: row.checked_at || "",
+        notes: Array.isArray(row.notes) ? row.notes : [],
+        isAddingNote: false
+      };
+    }
+
+    async function loadRecords() {
+      if (!workZone) {
+        renderRecords();
+        return;
+      }
+      try {
+        const { data, error } = await sb
+          .from(KILIST_TABLE)
+          .select(KILIST_COLUMNS)
+          .eq("work_zone", workZone)
+          .order("created_at", { ascending: false });
+        if (error) throw new Error(error.message);
+        records.length = 0;
+        (data || []).forEach((row) => records.push(normalizeRow(row)));
+        renderRecords();
+      } catch (err) {
+        console.error("讀取紀錄失敗", err);
+        listEl.className = "empty-hint";
+        listEl.textContent = `紀錄載入失敗：${formatSupabaseError(err)}`;
+      }
+    }
 
     function escapeHtml(value) {
       return String(value)
@@ -468,6 +516,12 @@
       return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
     }
 
+    function formatTs(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? "" : formatTime(date);
+    }
+
     function renderRecords() {
       if (!records.length) {
         listEl.className = "empty-hint";
@@ -479,7 +533,7 @@
         .map((r, index) => {
           const content = [r.person, r.item, r.note].filter(Boolean).join(" | ");
           const checkInfo = r.checkedBy
-            ? `<span class="record-check-info">✓ ${escapeHtml(r.checkedBy)} ${escapeHtml(r.checkedAt)}</span>`
+            ? `<span class="record-check-info">✓ ${escapeHtml(r.checkedBy)} ${escapeHtml(formatTs(r.checkedAt))}</span>`
             : "";
           const notesHtml = r.notes.length
             ? `<div class="record-notes">${r.notes
@@ -487,7 +541,7 @@
                   (note) => `
                   <div class="record-note-line">
                     <span class="note-text">${escapeHtml(note.text)}</span>
-                    <span class="note-meta">${escapeHtml(note.by)} ${escapeHtml(note.at)}</span>
+                    <span class="note-meta">${escapeHtml(note.by || "")} ${escapeHtml(formatTs(note.at))}</span>
                   </div>`
                 )
                 .join("")}</div>`
@@ -502,7 +556,7 @@
           <div class="record-item">
             <div class="record-main">
               <span class="record-content">${escapeHtml(content)}</span>
-              <span class="record-time">${escapeHtml(r.time)}</span>
+              <span class="record-time">${escapeHtml(formatTs(r.createdAt))}</span>
               ${checkInfo}
               <button type="button" class="check-btn ${r.checkedBy ? "is-checked" : ""}" data-index="${index}">
                 ${r.checkedBy ? "已勾核" : "勾核"}
@@ -515,7 +569,7 @@
         .join("");
     }
 
-    function confirmNote(index) {
+    async function confirmNote(index) {
       const record = records[index];
       if (!record) return;
       const input = listEl.querySelector(`.note-input[data-index="${index}"]`);
@@ -525,31 +579,54 @@
           alert("無法取得人員，請先至 login.html 登入。");
           return;
         }
-        record.notes.push({
+        const nextNotes = [...record.notes, {
           text,
           by: currentUsername,
-          at: formatTime(new Date())
-        });
+          at: new Date().toISOString()
+        }];
+        try {
+          const { error } = await sb
+            .from(KILIST_TABLE)
+            .update({ notes: nextNotes })
+            .eq("id", record.id);
+          if (error) throw new Error(error.message);
+          record.notes = nextNotes;
+        } catch (err) {
+          console.error("儲存文字說明失敗", err);
+          alert(`儲存文字說明失敗：${formatSupabaseError(err)}`);
+          return;
+        }
       }
       record.isAddingNote = false;
       renderRecords();
     }
 
-    function toggleCheck(index) {
+    async function toggleCheck(index) {
       const record = records[index];
       if (!record) return;
+      let payload;
       if (record.checkedBy) {
-        record.checkedBy = "";
-        record.checkedAt = "";
+        payload = { checked_by: "", checked_at: null };
       } else {
         if (!currentUsername) {
           alert("無法取得勾核人員，請先至 login.html 登入。");
           return;
         }
-        record.checkedBy = currentUsername;
-        record.checkedAt = formatTime(new Date());
+        payload = { checked_by: currentUsername, checked_at: new Date().toISOString() };
       }
-      renderRecords();
+      try {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .update(payload)
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+        record.checkedBy = payload.checked_by;
+        record.checkedAt = payload.checked_at || "";
+        renderRecords();
+      } catch (err) {
+        console.error("勾核更新失敗", err);
+        alert(`勾核更新失敗：${formatSupabaseError(err)}`);
+      }
     }
 
     listEl.addEventListener("click", (e) => {
@@ -582,7 +659,10 @@
       confirmNote(Number(input.dataset.index));
     });
 
-    function addRecord() {
+    let addingRecord = false;
+
+    async function addRecord() {
+      if (addingRecord) return;
       const personOption = personSelectEl.selectedOptions[0];
       const person = personSelectEl.value ? personOption.textContent : "";
       if (!person) {
@@ -590,23 +670,41 @@
         personSelectEl.focus();
         return;
       }
+      if (!currentUserId) {
+        alert("請先至 login.html 登入後再新增紀錄。");
+        return;
+      }
       const itemOption = itemSelectEl.selectedOptions[0];
       const item = itemSelectEl.value ? itemOption.textContent : "";
       const note = noteInputEl.value.trim();
 
-      records.unshift({
-        person,
-        item,
-        note,
-        time: formatTime(new Date()),
-        checkedBy: "",
-        checkedAt: "",
-        notes: [],
-        isAddingNote: false
-      });
-      renderRecords();
-      noteInputEl.value = "";
-      noteInputEl.focus();
+      addingRecord = true;
+      recordBtnEl.disabled = true;
+      try {
+        const { data, error } = await sb
+          .from(KILIST_TABLE)
+          .insert({
+            work_zone: workZone,
+            person_id: personSelectEl.value || null,
+            person_name: person,
+            item,
+            note,
+            created_by: currentUserId
+          })
+          .select(KILIST_COLUMNS)
+          .single();
+        if (error) throw new Error(error.message);
+        records.unshift(normalizeRow(data));
+        renderRecords();
+        noteInputEl.value = "";
+        noteInputEl.focus();
+      } catch (err) {
+        console.error("新增紀錄失敗", err);
+        alert(`新增紀錄失敗：${formatSupabaseError(err)}`);
+      } finally {
+        addingRecord = false;
+        recordBtnEl.disabled = false;
+      }
     }
 
     recordBtnEl.addEventListener("click", addRecord);
@@ -617,8 +715,14 @@
       }
     });
 
-    loadZonePersons();
-    loadCurrentUsername();
+    async function bootstrap() {
+      listEl.className = "empty-hint";
+      listEl.textContent = "載入中…";
+      await loadCurrentUsername();
+      await Promise.all([loadZonePersons(), loadRecords()]);
+    }
+
+    bootstrap();
   </script>
 </body>
 </html>
