@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Kilist</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-hover: #5a9dff;
+      --danger: #f87171;
+      --ok: #4ade80;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: radial-gradient(ellipse 120% 100% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px 16px;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      min-height: 38px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+
+    .back-btn {
+      position: absolute;
+      left: 0;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      font-family: inherit;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .back-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .field-row label {
+      flex-shrink: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .field-row select,
+    .field-row input[type="text"] {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .field-row select:focus,
+    .field-row input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+
+    .field-row select:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .field-row input[type="text"] {
+      flex-grow: 4;
+    }
+
+    .record-btn {
+      flex-shrink: 0;
+      padding: 10px 18px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .record-btn:hover {
+      background: rgba(61, 139, 253, 0.25);
+      color: #fff;
+    }
+
+    @media (max-width: 560px) {
+      .field-row {
+        flex-wrap: wrap;
+      }
+    }
+
+    .empty-hint {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .record-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .record-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .record-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
+    }
+
+    .record-item .record-content {
+      flex: 1;
+      min-width: 160px;
+      word-break: break-word;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .record-item .record-time {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .record-item .record-check-info {
+      font-size: 12px;
+      color: var(--ok);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .record-item .check-btn {
+      flex-shrink: 0;
+      align-self: center;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .record-item .check-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 139, 253, 0.1);
+    }
+
+    .record-item .check-btn.is-checked {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(74, 222, 128, 0.12);
+    }
+
+    .record-notes {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .record-note-line {
+      display: flex;
+      align-items: baseline;
+      gap: 6px 12px;
+      padding: 6px 10px;
+      border-left: 3px solid var(--border);
+      font-size: 14px;
+    }
+
+    .record-note-line .note-text {
+      flex: 1;
+      min-width: 0;
+      color: var(--muted);
+      text-align: left;
+      word-break: break-word;
+    }
+
+    .record-note-line .note-meta {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .note-add-btn {
+      align-self: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: rgba(61, 139, 253, 0.18);
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .note-add-btn:hover {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(1.08);
+    }
+
+    .note-add-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .note-add-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .note-add-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+
+    .note-confirm-btn {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .note-confirm-btn:hover {
+      background: rgba(61, 139, 253, 0.25);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <a class="back-btn" href="./index.html">↩ 返回</a>
+      <h1 class="page-title" id="page-title">Kilist</h1>
+    </header>
+    <div class="card">
+      <div class="field-row">
+        <label for="person-select">人員</label>
+        <select id="person-select" disabled>
+          <option value="">載入中…</option>
+        </select>
+        <select id="item-select" aria-label="項目">
+          <option value="">請選擇</option>
+        </select>
+        <input type="text" id="note-input" placeholder="輸入內容" aria-label="輸入內容">
+        <button type="button" id="record-btn" class="record-btn">紀錄</button>
+      </div>
+      <div id="list" class="empty-hint">目前尚無資料</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    const pageTitleEl = document.getElementById("page-title");
+    const personSelectEl = document.getElementById("person-select");
+    const itemSelectEl = document.getElementById("item-select");
+    const noteInputEl = document.getElementById("note-input");
+    const recordBtnEl = document.getElementById("record-btn");
+    const listEl = document.getElementById("list");
+
+    const workZone = String(new URLSearchParams(window.location.search).get("zone") || "").trim();
+    if (workZone) {
+      pageTitleEl.textContent = `Kilist（工區 ${workZone}）`;
+      document.title = `Kilist（工區 ${workZone}）`;
+    }
+
+    function setPersonOptions(items, placeholder) {
+      personSelectEl.innerHTML = "";
+      const first = document.createElement("option");
+      first.value = "";
+      first.textContent = placeholder;
+      personSelectEl.appendChild(first);
+      items.forEach((person) => {
+        const option = document.createElement("option");
+        option.value = person.id;
+        option.textContent = person.username;
+        personSelectEl.appendChild(option);
+      });
+    }
+
+    async function loadZonePersons() {
+      if (!workZone) {
+        setPersonOptions([], "未指定工區");
+        return;
+      }
+      try {
+        const { data, error } = await sb
+          .from(PROFILE_TABLE)
+          .select("id, username, 工區");
+        if (error) throw new Error(error.message);
+
+        const members = (data || [])
+          .filter((p) => String(p["工區"] ?? "").trim() === workZone)
+          .map((p) => ({
+            id: String(p.id),
+            username: String(p.username ?? "").trim() || "使用者"
+          }))
+          .sort((a, b) => a.username.localeCompare(b.username, "zh-Hant"));
+
+        if (!members.length) {
+          setPersonOptions([], `工區 ${workZone} 尚無人員`);
+          return;
+        }
+        setPersonOptions(members, "請選擇人員");
+        personSelectEl.disabled = false;
+      } catch (err) {
+        console.error("讀取人員清單失敗", err);
+        setPersonOptions([], "人員清單載入失敗");
+      }
+    }
+
+    let currentUsername = "";
+
+    async function loadCurrentUsername() {
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await sb
+          .from(PROFILE_TABLE)
+          .select("username")
+          .eq("id", user.id)
+          .maybeSingle();
+        currentUsername = String(profile?.username ?? "").trim();
+      } catch (err) {
+        console.error("讀取登入使用者失敗", err);
+      }
+    }
+
+    const records = [];
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function pad2(n) {
+      return n < 10 ? "0" + n : String(n);
+    }
+
+    function formatTime(date) {
+      return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    function renderRecords() {
+      if (!records.length) {
+        listEl.className = "empty-hint";
+        listEl.textContent = "目前尚無資料";
+        return;
+      }
+      listEl.className = "record-list";
+      listEl.innerHTML = records
+        .map((r, index) => {
+          const content = [r.person, r.item, r.note].filter(Boolean).join(" | ");
+          const checkInfo = r.checkedBy
+            ? `<span class="record-check-info">✓ ${escapeHtml(r.checkedBy)} ${escapeHtml(r.checkedAt)}</span>`
+            : "";
+          const notesHtml = r.notes.length
+            ? `<div class="record-notes">${r.notes
+                .map(
+                  (note) => `
+                  <div class="record-note-line">
+                    <span class="note-text">${escapeHtml(note.text)}</span>
+                    <span class="note-meta">${escapeHtml(note.by)} ${escapeHtml(note.at)}</span>
+                  </div>`
+                )
+                .join("")}</div>`
+            : "";
+          const noteEditor = r.isAddingNote
+            ? `<div class="note-add-row">
+                <input type="text" class="note-input" data-index="${index}" placeholder="輸入文字說明" aria-label="文字說明">
+                <button type="button" class="note-confirm-btn" data-index="${index}">確定</button>
+              </div>`
+            : `<button type="button" class="note-add-btn" data-index="${index}" aria-label="新增文字說明">＋</button>`;
+          return `
+          <div class="record-item">
+            <div class="record-main">
+              <span class="record-content">${escapeHtml(content)}</span>
+              <span class="record-time">${escapeHtml(r.time)}</span>
+              ${checkInfo}
+              <button type="button" class="check-btn ${r.checkedBy ? "is-checked" : ""}" data-index="${index}">
+                ${r.checkedBy ? "已勾核" : "勾核"}
+              </button>
+            </div>
+            ${notesHtml}
+            ${noteEditor}
+          </div>`;
+        })
+        .join("");
+    }
+
+    function confirmNote(index) {
+      const record = records[index];
+      if (!record) return;
+      const input = listEl.querySelector(`.note-input[data-index="${index}"]`);
+      const text = (input?.value || "").trim();
+      if (text) {
+        if (!currentUsername) {
+          alert("無法取得人員，請先至 login.html 登入。");
+          return;
+        }
+        record.notes.push({
+          text,
+          by: currentUsername,
+          at: formatTime(new Date())
+        });
+      }
+      record.isAddingNote = false;
+      renderRecords();
+    }
+
+    function toggleCheck(index) {
+      const record = records[index];
+      if (!record) return;
+      if (record.checkedBy) {
+        record.checkedBy = "";
+        record.checkedAt = "";
+      } else {
+        if (!currentUsername) {
+          alert("無法取得勾核人員，請先至 login.html 登入。");
+          return;
+        }
+        record.checkedBy = currentUsername;
+        record.checkedAt = formatTime(new Date());
+      }
+      renderRecords();
+    }
+
+    listEl.addEventListener("click", (e) => {
+      const checkBtn = e.target.closest(".check-btn");
+      if (checkBtn) {
+        toggleCheck(Number(checkBtn.dataset.index));
+        return;
+      }
+      const addBtn = e.target.closest(".note-add-btn");
+      if (addBtn) {
+        const record = records[Number(addBtn.dataset.index)];
+        if (!record) return;
+        records.forEach((r) => { r.isAddingNote = false; });
+        record.isAddingNote = true;
+        renderRecords();
+        listEl.querySelector(`.note-input[data-index="${addBtn.dataset.index}"]`)?.focus();
+        return;
+      }
+      const confirmBtn = e.target.closest(".note-confirm-btn");
+      if (confirmBtn) {
+        confirmNote(Number(confirmBtn.dataset.index));
+      }
+    });
+
+    listEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const input = e.target.closest(".note-input");
+      if (!input) return;
+      e.preventDefault();
+      confirmNote(Number(input.dataset.index));
+    });
+
+    function addRecord() {
+      const personOption = personSelectEl.selectedOptions[0];
+      const person = personSelectEl.value ? personOption.textContent : "";
+      if (!person) {
+        alert("請先選擇人員。");
+        personSelectEl.focus();
+        return;
+      }
+      const itemOption = itemSelectEl.selectedOptions[0];
+      const item = itemSelectEl.value ? itemOption.textContent : "";
+      const note = noteInputEl.value.trim();
+
+      records.unshift({
+        person,
+        item,
+        note,
+        time: formatTime(new Date()),
+        checkedBy: "",
+        checkedAt: "",
+        notes: [],
+        isAddingNote: false
+      });
+      renderRecords();
+      noteInputEl.value = "";
+      noteInputEl.focus();
+    }
+
+    recordBtnEl.addEventListener("click", addRecord);
+    noteInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addRecord();
+      }
+    });
+
+    loadZonePersons();
+    loadCurrentUsername();
+  </script>
+</body>
+</html>

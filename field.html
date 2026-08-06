@@ -1058,8 +1058,8 @@
     const deleteModalConfirmBtn = document.getElementById("delete-modal-confirm");
     const deleteModalCancelBtn = document.getElementById("delete-modal-cancel");
     const DELETE_CONFIRM_COUNTDOWN_SEC = 5;
-    // 分頁提示：資料清單每頁固定顯示 10 筆。
-    const LIST_PAGE_SIZE = 10;
+    // 分頁提示：資料清單每頁固定顯示 20 筆。
+    const LIST_PAGE_SIZE = 20;
 
     let records = [];
     let currentUserId = "";
@@ -1599,7 +1599,19 @@
       const isAdmin = canManageRestrictedActions();
       const visibleSource = isAdmin ? records : records.filter(item => item.approved && !item.locked);
 
+      const hasActiveFilter = !!(selectedZone || selectedOrgType || keyword || fromDateTime || toDateTime);
+
+      function isCreatedToday(item) {
+        const created = new Date(item.createdAt);
+        if (Number.isNaN(created.getTime())) return false;
+        const now = new Date();
+        return created.getFullYear() === now.getFullYear()
+          && created.getMonth() === now.getMonth()
+          && created.getDate() === now.getDate();
+      }
+
       const filtered = visibleSource.filter(item => {
+        if (!hasActiveFilter && !item.pinned && !isCreatedToday(item)) return false;
         const zoneMatch = !selectedZone || item.zone === selectedZone;
         const orgTypeMatch = !selectedOrgType || item.orgType === selectedOrgType;
         const createdMs = new Date(item.createdAt).getTime();
@@ -1624,7 +1636,9 @@
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-      statsEl.textContent = `總筆數：${records.length}，符合篩選：${sorted.length}`;
+      statsEl.textContent = hasActiveFilter
+        ? `總筆數：${records.length}，符合篩選：${sorted.length}`
+        : `總筆數：${records.length}，當日上傳及置頂：${sorted.length}`;
 
       const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
       if (currentPage > totalPages) currentPage = totalPages;

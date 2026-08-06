@@ -664,7 +664,7 @@
       </div>
       <div class="links-row-two">
         <a class="link-btn" href="./action.html">進度總覽🖥️</a>
-        <a class="link-btn" href="./blank.html">進度回報🖥️</a>
+        <button class="link-btn report-missing-open" type="button" id="kilist-open">代辦事項🖥️</button>
       </div>
       <div class="links-row-two">
         <button class="link-btn report-missing-open" type="button" id="report-missing-open">回報缺失</button>
@@ -880,7 +880,9 @@
     let zonePickerTarget = "check";
 
     function getZonePickerHref(zone) {
-      const base = zonePickerTarget === "checklist" ? "./checklist.html" : "./check.html";
+      let base = "./check.html";
+      if (zonePickerTarget === "checklist") base = "./checklist.html";
+      else if (zonePickerTarget === "kilist") base = "./kilist.html";
       return `${base}?zone=${encodeURIComponent(zone)}`;
     }
 
@@ -984,7 +986,7 @@
     }
 
     function openReportMissingModal(target = "check") {
-      zonePickerTarget = target === "checklist" ? "checklist" : "check";
+      zonePickerTarget = ["checklist", "kilist"].includes(target) ? target : "check";
       closeReportMissingAddPanel();
       renderReportMissingZones();
       reportMissingOverlay.hidden = false;
@@ -1003,6 +1005,7 @@
     updateReportMissingAddAccess(false);
     reportMissingOpen?.addEventListener("click", () => openReportMissingModal("check"));
     checklistManageOpen?.addEventListener("click", () => openReportMissingModal("checklist"));
+    document.getElementById("kilist-open")?.addEventListener("click", () => openReportMissingModal("kilist"));
     reportMissingCancel?.addEventListener("click", closeReportMissingModal);
     reportMissingAddBtn?.addEventListener("click", toggleReportMissingAddPanel);
     reportMissingZoneConfirm?.addEventListener("click", confirmReportMissingZone);
