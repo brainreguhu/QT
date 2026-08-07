@@ -908,7 +908,7 @@
           class="btn-ghost btn-zone-settings"
           id="btnZoneSettings"
           hidden
-          title="設定本月排休與節日標記（同工區共用，僅權限等級 0 可操作）"
+          title="設定本月排休與節日標記（全體共用，僅權限等級 0 可操作）"
         >
           排休/節日
         </button>
@@ -1215,10 +1215,10 @@
           maxlength="3"
           inputmode="numeric"
           autocomplete="off"
-          aria-label="本月排休日數（同工區共用）"
+          aria-label="本月排休日數（全體共用）"
         />
         <span class="sheet-head-rest-suffix">日</span>
-        <span id="monthRestDaysHint" class="sheet-head-rest-hint" hidden>同工區共用</span>
+        <span id="monthRestDaysHint" class="sheet-head-rest-hint" hidden>全體共用</span>
       </div>
       <div class="zone-settings-holiday-block">
         <h3 class="zone-settings-holiday-title" id="zoneSettingsHolidayTitle">節日標記</h3>
@@ -1276,6 +1276,8 @@
     const DAY_RECORDS_TABLE = "diarytest_day_records";
     const ZONE_SETTINGS_TABLE = "diarytest_zone_settings";
     const ZONE_MONTHS_TABLE = "diarytest_zone_months";
+    /** 排休／節日設定全體共用（不分工區）：雲端與本機一律使用此固定鍵 */
+    const ZONE_SETTINGS_SCOPE = "全體";
     const REVIEW_MARKS_TABLE = "diarytest_review_marks";
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -1350,9 +1352,9 @@
       return `${userId}:${workZone}`;
     }
 
-    function monthRestDaysStorageKey(workZone, y, monthIndex) {
+    function monthRestDaysStorageKey(_workZone, y, monthIndex) {
       const mo = String(monthIndex + 1).padStart(2, "0");
-      return `${LS_MONTH_REST_DAYS}:${workZone}:${y}-${mo}`;
+      return `${LS_MONTH_REST_DAYS}:${ZONE_SETTINGS_SCOPE}:${y}-${mo}`;
     }
 
     function readMonthRestDays(workZone, y, monthIndex) {
@@ -1748,7 +1750,7 @@
       const { data, error } = await sb
         .from(ZONE_MONTHS_TABLE)
         .select("rest_days, holiday_dates, updated_at")
-        .eq("work_zone", workZone)
+        .eq("work_zone", ZONE_SETTINGS_SCOPE)
         .eq("month_key", mk)
         .maybeSingle();
       if (error) {
@@ -1775,7 +1777,7 @@
           .map((d) => sliceLogicalDate(d.trim()))
           .filter(Boolean);
       }
-      lsWriteJson(`${LS_ZONE_HOLIDAYS}:${mk}:${workZone}`, dates);
+      lsWriteJson(`${LS_ZONE_HOLIDAYS}:${mk}:${ZONE_SETTINGS_SCOPE}`, dates);
       const val =
         data?.rest_days != null && Number.isFinite(Number(data.rest_days))
           ? String(Number(data.rest_days))
@@ -1972,7 +1974,7 @@
       if (!wz) throw new Error("工區不可為空");
       const { start, end } = monthDateRange(year, monthIndex);
       const mk = attendanceMonthKey(year, monthIndex);
-      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${ZONE_SETTINGS_SCOPE}`;
       const localArr = lsReadJson(key, []);
       const holiday_dates = (Array.isArray(localArr) ? localArr : [])
         .map((d) => sliceLogicalDate(d))
@@ -1985,7 +1987,7 @@
         .from(ZONE_MONTHS_TABLE)
         .upsert(
           {
-            work_zone: wz,
+            work_zone: ZONE_SETTINGS_SCOPE,
             month_key: mk,
             rest_days,
             holiday_dates,
@@ -2347,7 +2349,7 @@
       const wz = workZoneFromProfile(ctx?.profile);
       if (!wz) return new Set();
       const mk = `${y}-${pad2(monthIndex + 1)}`;
-      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${ZONE_SETTINGS_SCOPE}`;
       const arr = lsReadJson(key, []);
       const set = new Set();
       for (const entry of Array.isArray(arr) ? arr : []) {
@@ -2360,7 +2362,7 @@
     async function persistZoneHolidayToggle(logicalDateStr, wantHoliday) {
       const ctx = await loadProfile();
       if (!isZoneAdmin(ctx?.profile)) {
-        alert("僅權限等級 0（管理員）可標記或取消節日；設定將套用於同工區所有使用者。");
+        alert("僅權限等級 0（管理員）可標記或取消節日；設定將套用於所有使用者。");
         return false;
       }
       const wz = workZoneFromProfile(ctx?.profile);
@@ -2369,7 +2371,7 @@
         return false;
       }
       const mk = monthKeyFromLogicalDate(logicalDateStr);
-      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${ZONE_SETTINGS_SCOPE}`;
       let arr = lsReadJson(key, []);
       if (!Array.isArray(arr)) arr = [];
       const ld = logicalDateStr.slice(0, 10);
@@ -3288,8 +3290,8 @@
           monthRestDaysInputEl.disabled = false;
           monthRestDaysInputEl.classList.toggle("sheet-head-rest-input--readonly", !canEditMonthRest);
           monthRestDaysInputEl.title = canEditMonthRest
-            ? "本月排休日數（同工區共用；僅權限等級 0 可編輯）"
-            : "本月排休由管理員設定，同工區所有使用者共用";
+            ? "本月排休日數（全體共用；僅權限等級 0 可編輯）"
+            : "本月排休由管理員設定，所有使用者共用";
           if (monthRestDaysHintEl) monthRestDaysHintEl.hidden = !sheetWz;
         }
 
@@ -3387,7 +3389,7 @@
           if (dow === 0 || dow === 6) tdDate.classList.add("col-date-weekend");
           if (isZoneHoliday) {
             tdDate.classList.add("col-date-holiday");
-            tdDate.title = "本日已標記為節日（同工區共用）";
+            tdDate.title = "本日已標記為節日（全體共用）";
           }
 
           const claimedInRow = zoneDutyInByDate.get(logicalStr);
