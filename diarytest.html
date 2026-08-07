@@ -259,9 +259,6 @@
     table.attendance-sheet {
       table-layout: fixed;
     }
-    table.attendance-sheet col.col-holiday {
-      width: 5%;
-    }
     table.attendance-sheet col.col-date {
       width: 7%;
     }
@@ -339,6 +336,12 @@
     }
     tr.row-date-match td.col-day-num.col-date-weekend {
       color: #a5d8ff;
+      font-weight: 700;
+    }
+    /* 日期欄：已標記節日之日期為紅色（優先於週末色） */
+    table.attendance-sheet td.col-day-num.col-date-holiday,
+    tr.row-date-match td.col-day-num.col-date-holiday {
+      color: #f87171;
       font-weight: 700;
     }
     tr.row-month-summary td {
@@ -842,12 +845,73 @@
       color: #94a3b8;
       font-size: 0.95rem;
     }
+    .zone-settings-modal-panel .sheet-head-rest-wrap {
+      margin: 6px 0 12px;
+    }
+    .zone-settings-permission-hint {
+      margin: 0 0 10px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .zone-settings-holiday-title {
+      margin: 4px 0 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .zone-settings-holiday-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .zone-settings-holiday-grid label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 5px 2px;
+      border: 1px solid rgba(145, 168, 210, 0.35);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      user-select: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .zone-settings-holiday-grid label.weekend {
+      color: #f87171;
+    }
+    .zone-settings-holiday-grid label.disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .zone-settings-holiday-grid input[type="checkbox"] {
+      margin: 0;
+      accent-color: #ef4444;
+    }
+    .zone-settings-loading {
+      grid-column: 1 / -1;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+    .zone-settings-actions {
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="sheet">
     <div class="sheet-head">
       <div class="sheet-head-main">
+        <button
+          type="button"
+          class="btn-ghost btn-zone-settings"
+          id="btnZoneSettings"
+          hidden
+          title="設定本月排休與節日標記（同工區共用，僅權限等級 0 可操作）"
+        >
+          排休/節日
+        </button>
         <button
           type="button"
           class="btn-ghost btn-company-summary"
@@ -859,20 +923,6 @@
         </button>
         <button type="button" class="btn-ghost btn-rules" id="btnRules">規則設定</button>
         <div class="month-label" id="monthLabel"></div>
-        <div class="sheet-head-rest-wrap" id="sheetHeadRestWrap">
-          <span class="sheet-head-rest-label">本月排休</span>
-          <input
-            type="text"
-            id="monthRestDaysInput"
-            class="sheet-head-rest-input"
-            maxlength="3"
-            inputmode="numeric"
-            autocomplete="off"
-            aria-label="本月排休日數（同工區共用）"
-          />
-          <span class="sheet-head-rest-suffix">日</span>
-          <span id="monthRestDaysHint" class="sheet-head-rest-hint" hidden>同工區共用</span>
-        </div>
         <a class="back-btn" href="./index.html">↩ 返回</a>
       </div>
       <div class="user-greeting-wrap">
@@ -892,7 +942,6 @@
     <div class="table-wrap">
       <table class="attendance-sheet">
         <colgroup>
-          <col class="col-holiday" />
           <col class="col-duty-in" />
           <col class="col-duty-out" />
           <col class="col-grouting" />
@@ -908,7 +957,6 @@
         </colgroup>
         <thead>
           <tr>
-            <th class="col-holiday-th">節日</th>
             <th class="col-duty-th">早班</th>
             <th class="col-duty-th">值班</th>
             <th class="col-duty-th">灌漿</th>
@@ -1146,6 +1194,38 @@
       <div class="modal-row modal-actions">
         <button type="button" class="btn-punch" id="rulesSaveBtn">儲存</button>
         <button type="button" class="btn-ghost" id="rulesModalCloseBtn">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zoneSettingsBackdrop" class="modal-backdrop" hidden>
+    <div class="modal-panel zone-settings-modal-panel" role="dialog" aria-modal="true" aria-labelledby="zoneSettingsTitle">
+      <div class="modal-row">
+        <h2 id="zoneSettingsTitle">排休／節日設定</h2>
+      </div>
+      <p class="zone-settings-permission-hint" id="zoneSettingsPermissionHint" hidden>
+        尚未設定<strong>工區</strong>，無法編輯；請先於 profiles 設定工區。
+      </p>
+      <div class="sheet-head-rest-wrap" id="sheetHeadRestWrap">
+        <span class="sheet-head-rest-label">本月排休</span>
+        <input
+          type="text"
+          id="monthRestDaysInput"
+          class="sheet-head-rest-input"
+          maxlength="3"
+          inputmode="numeric"
+          autocomplete="off"
+          aria-label="本月排休日數（同工區共用）"
+        />
+        <span class="sheet-head-rest-suffix">日</span>
+        <span id="monthRestDaysHint" class="sheet-head-rest-hint" hidden>同工區共用</span>
+      </div>
+      <div class="zone-settings-holiday-block">
+        <h3 class="zone-settings-holiday-title" id="zoneSettingsHolidayTitle">節日標記</h3>
+        <div id="zoneSettingsHolidayGrid" class="zone-settings-holiday-grid" aria-labelledby="zoneSettingsHolidayTitle"></div>
+      </div>
+      <div class="modal-row zone-settings-actions">
+        <button type="button" class="btn-ghost" id="zoneSettingsCloseBtn">關閉</button>
       </div>
     </div>
   </div>
@@ -2041,6 +2121,11 @@
       return `${logical.y}-${pad2(logical.m + 1)}-${pad2(logical.day)}`;
     }
 
+    const btnZoneSettings = document.getElementById("btnZoneSettings");
+    const zoneSettingsBackdrop = document.getElementById("zoneSettingsBackdrop");
+    const zoneSettingsCloseBtn = document.getElementById("zoneSettingsCloseBtn");
+    const zoneSettingsHolidayGrid = document.getElementById("zoneSettingsHolidayGrid");
+    const zoneSettingsPermissionHint = document.getElementById("zoneSettingsPermissionHint");
     const btnRules = document.getElementById("btnRules");
     const rulesModalBackdrop = document.getElementById("rulesModalBackdrop");
     const rulesModalCloseBtn = document.getElementById("rulesModalCloseBtn");
@@ -3194,6 +3279,9 @@
           monthRestDaysInputEl.dataset.year = String(y);
           monthRestDaysInputEl.dataset.monthIndex = String(m);
           const zoneRestDays = sheetWz ? readMonthRestDays(sheetWz, y, m) : "";
+          monthLabel.textContent = zoneRestDays !== ""
+            ? `${y} 年 ${m + 1} 月｜排休 ${zoneRestDays} 日`
+            : `${y} 年 ${m + 1} 月`;
           const canEditMonthRest = canManageZoneSettings && !!sheetWz;
           monthRestDaysInputEl.value = zoneRestDays;
           monthRestDaysInputEl.readOnly = !canEditMonthRest;
@@ -3292,26 +3380,15 @@
           const tr = document.createElement("tr");
           if (matchesTopDate) tr.classList.add("row-date-match");
 
-          const tdHol = document.createElement("td");
-          tdHol.className = "sheet-check-cell";
-          const lblHol = document.createElement("label");
-          const cbHol = document.createElement("input");
-          cbHol.type = "checkbox";
-          cbHol.className = "sheet-zone-holiday";
-          cbHol.dataset.date = logicalStr;
-          cbHol.checked = isZoneHoliday;
-          cbHol.disabled = !canManageZoneSettings || !sheetWz;
-          cbHol.title = canManageZoneSettings
-            ? "標記為節日（同工區共用，套用於所有使用者表格）"
-            : "節日由權限等級 0 管理員設定，同工區共用";
-          lblHol.appendChild(cbHol);
-          tdHol.appendChild(lblHol);
-
           const tdDate = document.createElement("td");
           tdDate.className = "col-day-num";
           tdDate.textContent = String(day);
           const dow = new Date(y, m, day).getDay();
           if (dow === 0 || dow === 6) tdDate.classList.add("col-date-weekend");
+          if (isZoneHoliday) {
+            tdDate.classList.add("col-date-holiday");
+            tdDate.title = "本日已標記為節日（同工區共用）";
+          }
 
           const claimedInRow = zoneDutyInByDate.get(logicalStr);
           const vacantDutyIn = !claimedInRow?.user_id;
@@ -3471,7 +3548,6 @@
             tdLate.title = `${ruleTitle}（${lateTierHint}）`;
           } else tdLate.removeAttribute("title");
 
-          tr.appendChild(tdHol);
           tr.appendChild(tdDutyIn);
           tr.appendChild(tdDutyOut);
           tr.appendChild(tdGrouting);
@@ -3489,11 +3565,6 @@
 
         const trSum = document.createElement("tr");
         trSum.className = "row-month-summary";
-
-        const tdSumHol = document.createElement("td");
-        tdSumHol.className = "sheet-check-cell time-cell" + (sumZoneHoliday ? "" : " empty");
-        tdSumHol.textContent = String(sumZoneHoliday);
-        tdSumHol.title = "本月「假日」勾選日數";
 
         const tdSumLabel = document.createElement("td");
         tdSumLabel.className = "col-month-summary-label";
@@ -3559,7 +3630,6 @@
         tdSumLate.textContent = formatLateRuleHours(sumLate);
         tdSumLate.title = "遲到合計（時）";
 
-        trSum.appendChild(tdSumHol);
         trSum.appendChild(tdSumDutyIn);
         trSum.appendChild(tdSumDutyOut);
         trSum.appendChild(tdSumGrouting);
@@ -3774,6 +3844,7 @@
       if (!ctx?.user) {
         textEl.textContent = "你好，請先登入";
         if (btnCompanySummary) btnCompanySummary.hidden = true;
+        if (btnZoneSettings) btnZoneSettings.hidden = true;
         return;
       }
       const name =
@@ -3784,6 +3855,7 @@
       textEl.textContent =
         zone !== "" ? `你好，${name}（${zone}）` : `你好，${name}（未設定工區）`;
       if (btnCompanySummary) btnCompanySummary.hidden = !isZoneAdmin(ctx.profile);
+      if (btnZoneSettings) btnZoneSettings.hidden = !isZoneAdmin(ctx.profile);
     }
 
     function formatReportDayNumber(n) {
@@ -4542,6 +4614,60 @@
       lsWriteJson(key, arr);
     }
 
+    async function renderZoneSettingsHolidayGrid() {
+      if (!zoneSettingsHolidayGrid) return;
+      zoneSettingsHolidayGrid.innerHTML = '<span class="zone-settings-loading">載入中…</span>';
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const canManage = isZoneAdmin(ctx?.profile);
+      let y = parseInt(monthRestDaysInputEl?.dataset.year || "", 10);
+      let m = parseInt(monthRestDaysInputEl?.dataset.monthIndex || "", 10);
+      if (!Number.isFinite(y) || !Number.isFinite(m)) {
+        const now = getEffectiveNow();
+        y = now.getFullYear();
+        m = now.getMonth();
+      }
+      const dim = daysInMonth(y, m);
+      const holidays = await fetchZoneHolidaysForMonth(y, m, dim);
+      zoneSettingsHolidayGrid.innerHTML = "";
+      for (let day = 1; day <= dim; day++) {
+        const dateStr = `${y}-${pad2(m + 1)}-${pad2(day)}`;
+        const label = document.createElement("label");
+        const dow = new Date(y, m, day).getDay();
+        if (dow === 0 || dow === 6) label.classList.add("weekend");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "zone-settings-holiday";
+        cb.dataset.date = dateStr;
+        cb.checked = holidays.has(dateStr);
+        cb.disabled = !canManage || !wz;
+        if (cb.disabled) label.classList.add("disabled");
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(String(day)));
+        zoneSettingsHolidayGrid.appendChild(label);
+      }
+    }
+
+    async function openZoneSettingsModal() {
+      if (!zoneSettingsBackdrop) return;
+      const ctx = await loadProfile();
+      if (!isZoneAdmin(ctx?.profile)) {
+        alert("僅權限等級 0（管理員）可操作排休／節日設定。");
+        return;
+      }
+      zoneSettingsBackdrop.hidden = false;
+      document.body.style.overflow = "hidden";
+      const canManage = !!workZoneFromProfile(ctx?.profile);
+      if (zoneSettingsPermissionHint) zoneSettingsPermissionHint.hidden = canManage;
+      await renderZoneSettingsHolidayGrid();
+    }
+
+    function closeZoneSettingsModal() {
+      if (!zoneSettingsBackdrop) return;
+      zoneSettingsBackdrop.hidden = true;
+      document.body.style.overflow = "";
+    }
+
     async function openRulesModal() {
       if (!rulesModalBackdrop) return;
       const ctx = await loadProfile();
@@ -4741,6 +4867,36 @@
       });
     }
 
+    if (btnZoneSettings) {
+      btnZoneSettings.addEventListener("click", () => {
+        openZoneSettingsModal().catch((e) => console.error(e));
+      });
+    }
+    if (zoneSettingsCloseBtn) {
+      zoneSettingsCloseBtn.addEventListener("click", () => closeZoneSettingsModal());
+    }
+    if (zoneSettingsBackdrop) {
+      zoneSettingsBackdrop.addEventListener("click", (e) => {
+        if (e.target === zoneSettingsBackdrop) closeZoneSettingsModal();
+      });
+    }
+    if (zoneSettingsHolidayGrid) {
+      zoneSettingsHolidayGrid.addEventListener("change", (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLInputElement) || !t.classList.contains("zone-settings-holiday")) return;
+        void (async () => {
+          const want = t.checked;
+          t.disabled = true;
+          const ok = await persistZoneHolidayToggle(t.dataset.date || "", want);
+          t.disabled = false;
+          if (!ok) {
+            t.checked = !want;
+            return;
+          }
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+        })();
+      });
+    }
     if (btnRules) {
       btnRules.addEventListener("click", () => {
         openRulesModal().catch((e) => console.error(e));
@@ -4826,6 +4982,11 @@
       if (summaryReportBackdrop && !summaryReportBackdrop.hidden) {
         e.preventDefault();
         closeSummaryReportModal();
+        return;
+      }
+      if (zoneSettingsBackdrop && !zoneSettingsBackdrop.hidden) {
+        e.preventDefault();
+        closeZoneSettingsModal();
         return;
       }
       if (rulesModalBackdrop && !rulesModalBackdrop.hidden) {
