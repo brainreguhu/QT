@@ -2192,11 +2192,20 @@
       return getLogicalAttendanceDate(new Date());
     }
 
-    async function loadProfile() {
+    let cachedProfileAtMs = 0;
+    /** profiles 快取有效時間：期間內重複呼叫不再打 Supabase，避免填寫操作被網路延遲拖慢 */
+    const PROFILE_CACHE_TTL_MS = 60000;
+
+    async function loadProfile(options = {}) {
+      const force = options.force === true;
+      if (!force && cachedProfile && Date.now() - cachedProfileAtMs < PROFILE_CACHE_TTL_MS) {
+        return cachedProfile;
+      }
       const { data: authData } = await sb.auth.getUser();
       const user = authData?.user;
       if (!user) {
         cachedProfile = null;
+        cachedProfileAtMs = 0;
         return null;
       }
       const { data: profile, error } = await sb
@@ -2206,9 +2215,11 @@
         .maybeSingle();
       if (error) {
         cachedProfile = { user, profile: null, error: error.message };
+        cachedProfileAtMs = Date.now();
         return cachedProfile;
       }
       cachedProfile = { user, profile, error: null };
+      cachedProfileAtMs = Date.now();
       return cachedProfile;
     }
 
@@ -3257,9 +3268,8 @@
         const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
         const profileSnap = await loadProfile();
         const sheetWz = workZoneFromProfile(profileSnap?.profile);
-        if (sheetWz) {
-          await syncZoneMonthSettingsFromSupabase(sheetWz, y, m);
-        }
+        // 排休／節日設定改由初始同步、8 秒輪詢與視窗聚焦時背景更新，
+        // 不在每次重繪時 await 雲端查詢，避免填寫操作被網路延遲拖慢。
         lastViewMonth = `${y}-${m}`;
         const dim = daysInMonth(y, m);
         monthLabel.textContent = `${y} 年 ${m + 1} 月`;
