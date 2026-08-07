@@ -437,6 +437,10 @@
     table.attendance-sheet select.sheet-leave-select.sheet-leave-empty {
       color: #64748b;
     }
+    table.attendance-sheet select.sheet-leave-select option {
+      color: #ffffff;
+      background: #0f1419;
+    }
     table.attendance-sheet input[type="time"].sheet-time-input:focus {
       outline: none;
       border-color: rgba(61, 139, 253, 0.75);
@@ -699,6 +703,14 @@
       border-top: 1px solid rgba(148, 163, 184, 0.38);
       margin: 4px 0 16px;
     }
+    /* 總結報告彈窗：上下間距緊密均勻 */
+    .summary-report-modal-panel .summary-report-line {
+      margin-bottom: 6px;
+      line-height: 1.45;
+    }
+    .summary-report-modal-panel hr.summary-report-divider {
+      margin: 6px 0;
+    }
     .sheet-head-main .btn-company-summary {
       flex-shrink: 0;
     }
@@ -716,13 +728,24 @@
     }
     .company-summary-period {
       margin: 0 0 16px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #94a3b8;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .company-summary-zone-title {
+      margin: 24px 0 12px;
+      padding-bottom: 6px;
+      font-size: 1.53rem;
+      font-weight: 800;
+      color: #7dd3fc;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    }
+    .company-summary-zone-title:first-of-type {
+      margin-top: 0;
     }
     .company-summary-user-block {
       margin-bottom: 28px;
-      padding-bottom: 22px;
+      padding-bottom: 0;
       border-bottom: 1px solid rgba(148, 163, 184, 0.28);
     }
     .company-summary-user-block:last-child {
@@ -770,11 +793,34 @@
       cursor: pointer;
     }
     .company-summary-user-block.is-verified {
-      border-left: 3px solid rgba(34, 197, 94, 0.55);
+      border-left: 20px solid rgba(34, 197, 94, 0.55);
       padding-left: 10px;
     }
     .company-summary-user-summary {
       margin-bottom: 14px;
+    }
+    /* 公司總結內上下行距固定 3px、行高收緊，使內容緊密均勻 */
+    .company-summary-user-summary .summary-report-line {
+      margin-bottom: 3px;
+      line-height: 1.4;
+    }
+    .company-summary-user-summary hr.summary-report-divider {
+      margin: 3px 0;
+    }
+    .company-summary-user-summary details.summary-leaves-details {
+      margin: 0 0 3px;
+    }
+    .company-summary-user-summary details.summary-leaves-details .summary-report-line {
+      margin: 3px 0 0;
+    }
+    .company-summary-user-summary {
+      margin-bottom: 3px;
+    }
+    .company-summary-user-block .company-summary-punch-heading {
+      margin: 0 0 3px;
+    }
+    .company-summary-user-block details.company-summary-punch-details {
+      margin-top: 3px;
     }
     .company-summary-punch-heading {
       margin: 0 0 8px;
@@ -789,7 +835,7 @@
       display: none;
     }
     .company-summary-punch-heading::before {
-      content: "▸";
+      content: "▶";
       display: inline-block;
       margin-right: 6px;
       color: #94a3b8;
@@ -803,6 +849,21 @@
     }
     details.company-summary-punch-details .company-summary-punch-table-wrap {
       margin-top: 8px;
+    }
+    details.summary-leaves-details {
+      margin-bottom: 14px;
+    }
+    details.summary-leaves-details .summary-report-line {
+      margin: 10px 0 0;
+    }
+    .summary-leaves-dot {
+      display: inline-block;
+      margin-left: 8px;
+      color: #ef4444;
+      vertical-align: middle;
+    }
+    details.summary-leaves-details[open] > .company-summary-punch-heading .summary-leaves-dot {
+      display: none;
     }
     .company-summary-punch-table-wrap {
       overflow-x: auto;
@@ -826,8 +887,9 @@
       font-weight: 700;
     }
     table.company-summary-punch-table td.col-punch-date {
-      text-align: left;
-      font-weight: 600;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.25em;
     }
     table.company-summary-punch-table tr.row-weekend td {
       color: #94a3b8;
@@ -836,6 +898,18 @@
       color: #64748b;
     }
     table.company-summary-punch-table td.col-check-on {
+      color: #f5a524;
+      font-weight: 700;
+    }
+    table.company-summary-punch-table td.col-punch-emphasis:not(.empty-punch) {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.25em;
+    }
+    table.company-summary-punch-table td.col-holiday:not(.empty-punch) {
+      font-size: 1.25em;
+    }
+    table.company-summary-punch-table tr td.col-leave-accent {
       color: #f5a524;
       font-weight: 700;
     }
@@ -917,7 +991,7 @@
           class="btn-ghost btn-company-summary"
           id="btnCompanySummary"
           hidden
-          title="檢視同工區所有使用者當月總結與上下班時間（僅管理員）"
+          title="依工區檢視所有使用者當月總結與上下班時間（僅管理員）"
         >
           公司總結
         </button>
@@ -2420,9 +2494,14 @@
       return false;
     }
 
+    /** 上下班時間表格顯示用：HH:MM（不含秒） */
+    function formatTimeHm(iso) {
+      return formatTime(iso).slice(0, 5);
+    }
+
     function formatPunchWithDutyIn(iso, hasDutyIn) {
       if (!iso) return "—";
-      const t = formatTime(iso);
+      const t = formatTimeHm(iso);
       return hasDutyIn ? t + DUTY_IN_SUFFIX : t;
     }
 
@@ -2483,7 +2562,7 @@
     /** 下班時間：值班 🕠 與灌漿 🏗️ 互斥（資料層僅會存一種） */
     function formatPunchOut(iso, hasDutyOut, hasGrouting) {
       if (!iso) return "—";
-      const t = formatTime(iso);
+      const t = formatTimeHm(iso);
       if (hasDutyOut) return t + DUTY_OUT_SUFFIX;
       if (hasGrouting) return t + GROUTING_OUT_SUFFIX;
       return t;
@@ -3999,6 +4078,7 @@
      * @param {Record<string, object>} [options.statusMonthMap]
      * @param {Record<string, object>} [options.fiscalStatusMap]
      * @param {boolean} [options.includePeriodUserLine]
+     * @param {boolean} [options.collapsibleLeaves] 假別統計以可收折區塊呈現（公司總結用），收折時若有非零休假顯示紅點
      */
     function buildSummaryReportElements(snap, options) {
       const {
@@ -4009,6 +4089,7 @@
         statusMonthMap = null,
         fiscalStatusMap = null,
         includePeriodUserLine = true,
+        collapsibleLeaves = false,
       } = options;
 
       const elements = [];
@@ -4138,8 +4219,10 @@
           : null;
 
       const leaveLines = [];
+      let hasNonZeroLeave = false;
       for (const label of SUMMARY_REPORT_LEAVE_LABELS) {
         const monthLeave = countLeaveDaysInMonthMap(monthMap, label);
+        if (Number(monthLeave) !== 0) hasNonZeroLeave = true;
         const fyLeave =
           fiscalStatusMap != null
             ? countLeaveDaysInMonthMap(fiscalStatusMap, label)
@@ -4176,7 +4259,25 @@
       const summaryLeaveDivider = document.createElement("hr");
       summaryLeaveDivider.className = "summary-report-divider";
       elements.push(summaryLeaveDivider);
-      elements.push(...leaveLines);
+      if (collapsibleLeaves) {
+        const leavesDetails = document.createElement("details");
+        leavesDetails.className = "company-summary-punch-details summary-leaves-details";
+        const leavesSummary = document.createElement("summary");
+        leavesSummary.className = "company-summary-punch-heading";
+        leavesSummary.textContent = "休假統計";
+        if (hasNonZeroLeave) {
+          const dot = document.createElement("span");
+          dot.className = "summary-leaves-dot";
+          dot.textContent = "⏺︎";
+          dot.title = "本月有休假紀錄";
+          leavesSummary.appendChild(dot);
+        }
+        leavesDetails.appendChild(leavesSummary);
+        for (const lp of leaveLines) leavesDetails.appendChild(lp);
+        elements.push(leavesDetails);
+      } else {
+        elements.push(...leaveLines);
+      }
       return elements;
     }
 
@@ -4279,45 +4380,35 @@
       return { mapsByUser, dutyInByUser, dutyOutByUser, groutingByUser };
     }
 
-    async function fetchZoneProfilesForCompanySummary(workZone) {
+    /** 公司總結：取得所有使用者（含工區），不再侷限單一工區 */
+    async function fetchAllProfilesForCompanySummary() {
       const { data, error } = await sb.from(PROFILE_TABLE).select("id, username, 工區");
       if (error) throw new Error(error.message);
       const members = [];
       for (const p of data || []) {
-        if (workZoneFromProfile(p) !== workZone) continue;
         members.push({
           id: String(p.id),
           username:
             p.username != null && String(p.username).trim() !== ""
               ? String(p.username).trim()
               : "使用者",
+          zone: workZoneFromProfile(p) || "",
         });
       }
-      members.sort((a, b) => a.username.localeCompare(b.username, "zh-Hant"));
       return members;
     }
 
-    async function fetchZoneDayRecordsForMonth(workZone, year, monthIndex) {
+    async function fetchAllDayRecordsForMonth(year, monthIndex) {
       const { start, end } = monthDateRange(year, monthIndex);
-      const { data, error } = await sb
-        .from(DAY_RECORDS_TABLE)
-        .select(
-          "user_id, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
-        )
-        .eq("work_zone", workZone)
-        .gte("record_date", start)
-        .lte("record_date", end);
-      if (error) throw new Error(error.message);
-      return data || [];
+      return fetchAllDayRecordsForDateRange(start, end);
     }
 
-    async function fetchZoneDayRecordsForDateRange(workZone, startDate, endDate) {
+    async function fetchAllDayRecordsForDateRange(startDate, endDate) {
       const { data, error } = await sb
         .from(DAY_RECORDS_TABLE)
         .select(
-          "user_id, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
+          "user_id, work_zone, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
         )
-        .eq("work_zone", workZone)
         .gte("record_date", startDate)
         .lte("record_date", endDate);
       if (error) throw new Error(error.message);
@@ -4325,7 +4416,7 @@
     }
 
     function formatCompanySummaryCheckCell(checked) {
-      return checked ? "✓" : "—";
+      return checked ? "⏺︎" : "—";
     }
 
     function buildUserPunchTimesTable(
@@ -4373,21 +4464,25 @@
         if (dow === 0 || dow === 6) tr.classList.add("row-weekend");
 
         const tdHol = document.createElement("td");
-        tdHol.textContent = formatCompanySummaryCheckCell(isZoneHoliday);
+        tdHol.classList.add("col-holiday");
+        tdHol.textContent = isZoneHoliday ? "⏺︎" : "—";
         if (isZoneHoliday) tdHol.classList.add("col-check-on");
         else tdHol.classList.add("empty-punch");
 
         const tdDutyIn = document.createElement("td");
+        tdDutyIn.classList.add("col-punch-emphasis");
         tdDutyIn.textContent = formatCompanySummaryCheckCell(hasDutyIn);
         if (hasDutyIn) tdDutyIn.classList.add("col-check-on");
         else tdDutyIn.classList.add("empty-punch");
 
         const tdDutyOut = document.createElement("td");
+        tdDutyOut.classList.add("col-punch-emphasis");
         tdDutyOut.textContent = formatCompanySummaryCheckCell(hasDutyOut);
         if (hasDutyOut) tdDutyOut.classList.add("col-check-on");
         else tdDutyOut.classList.add("empty-punch");
 
         const tdGrouting = document.createElement("td");
+        tdGrouting.classList.add("col-punch-emphasis");
         tdGrouting.textContent = formatCompanySummaryCheckCell(hasGrouting);
         if (hasGrouting) tdGrouting.classList.add("col-check-on");
         else tdGrouting.classList.add("empty-punch");
@@ -4397,16 +4492,20 @@
         tdDate.textContent = `${pad2(monthIndex + 1)}/${pad2(day)}（${dowNames[dow]}）`;
 
         const tdIn = document.createElement("td");
+        tdIn.classList.add("col-punch-emphasis");
         tdIn.textContent = inText;
         if (inText === "—") tdIn.classList.add("empty-punch");
 
         const tdOut = document.createElement("td");
+        tdOut.classList.add("col-punch-emphasis");
         tdOut.textContent = outText;
         if (outText === "—") tdOut.classList.add("empty-punch");
 
         const tdStatus = document.createElement("td");
         tdStatus.textContent = statusText;
         if (statusText === "—") tdStatus.classList.add("empty-punch");
+        else if (RULES_EXTRA_LEAVE_KIND_SET.has(statusText))
+          tdStatus.classList.add("col-leave-accent");
 
         tr.appendChild(tdHol);
         tr.appendChild(tdDutyIn);
@@ -4455,11 +4554,11 @@
             : "";
 
         const [members, dayRows, zoneHolidayDates, fyDayRows] = await Promise.all([
-          fetchZoneProfilesForCompanySummary(workZone),
-          fetchZoneDayRecordsForMonth(workZone, y, m),
+          fetchAllProfilesForCompanySummary(),
+          fetchAllDayRecordsForMonth(y, m),
           fetchZoneHolidaysForMonth(y, m, dim),
           fyStart != null
-            ? fetchZoneDayRecordsForDateRange(workZone, fyRangeStart, fyRangeEnd)
+            ? fetchAllDayRecordsForDateRange(fyRangeStart, fyRangeEnd)
             : Promise.resolve([]),
         ]);
         const monthAgg = aggregateDayRecordsRows(dayRows);
@@ -4468,32 +4567,67 @@
         const fyMapsByUser = fyAgg.mapsByUser;
         const rulesCfg = loadRulesConfig();
 
+        // 無 profiles 之使用者以出勤列的工區歸類
+        const rowZoneByUser = new Map();
+        for (const row of dayRows) {
+          if (row?.user_id == null) continue;
+          const rz = String(row.work_zone ?? "").trim();
+          if (rz && !rowZoneByUser.has(String(row.user_id))) {
+            rowZoneByUser.set(String(row.user_id), rz);
+          }
+        }
         const memberById = new Map(members.map((mb) => [mb.id, mb]));
         for (const uid of mapsByUser.keys()) {
           if (!memberById.has(uid)) {
-            memberById.set(uid, { id: uid, username: `使用者 ${uid.slice(0, 8)}…` });
+            memberById.set(uid, {
+              id: uid,
+              username: `使用者 ${uid.slice(0, 8)}…`,
+              zone: rowZoneByUser.get(uid) || "",
+            });
           }
         }
-        const allMembers = Array.from(memberById.values()).sort((a, b) =>
-          a.username.localeCompare(b.username, "zh-Hant")
-        );
+
+        // 依工區分組，工區與成員各自排序
+        const membersByZone = new Map();
+        for (const mb of memberById.values()) {
+          const zoneKey = mb.zone !== "" ? mb.zone : "未設定工區";
+          if (!membersByZone.has(zoneKey)) membersByZone.set(zoneKey, []);
+          membersByZone.get(zoneKey).push(mb);
+        }
+        const zoneKeys = Array.from(membersByZone.keys()).sort((a, b) => {
+          if (a === "未設定工區") return 1;
+          if (b === "未設定工區") return -1;
+          return a.localeCompare(b, "zh-Hant");
+        });
+        for (const zk of zoneKeys) {
+          membersByZone.get(zk).sort((a, b) =>
+            a.username.localeCompare(b.username, "zh-Hant")
+          );
+        }
 
         companySummaryBody.innerHTML = "";
         const periodEl = document.createElement("p");
         periodEl.className = "company-summary-period";
-        periodEl.textContent = `${periodStr}｜工區：${workZone}`;
+        periodEl.textContent = periodStr;
         companySummaryBody.appendChild(periodEl);
 
-        if (!allMembers.length) {
+        if (!memberById.size) {
           const empty = document.createElement("p");
           empty.className = "company-summary-empty";
-          empty.textContent = "此工區尚無使用者資料。";
+          empty.textContent = "尚無使用者資料。";
           companySummaryBody.appendChild(empty);
           return;
         }
 
-        for (const member of allMembers) {
+        for (const zoneKey of zoneKeys) {
+          const zoneTitle = document.createElement("h3");
+          zoneTitle.className = "company-summary-zone-title";
+          zoneTitle.textContent = `工區：${zoneKey}`;
+          companySummaryBody.appendChild(zoneTitle);
+
+          for (const member of membersByZone.get(zoneKey)) {
           const uid = member.id;
+          const memberZone = member.zone !== "" ? member.zone : zoneKey;
           const map = mapsByUser.get(uid) || {};
           const inDates = monthAgg.dutyInByUser.get(uid) || new Set();
           const outDates = monthAgg.dutyOutByUser.get(uid) || new Set();
@@ -4511,7 +4645,7 @@
 
           const block = document.createElement("section");
           block.className = "company-summary-user-block";
-          const verified = isCompanySummaryUserVerified(reviewerId, workZone, y, m, uid);
+          const verified = isCompanySummaryUserVerified(reviewerId, memberZone, y, m, uid);
           if (verified) block.classList.add("is-verified");
 
           const head = document.createElement("div");
@@ -4533,7 +4667,7 @@
           verifyLabel.appendChild(document.createTextNode("檢核完成"));
           verifyCb.addEventListener("change", () => {
             const on = verifyCb.checked;
-            void persistCompanySummaryUserVerified(reviewerId, workZone, y, m, uid, on);
+            void persistCompanySummaryUserVerified(reviewerId, memberZone, y, m, uid, on);
             block.classList.toggle("is-verified", on);
           });
           head.appendChild(verifyLabel);
@@ -4542,11 +4676,12 @@
           const summaryWrap = document.createElement("div");
           summaryWrap.className = "company-summary-user-summary summary-report-body";
           for (const el of buildSummaryReportElements(snap, {
-            workZone,
+            workZone: memberZone,
             userId: uid,
             statusMonthMap: map,
             fiscalStatusMap: fyMapsByUser.get(uid) || {},
             includePeriodUserLine: false,
+            collapsibleLeaves: true,
           })) {
             summaryWrap.appendChild(el);
           }
@@ -4572,6 +4707,7 @@
           block.appendChild(punchDetails);
 
           companySummaryBody.appendChild(block);
+          }
         }
       } catch (e) {
         console.error("populateCompanySummaryBody", e);
