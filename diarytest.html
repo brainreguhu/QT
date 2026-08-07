@@ -1,0 +1,4922 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>上下班打卡</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --accent: #3d8bfd;
+      --btn-secondary-bg: #2a3038;
+      --btn-secondary-hover: #383e4a;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+    body {
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: #e7ecf3;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+    }
+    .btn-ghost {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e7ecf3;
+    }
+    .btn-punch {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(61, 139, 253, 0.55);
+      background: rgba(61, 139, 253, 0.22);
+      color: #e7ecf3;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-punch:hover {
+      background: rgba(61, 139, 253, 0.38);
+    }
+    .btn-punch:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .sheet {
+      padding: 0 12px 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .sheet-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px auto 5px;
+      min-height: 25px;
+      width: 100%;
+    }
+    .sheet-head-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      width: 100%;
+      max-width: 100%;
+      margin-inline: auto;
+      box-sizing: border-box;
+      position: relative;
+      padding-right: 88px;
+    }
+    .sheet-head-main .back-btn {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .sheet-head-main .btn-rules {
+      flex-shrink: 0;
+    }
+    .sheet-head .back-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--btn-secondary-bg);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .sheet-head .back-btn:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .month-label {
+      margin: 0;
+      padding: 0;
+      font-weight: 700;
+      font-size: 25px;
+      line-height: 25px;
+      height: 25px;
+      color: #e7ecf3;
+      text-align: center;
+    }
+    .sheet-head-rest-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      line-height: 25px;
+      white-space: nowrap;
+    }
+    .sheet-head-rest-label {
+      letter-spacing: 0.02em;
+    }
+    .sheet-head-rest-input {
+      box-sizing: border-box;
+      width: 3.25rem;
+      min-height: 28px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 20, 25, 0.75);
+      color: #e7ecf3;
+      font-size: 0.95rem;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    .sheet-head-rest-input:focus {
+      outline: none;
+      border-color: rgba(61, 139, 253, 0.65);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.2);
+    }
+    .sheet-head-rest-input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .sheet-head-rest-input--readonly {
+      opacity: 0.92;
+      cursor: default;
+    }
+    .sheet-head-rest-hint {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #94a3b8;
+      letter-spacing: 0.02em;
+    }
+    .sheet-head-rest-suffix {
+      letter-spacing: 0.02em;
+    }
+    .user-greeting-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 0;
+      min-height: 25px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .user-greeting-wrap .btn-summary-report {
+      flex-shrink: 0;
+      margin-left: 5px;
+    }
+    .user-greeting-wrap .btn-save-cloud {
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .btn-save-cloud.btn-save-dirty {
+      background: rgba(234, 179, 8, 0.42);
+      border-color: rgba(250, 204, 21, 0.85);
+      color: #fef9c3;
+    }
+    .btn-save-cloud.btn-save-dirty:hover:not(:disabled) {
+      background: rgba(234, 179, 8, 0.58);
+      color: #fffbeb;
+    }
+    .sheet-head .user-greeting {
+      margin: 0;
+      padding: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      letter-spacing: 0.02em;
+      line-height: 25px;
+      text-align: center;
+    }
+    .supabase-load-hint {
+      margin-left: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #22c55e;
+      line-height: 25px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .supabase-load-hint[hidden] {
+      display: none !important;
+    }
+    .status-toast {
+      margin-left: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #22c55e;
+      line-height: 25px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity 0.65s ease;
+    }
+    .status-toast.is-fading {
+      opacity: 0;
+    }
+    .status-toast[hidden] {
+      display: none !important;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 20, 25, 0.35);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.attendance-sheet {
+      table-layout: fixed;
+    }
+    table.attendance-sheet col.col-holiday {
+      width: 5%;
+    }
+    table.attendance-sheet col.col-date {
+      width: 7%;
+    }
+    table.attendance-sheet th.col-date-th {
+      font-size: 1rem;
+    }
+    table.attendance-sheet td.col-day-num {
+      font-size: 1.15rem;
+      line-height: 1.25;
+    }
+    table.attendance-sheet col.col-duty-in,
+    table.attendance-sheet col.col-duty-out,
+    table.attendance-sheet col.col-grouting {
+      width: 6%;
+    }
+    table.attendance-sheet col.col-in {
+      width: 18%;
+    }
+    table.attendance-sheet col.col-out {
+      width: 18%;
+    }
+    table.attendance-sheet col.col-att {
+      width: 7%;
+    }
+    table.attendance-sheet col.col-meal {
+      width: 7%;
+    }
+    table.attendance-sheet col.col-early {
+      width: 8%;
+    }
+    table.attendance-sheet col.col-night {
+      width: 8%;
+    }
+    table.attendance-sheet col.col-late {
+      width: 8%;
+    }
+    table.attendance-sheet col.col-status-w {
+      width: 10.8%;
+    }
+    table.attendance-sheet .time-cell {
+      min-width: 0;
+    }
+    table.attendance-sheet th.col-metric,
+    table.attendance-sheet td.col-metric {
+      min-width: 0;
+    }
+    th,
+    td {
+      padding: 5px 4px;
+      text-align: center;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.45);
+    }
+    th {
+      background: rgba(26, 35, 50, 0.85);
+      color: #cbd5e1;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr.row-date-match td {
+      background: rgba(148, 163, 184, 0.14);
+    }
+    tr.row-date-match td.col-day-num {
+      font-weight: 700;
+    }
+    tr.row-date-match td.col-day-num:not(.col-date-weekend) {
+      color: #e7ecf3;
+    }
+    /* 日期欄：週六、週日號數為淺藍色、粗體 */
+    table.attendance-sheet td.col-date-weekend {
+      color: #93c5fd;
+      font-weight: 700;
+    }
+    tr.row-date-match td.col-day-num.col-date-weekend {
+      color: #a5d8ff;
+      font-weight: 700;
+    }
+    tr.row-month-summary td {
+      background: rgba(30, 58, 95, 0.45);
+      border-top: 2px solid rgba(148, 163, 184, 0.55);
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    tr.row-month-summary td.col-month-summary-label {
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    tr.row-month-summary td.time-cell.empty {
+      color: #64748b;
+    }
+    .time-cell {
+      font-variant-numeric: tabular-nums;
+      color: #e2e8f0;
+      min-width: 7.5em;
+    }
+    .time-cell.empty {
+      color: #64748b;
+    }
+    th.col-metric,
+    td.col-metric {
+      font-size: 0.8rem;
+      white-space: nowrap;
+      min-width: 4.5em;
+    }
+    th.col-status,
+    td.col-status {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td.sheet-check-cell {
+      padding: 4px 2px;
+      vertical-align: middle;
+    }
+    td.sheet-check-cell label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      cursor: pointer;
+      min-height: 28px;
+    }
+    td.sheet-check-cell input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #3d8bfd;
+      cursor: pointer;
+    }
+    td.sheet-check-cell input[type="checkbox"]:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    td.sheet-check-cell input[type="checkbox"].sheet-zone-holiday,
+    td.sheet-check-cell input[type="checkbox"].sheet-grouting {
+      accent-color: #ef4444;
+    }
+    table.attendance-sheet input[type="time"].sheet-time-input {
+      width: 100%;
+      max-width: 6.75rem;
+      margin: 0 auto;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 20, 25, 0.75);
+      color: #e7ecf3;
+      font-size: 0.82rem;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+    table.attendance-sheet select.sheet-leave-select {
+      width: 100%;
+      max-width: 7.25rem;
+      margin: 0 auto;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 20, 25, 0.85);
+      color: #e7ecf3;
+      font-size: 0.78rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    table.attendance-sheet select.sheet-leave-select:focus {
+      outline: none;
+      border-color: rgba(61, 139, 253, 0.65);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.2);
+    }
+    table.attendance-sheet select.sheet-leave-select.sheet-leave-empty {
+      color: #64748b;
+    }
+    table.attendance-sheet input[type="time"].sheet-time-input:focus {
+      outline: none;
+      border-color: rgba(61, 139, 253, 0.75);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.2);
+    }
+    td.sheet-time-cell {
+      padding: 4px 3px;
+    }
+    td.sheet-time-cell.empty input.sheet-time-input {
+      opacity: 0.72;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+    }
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+    .modal-panel {
+      width: min(100%, 360px);
+      background: #1a2332;
+      border: 1px solid #2d3a4d;
+      border-radius: 12px;
+      padding: 18px 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    }
+    .modal-panel h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    .modal-row {
+      margin-top: 14px;
+    }
+    .modal-row:first-child {
+      margin-top: 0;
+    }
+    .modal-row .btn-punch {
+      width: 100%;
+      padding: 10px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .modal-actions .btn-ghost {
+      flex: 1;
+    }
+    .rules-placeholder {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      line-height: 1.55;
+    }
+    .rules-modal-panel {
+      width: min(100%, 600px);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 14px;
+    }
+    .rules-modal-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding-right: 4px;
+    }
+    .rules-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+      cursor: pointer;
+    }
+    .rules-toggle input {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      accent-color: #3d8bfd;
+      flex-shrink: 0;
+    }
+    .rules-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .rules-section h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #e7ecf3;
+    }
+    .rules-subheading {
+      margin: 14px 0 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .rules-hint {
+      margin: 0 0 10px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+    .rules-table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    table.rules-table {
+      width: 100%;
+      font-size: 0.82rem;
+    }
+    table.rules-table th,
+    table.rules-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    table.rules-table th {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    table.rules-table tr:last-child td {
+      border-bottom: none;
+    }
+    .rules-inp-hours,
+    .rules-inp-val,
+    .rules-inp-late-max,
+    .rules-inp-late-val,
+    .rules-field-row input[type="number"],
+    .rules-field-row input[type="time"] {
+      width: 100%;
+      max-width: 8rem;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 20, 25, 0.75);
+      color: #e7ecf3;
+      font-size: 0.85rem;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+    .rules-field-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 14px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .rules-field-row:last-child {
+      margin-bottom: 0;
+    }
+    .btn-rules-remove {
+      padding: 4px 8px;
+      font-size: 0.78rem;
+    }
+    #btnAddAttendanceRule,
+    #btnAddLateNormalRule,
+    #btnAddLateDutyRule {
+      margin-top: 10px;
+    }
+    .rules-modal-panel .modal-actions {
+      margin-top: 14px;
+      flex-shrink: 0;
+    }
+    .rules-modal-panel .modal-actions .btn-punch {
+      flex: 1;
+    }
+    .rules-permission-hint {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: #fde68a;
+      background: rgba(180, 83, 9, 0.28);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      border-radius: 8px;
+    }
+    .rules-modal-readonly .rules-modal-body input:disabled,
+    .rules-modal-readonly .rules-modal-body button:disabled {
+      cursor: not-allowed;
+    }
+    .rules-extra-leave-kinds {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.35);
+    }
+    .rules-extra-leave-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.92rem;
+      color: #e2e8f0;
+    }
+    .rules-extra-leave-item input {
+      accent-color: #3d8bfd;
+    }
+    .summary-report-modal-panel {
+      width: min(100%, 440px);
+    }
+    .summary-report-body {
+      margin-top: 10px;
+    }
+    .summary-report-line {
+      margin: 0 0 14px;
+      font-size: 0.96rem;
+      line-height: 1.65;
+      color: #e2e8f0;
+      text-align: left;
+    }
+    .summary-report-line:last-child {
+      margin-bottom: 0;
+    }
+    .summary-report-line.report-line-period {
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      text-align: center;
+    }
+    .summary-report-line.report-line-user {
+      text-align: center;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .summary-report-val {
+      font-size: 1.14em;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+    .summary-report-line.report-line-period .summary-report-val {
+      font-size: 1.12em;
+    }
+    .summary-report-val.summary-report-val-accent {
+      color: #f5a524;
+    }
+    hr.summary-report-divider {
+      border: none;
+      border-top: 1px solid rgba(148, 163, 184, 0.38);
+      margin: 4px 0 16px;
+    }
+    .sheet-head-main .btn-company-summary {
+      flex-shrink: 0;
+    }
+    .company-summary-modal-panel {
+      width: min(980px, 96vw);
+      max-height: min(92vh, 920px);
+      display: flex;
+      flex-direction: column;
+    }
+    .company-summary-body {
+      overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+      padding-right: 4px;
+    }
+    .company-summary-period {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .company-summary-user-block {
+      margin-bottom: 28px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+    }
+    .company-summary-user-block:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .company-summary-user-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .company-summary-user-title {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: 0.02em;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .company-summary-user-block.is-verified .company-summary-user-title {
+      color: #86efac;
+    }
+    .company-summary-verify-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .company-summary-verify-label input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      accent-color: #22c55e;
+      cursor: pointer;
+    }
+    .company-summary-user-block.is-verified {
+      border-left: 3px solid rgba(34, 197, 94, 0.55);
+      padding-left: 10px;
+    }
+    .company-summary-user-summary {
+      margin-bottom: 14px;
+    }
+    .company-summary-punch-heading {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .company-summary-punch-heading::-webkit-details-marker {
+      display: none;
+    }
+    .company-summary-punch-heading::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 6px;
+      color: #94a3b8;
+      transition: transform 0.15s ease;
+    }
+    details.company-summary-punch-details[open] > .company-summary-punch-heading::before {
+      transform: rotate(90deg);
+    }
+    details.company-summary-punch-details {
+      margin-top: 4px;
+    }
+    details.company-summary-punch-details .company-summary-punch-table-wrap {
+      margin-top: 8px;
+    }
+    .company-summary-punch-table-wrap {
+      overflow-x: auto;
+    }
+    table.company-summary-punch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+    table.company-summary-punch-table th,
+    table.company-summary-punch-table td {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      padding: 5px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    table.company-summary-punch-table th {
+      background: rgba(15, 23, 42, 0.55);
+      color: #cbd5e1;
+      font-weight: 700;
+    }
+    table.company-summary-punch-table td.col-punch-date {
+      text-align: left;
+      font-weight: 600;
+    }
+    table.company-summary-punch-table tr.row-weekend td {
+      color: #94a3b8;
+    }
+    table.company-summary-punch-table td.empty-punch {
+      color: #64748b;
+    }
+    table.company-summary-punch-table td.col-check-on {
+      color: #f5a524;
+      font-weight: 700;
+    }
+    .company-summary-loading,
+    .company-summary-empty {
+      margin: 12px 0;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-head-main">
+        <button
+          type="button"
+          class="btn-ghost btn-company-summary"
+          id="btnCompanySummary"
+          hidden
+          title="檢視同工區所有使用者當月總結與上下班時間（僅管理員）"
+        >
+          公司總結
+        </button>
+        <button type="button" class="btn-ghost btn-rules" id="btnRules">規則設定</button>
+        <div class="month-label" id="monthLabel"></div>
+        <div class="sheet-head-rest-wrap" id="sheetHeadRestWrap">
+          <span class="sheet-head-rest-label">本月排休</span>
+          <input
+            type="text"
+            id="monthRestDaysInput"
+            class="sheet-head-rest-input"
+            maxlength="3"
+            inputmode="numeric"
+            autocomplete="off"
+            aria-label="本月排休日數（同工區共用）"
+          />
+          <span class="sheet-head-rest-suffix">日</span>
+          <span id="monthRestDaysHint" class="sheet-head-rest-hint" hidden>同工區共用</span>
+        </div>
+        <a class="back-btn" href="./index.html">↩ 返回</a>
+      </div>
+      <div class="user-greeting-wrap">
+        <p class="user-greeting" id="userGreeting" aria-live="polite">
+          <span id="userGreetingText">你好，讀取中…</span>
+        </p>
+        <button type="button" class="btn-ghost btn-summary-report" id="btnSummaryReport">
+          總結報告
+        </button>
+        <button type="button" class="btn-punch btn-save-cloud" id="btnSaveCloud" title="將變更上傳至 Supabase">
+          保存
+        </button>
+        <span id="supabaseLoadHint" class="supabase-load-hint" hidden aria-live="polite">尚有未保存變更</span>
+        <span id="statusToast" class="status-toast" hidden aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="attendance-sheet">
+        <colgroup>
+          <col class="col-holiday" />
+          <col class="col-duty-in" />
+          <col class="col-duty-out" />
+          <col class="col-grouting" />
+          <col class="col-date" />
+          <col class="col-in" />
+          <col class="col-out" />
+          <col class="col-status-w" />
+          <col class="col-att" />
+          <col class="col-meal" />
+          <col class="col-early" />
+          <col class="col-night" />
+          <col class="col-late" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="col-holiday-th">節日</th>
+            <th class="col-duty-th">早班</th>
+            <th class="col-duty-th">值班</th>
+            <th class="col-duty-th">灌漿</th>
+            <th class="col-date-th">日期</th>
+            <th>上班</th>
+            <th>下班</th>
+            <th class="col-metric col-status">休假</th>
+            <th class="col-metric">出勤</th>
+            <th class="col-metric">誤餐</th>
+            <th class="col-metric">早加班</th>
+            <th class="col-metric">夜加班</th>
+            <th class="col-metric">遲到</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="rulesModalBackdrop" class="modal-backdrop" hidden>
+    <div class="modal-panel rules-modal-panel" role="dialog" aria-modal="true" aria-labelledby="rulesModalTitle">
+      <div class="modal-row">
+        <h2 id="rulesModalTitle">規則設定</h2>
+      </div>
+      <div class="rules-modal-body">
+        <p id="rulesPermissionHint" class="rules-permission-hint" hidden>
+          僅<strong>管理員</strong>可編輯規則；您目前為唯讀，無法變更或儲存。
+        </p>
+        <label class="rules-toggle">
+          <input type="checkbox" id="rulesEngineEnabled" checked />
+          <span>啟用規則計算</span>
+        </label>
+
+        <section class="rules-section" aria-labelledby="rulesSecAtt">
+          <h3 id="rulesSecAtt">出勤</h3>
+          <p class="rules-hint">
+            依「下班時間 − 上班時間」換算成小時後，與下列「門檻時數」比對：<strong>實際時數達該門檻以上</strong>（並可依下方容許誤差略為放寬）即代入對應「出勤值」。多筆規則時<strong>依門檻由高到低</strong>取第一筆命中（例如滿 8 小時列適用於 8 小時與更長工時）。無任一規則命中時，清單「出勤」不顯示規則計算值。
+          </p>
+          <div class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th>門檻時數（小時）</th>
+                  <th>出勤值 (日)</th>
+                  <th aria-label="操作"></th>
+                </tr>
+              </thead>
+              <tbody id="rulesAttendanceTbody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-ghost" id="btnAddAttendanceRule">新增規則</button>
+          <div class="rules-field-row" style="margin-top: 10px">
+            <span>比對容許誤差（小時）</span>
+            <input type="number" id="rulesAttTolerance" step="0.01" value="0.08" title="門檻比對：實際時數 ≥（門檻時數 − 此值）即視為達門檻；亦可消除秒數造成的浮點誤差" />
+          </div>
+        </section>
+
+        <section class="rules-section" aria-labelledby="rulesSecHoliday">
+          <h3 id="rulesSecHoliday">節日</h3>
+          <p class="rules-hint">
+            清單「節日」欄由<strong>管理員</strong>標記（同工區共用）。若啟用下列係數，規則計算之<strong>出勤</strong>會再乘以係數（例如 1.5 表示 1.5 倍）。
+          </p>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesHolidayEnabled" checked />
+            <span>啟用假日出勤係數</span>
+          </label>
+          <div class="rules-field-row">
+            <span>出勤倍率係數</span>
+            <input
+              type="number"
+              id="rulesHolidayAttMultiplier"
+              step="0.01"
+              min="0"
+              value="1.5"
+              title="假日上班時，規則算出之出勤再乘以此係數"
+            />
+          </div>
+        </section>
+
+        <section class="rules-section" aria-labelledby="rulesSecEarly">
+          <h3 id="rulesSecEarly">早加班</h3>
+          <p class="rules-hint">當日清單已勾選「早班」，且上班打卡時間早於指定時間時，顯示下列早加班時數。</p>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesEarlyEnabled" checked />
+            <span>啟用早加班規則</span>
+          </label>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesEarlyRequireDuty" checked />
+            <span>須為「早班」</span>
+          </label>
+          <div class="rules-field-row">
+            <span>早於（不含該整點）</span>
+            <input type="time" id="rulesEarlyBeforeTime" value="07:00" />
+            <span>早加班時數</span>
+            <input type="number" id="rulesEarlyValue" step="0.1" value="1" />
+          </div>
+        </section>
+
+        <section class="rules-section" aria-labelledby="rulesSecNight">
+          <h3 id="rulesSecNight">夜加班</h3>
+          <p class="rules-hint">
+            當日符合下方「須登記」條件之一時（可僅要求「值班」、僅要求「灌漿」，或兩者皆勾選時<strong>符合任一即可</strong>），依下班打卡計算夜加班：
+            <br>　第一段為<strong>「基準時間～大夜起算」</strong>；第二段為<strong>「大夜起算～下班時間」</strong> 之時數。
+            <br>　兩段各自進位後分別乘「基準係數」、「大夜係數」，再加總。
+          </p>
+          <p class="rules-hint">
+            前段基準至大夜起算<strong>最多 4.5 時</strong>；
+            <br>時進位：整點後 1～30分 計半小時，31～00分 計一小時。大夜以後段亦同此進位。
+          </p>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesNightEnabled" checked />
+            <span>啟用夜加班規則</span>
+          </label>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesNightRequireDutyOut" checked />
+            <span>須登記「值班」（下班）</span>
+          </label>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesNightRequireGrouting" checked />
+            <span>須登記「灌漿」</span>
+          </label>
+          <div class="rules-field-row">
+            <span>基準時間</span>
+            <input type="time" id="rulesNightBaseTime" value="17:30" />
+            <span>大夜起算基準</span>
+            <input type="time" id="rulesNightBoundaryTime" value="22:00" />
+          </div>
+          <div class="rules-field-row">
+            <span>基準～大夜 X</span>
+            <input type="number" id="rulesNightCoeffBefore" step="0.01" value="1.5" title="例如 17:30～22:00 區間" />
+            <span>大夜基準以後 X</span>
+            <input type="number" id="rulesNightCoeffAfter" step="0.01" value="1.75" title="例如 22:00 以後至下班" />
+          </div>
+        </section>
+
+        <section class="rules-section" aria-labelledby="rulesSecLate">
+          <h3 id="rulesSecLate">遲到</h3>
+          <p class="rules-hint">
+            未登記「早班」以<strong>基準時間</strong>起算；已登記「早班」以<strong>早班遲到基準</strong>起算遲到「分鐘」。
+            <br><strong>區分「未登記早班」與「已登記早班」</strong>兩種情形，各自套用下方<strong>不同表格</strong>之梯度（互不干擾）。
+          </p>
+          <p class="rules-hint">
+            判斷方式：該日出勤日若清單<strong>已勾選「早班」</strong> → 套用<strong>「早班」</strong>表；
+            <br>否則 → 套用<strong>「未登記早班」</strong>表。
+            <br>每張表皆由上而下找第一列滿足 <strong>M ≤ 遲到分鐘上限</strong>。
+          </p>
+          <label class="rules-toggle" style="margin-bottom: 8px">
+            <input type="checkbox" id="rulesLateEnabled" checked />
+            <span>啟用遲到規則</span>
+          </label>
+          <div class="rules-field-row">
+            <span>基準時間</span>
+            <input type="time" id="rulesLateBaselineTime" value="08:00" title="未登記「早班」列遲到起算點" />
+          </div>
+          <div class="rules-field-row">
+            <span>早班遲到基準</span>
+            <input type="time" id="rulesLateDutyBaselineTime" value="08:00" title="清單已勾選「早班」時之遲到起算點" />
+          </div>
+          <p class="rules-hint">
+            遲到分鐘 <em>M</em>：未登記早班以<strong>基準時間</strong>與上班打卡比對；已登記「早班」以<strong>早班遲到基準</strong>與上班打卡比對（兩者分開計算）。寫入資料庫時，計入值會以「時數×60」換算為整數寫入 <code>late_minutes</code>（與規則顯示之純數字對應）。
+          </p>
+          <h4 class="rules-subheading">未登記早班</h4>
+          <p class="rules-hint" style="margin-top: 0; margin-bottom: 8px">該出勤日清單未勾選「早班」時使用此表。</p>
+          <div class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th>遲到分鐘上限（含）</th>
+                  <th>計入數值</th>
+                  <th aria-label="操作"></th>
+                </tr>
+              </thead>
+              <tbody id="rulesLateNormalTbody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-ghost" id="btnAddLateNormalRule">新增列</button>
+          <h4 class="rules-subheading">早班</h4>
+          <p class="rules-hint" style="margin-top: 0; margin-bottom: 8px">該出勤日清單已勾選「早班」時使用此表（與上表分開計算）。</p>
+          <div class="rules-table-wrap">
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th>遲到分鐘上限（含）</th>
+                  <th>計入數值</th>
+                  <th aria-label="操作"></th>
+                </tr>
+              </thead>
+              <tbody id="rulesLateDutyTbody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-ghost" id="btnAddLateDutyRule">新增列</button>
+        </section>
+
+        <section class="rules-section" aria-labelledby="rulesSecLeaveCategories">
+          <h3 id="rulesSecLeaveCategories">休假類別</h3>
+          <p class="rules-hint">
+            可指定哪些<strong>休假狀態</strong>適用額外休假規則。
+          </p>
+          <label class="rules-toggle" style="margin-bottom: 10px">
+            <input type="checkbox" id="rulesExtraLeaveEnabled" />
+            <span>享額外休假</span>
+          </label>
+          <div
+            id="rulesExtraLeaveKindsWrap"
+            class="rules-extra-leave-kinds"
+            role="group"
+            aria-label="享額外休假之假別"
+          >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="特休" /> 特休</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="公假" /> 公假</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="病假" /> 病假</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="事假" /> 事假</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="婚假" /> 婚假</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="產假" /> 產假</label
+            >
+            <label class="rules-extra-leave-item"
+              ><input type="checkbox" class="rules-extra-leave-cb" data-leave-kind="喪假" /> 喪假</label
+            >
+          </div>
+        </section>
+
+        <p class="rules-hint" style="margin-top: 14px">清單「休假」選項儲存於本機出勤資料之 <code>status</code> 欄位。</p>
+      </div>
+      <div class="modal-row modal-actions">
+        <button type="button" class="btn-punch" id="rulesSaveBtn">儲存</button>
+        <button type="button" class="btn-ghost" id="rulesModalCloseBtn">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="companySummaryBackdrop" class="modal-backdrop" hidden>
+    <div
+      class="modal-panel company-summary-modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="companySummaryTitle"
+    >
+      <div class="modal-row">
+        <h2 id="companySummaryTitle">公司總結</h2>
+      </div>
+      <div class="company-summary-body" id="companySummaryBody">
+        <p class="company-summary-loading">載入中…</p>
+      </div>
+      <div class="modal-row modal-actions">
+        <button type="button" class="btn-ghost" id="companySummaryCloseBtn">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="summaryReportBackdrop" class="modal-backdrop" hidden>
+    <div
+      class="modal-panel summary-report-modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="summaryReportTitle"
+    >
+      <div class="modal-row">
+        <h2 id="summaryReportTitle">總結報告</h2>
+      </div>
+      <div class="summary-report-body" id="summaryReportBody"></div>
+      <div class="modal-row modal-actions">
+        <button type="button" class="btn-ghost" id="summaryReportCloseBtn">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    /** 出勤資料存於 localStorage（依使用者＋工區）；使用者名稱／工區／權限自 Supabase profiles 讀取。 */
+    const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+    const PROFILE_TABLE = "profiles";
+    const DAY_RECORDS_TABLE = "diarytest_day_records";
+    const ZONE_SETTINGS_TABLE = "diarytest_zone_settings";
+    const ZONE_MONTHS_TABLE = "diarytest_zone_months";
+    const REVIEW_MARKS_TABLE = "diarytest_review_marks";
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: typeof localStorage !== "undefined" ? localStorage : undefined,
+      },
+    });
+
+    const LS_ATT_MONTH = "qt-diarytest-attendance-month";
+    const LS_DUTY_CLAIMS = "qt-diarytest-duty-claims";
+    const LS_GROUT_CLAIMS = "qt-diarytest-grouting-claims";
+    const LS_ZONE_HOLIDAYS = "qt-diarytest-zone-holidays";
+    const LS_MONTH_REST_DAYS = "qt-diarytest-month-rest-days";
+    const LS_COMPANY_SUMMARY_VERIFIED = "qt-diarytest-company-summary-verified";
+
+    function lsReadJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw == null || raw === "") return fallback;
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function lsWriteJson(key, val) {
+      try {
+        localStorage.setItem(key, JSON.stringify(val));
+      } catch (e) {
+        console.warn("lsWriteJson", key, e);
+      }
+    }
+
+    function attendanceMonthKey(year, monthIndex) {
+      return `${year}-${pad2(monthIndex + 1)}`;
+    }
+
+    function legacyAttendanceLsKey(workZone, monthKey) {
+      return `${LS_ATT_MONTH}:${workZone}:${monthKey}`;
+    }
+
+    function attendanceLsKey(userId, workZone, monthKey) {
+      return `${LS_ATT_MONTH}:${userId}:${workZone}:${monthKey}`;
+    }
+
+    /** 讀取個人當月出勤；若僅有舊版（僅工區）鍵則遷移至個人鍵 */
+    function readAttendanceMonthMap(userId, workZone, monthKey) {
+      if (!userId || !workZone) return {};
+      const scopedKey = attendanceLsKey(userId, workZone, monthKey);
+      const stored = lsReadJson(scopedKey, null);
+      if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+        return stored;
+      }
+      const legacy = lsReadJson(legacyAttendanceLsKey(workZone, monthKey), null);
+      if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+        lsWriteJson(scopedKey, legacy);
+        return legacy;
+      }
+      return {};
+    }
+
+    function writeAttendanceMonthMap(userId, workZone, monthKey, map) {
+      if (!userId || !workZone) return;
+      lsWriteJson(attendanceLsKey(userId, workZone, monthKey), map);
+    }
+
+    function attendanceScopeKey(userId, workZone) {
+      if (!userId || !workZone) return "";
+      return `${userId}:${workZone}`;
+    }
+
+    function monthRestDaysStorageKey(workZone, y, monthIndex) {
+      const mo = String(monthIndex + 1).padStart(2, "0");
+      return `${LS_MONTH_REST_DAYS}:${workZone}:${y}-${mo}`;
+    }
+
+    function readMonthRestDays(workZone, y, monthIndex) {
+      if (!workZone) return "";
+      try {
+        return localStorage.getItem(monthRestDaysStorageKey(workZone, y, monthIndex)) ?? "";
+      } catch {
+        return "";
+      }
+    }
+
+    function writeMonthRestDaysLocal(workZone, y, monthIndex, val) {
+      if (!workZone) return;
+      try {
+        localStorage.setItem(monthRestDaysStorageKey(workZone, y, monthIndex), val);
+      } catch (e) {
+        console.warn("writeMonthRestDaysLocal", e);
+      }
+    }
+
+    function writeMonthRestDays(workZone, y, monthIndex, val, profile) {
+      if (!workZone) return false;
+      if (!isZoneAdmin(profile)) return false;
+      writeMonthRestDaysLocal(workZone, y, monthIndex, val);
+      return true;
+    }
+
+    function companySummaryVerifiedStorageKey(reviewerId, workZone, year, monthIndex) {
+      const mk = attendanceMonthKey(year, monthIndex);
+      return `${LS_COMPANY_SUMMARY_VERIFIED}:${reviewerId}:${workZone}:${mk}`;
+    }
+
+    function readCompanySummaryVerifiedMap(reviewerId, workZone, year, monthIndex) {
+      if (!reviewerId || !workZone) return {};
+      const key = companySummaryVerifiedStorageKey(reviewerId, workZone, year, monthIndex);
+      const raw = lsReadJson(key, {});
+      return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    }
+
+    function isCompanySummaryUserVerified(reviewerId, workZone, year, monthIndex, targetUserId) {
+      const map = readCompanySummaryVerifiedMap(reviewerId, workZone, year, monthIndex);
+      return map[String(targetUserId)] === true;
+    }
+
+    function setCompanySummaryUserVerified(
+      reviewerId,
+      workZone,
+      year,
+      monthIndex,
+      targetUserId,
+      verified
+    ) {
+      if (!reviewerId || !workZone || !targetUserId) return;
+      const key = companySummaryVerifiedStorageKey(reviewerId, workZone, year, monthIndex);
+      const map = readCompanySummaryVerifiedMap(reviewerId, workZone, year, monthIndex);
+      const uid = String(targetUserId);
+      if (verified) map[uid] = true;
+      else delete map[uid];
+      lsWriteJson(key, map);
+    }
+
+    async function persistCompanySummaryUserVerified(
+      reviewerId,
+      workZone,
+      year,
+      monthIndex,
+      targetUserId,
+      verified
+    ) {
+      setCompanySummaryUserVerified(
+        reviewerId,
+        workZone,
+        year,
+        monthIndex,
+        targetUserId,
+        verified
+      );
+      if (!reviewerId || !workZone || !targetUserId) return;
+      const mk = attendanceMonthKey(year, monthIndex);
+      if (verified) {
+        const { error } = await sb.from(REVIEW_MARKS_TABLE).upsert(
+          {
+            reviewer_id: reviewerId,
+            work_zone: workZone,
+            month_key: mk,
+            target_user_id: targetUserId,
+            verified_at: new Date().toISOString(),
+          },
+          { onConflict: "reviewer_id,work_zone,month_key,target_user_id" }
+        );
+        if (error) console.warn("persistCompanySummaryUserVerified", error);
+      } else {
+        const { error } = await sb
+          .from(REVIEW_MARKS_TABLE)
+          .delete()
+          .eq("reviewer_id", reviewerId)
+          .eq("work_zone", workZone)
+          .eq("month_key", mk)
+          .eq("target_user_id", targetUserId);
+        if (error) console.warn("persistCompanySummaryUserVerified delete", error);
+      }
+    }
+
+    /** @returns {string} 數字日數或空字串 */
+    function sanitizeMonthRestDaysInput(raw) {
+      const s = String(raw ?? "").trim();
+      if (s === "") return "";
+      const digits = s.replace(/\D/g, "");
+      if (digits === "") return "";
+      let n = parseInt(digits, 10);
+      if (!Number.isFinite(n) || n < 0) return "0";
+      if (n > 31) n = 31;
+      return String(n);
+    }
+
+    /** @param {string} logicalDateStr `YYYY-MM-DD` */
+    function monthKeyFromLogicalDate(logicalDateStr) {
+      return logicalDateStr && logicalDateStr.length >= 7 ? logicalDateStr.slice(0, 7) : "";
+    }
+
+    /** 當次頁面載入期間之記憶體快取（key 為 YYYY-MM）；切換使用者或工區時清空 */
+    /** @type {Record<string, Record<string, DayRec>>} */
+    let cloudMonthMaps = {};
+    let activeAttendanceScope = "";
+
+    /**
+     * @typedef {{
+     *   in?: string,
+     *   out?: string,
+     *   attendance_hours?: number | null,
+     *   early_ot_hours?: number | null,
+     *   night_ot_hours?: number | null,
+     *   late_minutes?: number | null,
+     *   status?: string | null
+     * }} DayRec
+     */
+
+    try {
+      localStorage.removeItem("qt-attendance-v1");
+    } catch (_) {
+      /* ignore */
+    }
+
+    function pad2(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    /** 休假下拉選單選項（寫入 DayRec.status；空值顯示為「—」） */
+    const LEAVE_OPTIONS = ["休假", "特休", "公假", "病假", "事假", "婚假", "產假", "喪假"];
+    /** 規則「休假類別」與總結報告假別列共用（對應 status；不含泛用「休假」） */
+    const RULES_EXTRA_LEAVE_KIND_OPTIONS = ["特休", "公假", "病假", "事假", "婚假", "產假", "喪假"];
+    const RULES_EXTRA_LEAVE_KIND_SET = new Set(RULES_EXTRA_LEAVE_KIND_OPTIONS);
+    const SUMMARY_REPORT_LEAVE_LABELS = RULES_EXTRA_LEAVE_KIND_OPTIONS;
+
+    function normalizeRulesExtraLeaveKinds(arr) {
+      if (!Array.isArray(arr)) return [];
+      const out = [];
+      for (const x of arr) {
+        const s = String(x ?? "").trim();
+        if (RULES_EXTRA_LEAVE_KIND_SET.has(s) && !out.includes(s)) out.push(s);
+      }
+      return out;
+    }
+    /**
+     * 總結報告「今年度享特休」日數（資料來源未定；串接後替換此常數或改為函式載入）。
+     */
+    let summaryReportAnnualSpecialLeaveEntitlementDays = 0;
+
+    function formatTime(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
+    /** 下班打卡（當地時鐘）是否不早於 hh:mm（含該分鐘整點起） */
+    function punchOutLocalAtLeastHm(outIso, hh, mm) {
+      if (!outIso) return false;
+      const d = new Date(outIso);
+      if (Number.isNaN(d.getTime())) return false;
+      const mins = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+      const limit = hh * 60 + mm;
+      return mins >= limit - 1e-9;
+    }
+
+    /**
+     * 誤餐：下班 ≥ 18:30（含）為 1；已勾選下班「值班」或「灌漿」者不適用（視為 —）。
+     * @returns {number | null} 1 或 null（顯示 —）
+     */
+    function mealAllowanceUnits(rec, hasDutyOut, hasGrouting) {
+      if (hasDutyOut || hasGrouting) return null;
+      if (!rec?.out) return null;
+      return punchOutLocalAtLeastHm(rec.out, 18, 30) ? 1 : null;
+    }
+
+    /** @param {string} dateStr YYYY-MM-DD（出勤日） */
+    function isoFromAttendanceDateStrAndTime(dateStr, timeVal) {
+      if (!dateStr || timeVal == null) return null;
+      const t = String(timeVal).trim();
+      if (!t) return null;
+      const part = t.length === 5 ? `${t}:00` : t;
+      const d = new Date(`${dateStr}T${part}`);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toISOString();
+    }
+
+    /**
+     * 將打卡時間正規化為可供 Date 解析之字串。
+     * Supabase timestamptz 多為完整 ISO；若資料為純時間（HH:mm 或 HH:mm:ss），併入該列出勤日方能計算「下班 − 上班」時數。
+     */
+    function coercePunchIsoForAttendanceDay(dayKey, punch) {
+      if (punch == null) return undefined;
+      const s = String(punch).trim();
+      if (!s) return undefined;
+      if (!Number.isNaN(new Date(s).getTime())) return s;
+      const iso = isoFromAttendanceDateStrAndTime(dayKey, s);
+      return iso ?? undefined;
+    }
+
+    function daysInMonth(year, monthIndex) {
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+
+    function monthDateRange(year, monthIndex) {
+      const dim = daysInMonth(year, monthIndex);
+      return {
+        start: `${year}-${pad2(monthIndex + 1)}-01`,
+        end: `${year}-${pad2(monthIndex + 1)}-${pad2(dim)}`,
+        dim,
+      };
+    }
+
+    let pendingCloudSync = false;
+
+    function markPendingCloudSync() {
+      pendingCloudSync = true;
+      updateSaveButtonUi();
+    }
+
+    function clearPendingCloudSync() {
+      pendingCloudSync = false;
+      updateSaveButtonUi();
+    }
+
+    function updateSaveButtonUi() {
+      if (!btnSaveCloud) return;
+      btnSaveCloud.classList.toggle("btn-save-dirty", pendingCloudSync);
+      btnSaveCloud.title = pendingCloudSync
+        ? "有未保存變更 — 按此上傳至 Supabase"
+        : "將變更上傳至 Supabase";
+      if (supabaseLoadHintEl) supabaseLoadHintEl.hidden = !pendingCloudSync;
+    }
+
+    function dayRecHasUploadableData(rec) {
+      if (!rec) return false;
+      if (rec.in || rec.out) return true;
+      const st = rec.status != null ? String(rec.status).trim() : "";
+      return st !== "";
+    }
+
+    function dayRecordFromRow(row) {
+      const dk = sliceLogicalDate(row.record_date);
+      if (!dk) return null;
+      return {
+        dayKey: dk,
+        rec: {
+          in: coercePunchIsoForAttendanceDay(dk, row.punch_in),
+          out: coercePunchIsoForAttendanceDay(dk, row.punch_out),
+          attendance_hours:
+            row.attendance_hours != null ? Number(row.attendance_hours) : null,
+          early_ot_hours: row.early_ot_hours != null ? Number(row.early_ot_hours) : null,
+          night_ot_hours: row.night_ot_hours != null ? Number(row.night_ot_hours) : null,
+          late_minutes:
+            row.late_minutes != null ? parseInt(String(row.late_minutes), 10) : null,
+          status:
+            row.status != null && String(row.status).trim() !== ""
+              ? String(row.status).trim()
+              : null,
+        },
+        duty_in: row.duty_in === true,
+        duty_out: row.duty_out === true,
+        grouting: row.grouting === true,
+        user_id: String(row.user_id ?? ""),
+        username: row.username ?? null,
+      };
+    }
+
+    function dayRecordRowIsEmpty(row) {
+      if (!row) return true;
+      const st = row.status != null ? String(row.status).trim() : "";
+      return (
+        !row.punch_in &&
+        !row.punch_out &&
+        !st &&
+        !row.duty_in &&
+        !row.duty_out &&
+        !row.grouting
+      );
+    }
+
+    /** 自 Supabase 拉取同工區當月每日紀錄，寫入本機快取 */
+    async function syncZoneDayRecordsFromSupabase(year, monthIndex, workZone) {
+      const monthKey = attendanceMonthKey(year, monthIndex);
+      const ctx = await loadProfile();
+      const uid = ctx?.user?.id;
+      if (!workZone || !uid) {
+        cloudMonthMaps = {};
+        activeAttendanceScope = "";
+        return;
+      }
+      const scope = attendanceScopeKey(uid, workZone);
+      if (scope !== activeAttendanceScope) {
+        cloudMonthMaps = {};
+        activeAttendanceScope = scope;
+      }
+
+      const { start, end } = monthDateRange(year, monthIndex);
+      const { data, error } = await sb
+        .from(DAY_RECORDS_TABLE)
+        .select(
+          "user_id, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
+        )
+        .eq("work_zone", workZone)
+        .gte("record_date", start)
+        .lte("record_date", end);
+
+      if (error) {
+        console.warn("syncZoneDayRecordsFromSupabase", error);
+        cloudMonthMaps[monthKey] = readAttendanceMonthMap(uid, workZone, monthKey);
+        return;
+      }
+
+      const map = {};
+      const dutyRows = [];
+      const groutingRows = [];
+
+      for (const row of data || []) {
+        const parsed = dayRecordFromRow(row);
+        if (!parsed) continue;
+        const { dayKey, rec, duty_in, duty_out, grouting, user_id, username } = parsed;
+        if (idsEqual(user_id, uid)) {
+          map[dayKey] = rec;
+        }
+        if (duty_in) {
+          dutyRows.push({
+            work_zone: workZone,
+            logical_date: dayKey,
+            duty_phase: "in",
+            user_id,
+            username,
+          });
+        }
+        if (duty_out) {
+          dutyRows.push({
+            work_zone: workZone,
+            logical_date: dayKey,
+            duty_phase: "out",
+            user_id,
+            username,
+          });
+        }
+        if (grouting && idsEqual(user_id, uid)) {
+          groutingRows.push({
+            work_zone: workZone,
+            logical_date: dayKey,
+            user_id,
+            username,
+          });
+        }
+      }
+
+      cloudMonthMaps[monthKey] = map;
+      writeAttendanceMonthMap(uid, workZone, monthKey, map);
+      lsWriteJson(`${LS_DUTY_CLAIMS}:${monthKey}:${workZone}`, dutyRows);
+      lsWriteJson(`${LS_GROUT_CLAIMS}:${monthKey}:${workZone}`, groutingRows);
+    }
+
+    let lastAppliedZoneMonthServerAt = /** @type {string | null} */ (null);
+    let lastZoneMonthSyncAttemptMs = 0;
+    const ZONE_MONTH_SYNC_MIN_MS = 4000;
+    let zoneMonthPollTimer = /** @type {ReturnType<typeof setInterval> | null} */ (null);
+
+    async function syncZoneMonthSettingsFromSupabase(workZone, year, monthIndex, options = {}) {
+      if (!workZone) return false;
+      const force = options.force === true;
+      const now = Date.now();
+      if (!force && now - lastZoneMonthSyncAttemptMs < ZONE_MONTH_SYNC_MIN_MS) {
+        return false;
+      }
+      lastZoneMonthSyncAttemptMs = now;
+
+      const mk = attendanceMonthKey(year, monthIndex);
+      const { data, error } = await sb
+        .from(ZONE_MONTHS_TABLE)
+        .select("rest_days, holiday_dates, updated_at")
+        .eq("work_zone", workZone)
+        .eq("month_key", mk)
+        .maybeSingle();
+      if (error) {
+        console.warn("syncZoneMonthSettingsFromSupabase", error);
+        return false;
+      }
+
+      const serverAt =
+        data?.updated_at != null && String(data.updated_at).trim() !== ""
+          ? String(data.updated_at)
+          : "__empty__";
+      if (!force && serverAt === lastAppliedZoneMonthServerAt) {
+        return false;
+      }
+      lastAppliedZoneMonthServerAt = serverAt;
+
+      let dates = [];
+      if (Array.isArray(data?.holiday_dates)) {
+        dates = data.holiday_dates.map((d) => sliceLogicalDate(d)).filter(Boolean);
+      } else if (typeof data?.holiday_dates === "string" && data.holiday_dates.trim() !== "") {
+        dates = data.holiday_dates
+          .replace(/[{}]/g, "")
+          .split(",")
+          .map((d) => sliceLogicalDate(d.trim()))
+          .filter(Boolean);
+      }
+      lsWriteJson(`${LS_ZONE_HOLIDAYS}:${mk}:${workZone}`, dates);
+      const val =
+        data?.rest_days != null && Number.isFinite(Number(data.rest_days))
+          ? String(Number(data.rest_days))
+          : "";
+      writeMonthRestDaysLocal(workZone, year, monthIndex, val);
+      return true;
+    }
+
+    function startZoneMonthSettingsPoller() {
+      if (zoneMonthPollTimer != null) return;
+      zoneMonthPollTimer = setInterval(() => {
+        if (document.visibilityState !== "visible") return;
+        void (async () => {
+          const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+          const ctx = await loadProfile();
+          const wz = workZoneFromProfile(ctx?.profile);
+          if (!wz) return;
+          const changed = await syncZoneMonthSettingsFromSupabase(wz, y, m);
+          if (changed) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          }
+        })();
+      }, 8000);
+    }
+
+    async function syncCompanySummaryReviewsFromSupabase(
+      reviewerId,
+      workZone,
+      year,
+      monthIndex
+    ) {
+      if (!reviewerId || !workZone) return;
+      const mk = attendanceMonthKey(year, monthIndex);
+      const { data, error } = await sb
+        .from(REVIEW_MARKS_TABLE)
+        .select("target_user_id")
+        .eq("reviewer_id", reviewerId)
+        .eq("work_zone", workZone)
+        .eq("month_key", mk);
+      if (error) {
+        console.warn("syncCompanySummaryReviewsFromSupabase", error);
+        return;
+      }
+      const map = {};
+      for (const row of data || []) {
+        if (row.target_user_id) map[String(row.target_user_id)] = true;
+      }
+      lsWriteJson(companySummaryVerifiedStorageKey(reviewerId, workZone, year, monthIndex), map);
+    }
+
+    async function fullSyncFromSupabase(year, monthIndex) {
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+      if (!wz || !uid) return false;
+      const tasks = [
+        syncZoneDayRecordsFromSupabase(year, monthIndex, wz),
+        syncZoneMonthSettingsFromSupabase(wz, year, monthIndex, { force: true }),
+        pullRulesConfigFromSupabase(),
+      ];
+      if (isZoneAdmin(ctx.profile)) {
+        tasks.push(syncCompanySummaryReviewsFromSupabase(uid, wz, year, monthIndex));
+      }
+      await Promise.all(tasks);
+      clearPendingCloudSync();
+      return true;
+    }
+
+    async function uploadMyDayRecordsForMonth(workZone, uid, year, monthIndex) {
+      const map = loadMonthMap(year, monthIndex);
+      const cfg = loadRulesConfig();
+      const { dim } = monthDateRange(year, monthIndex);
+      const [{ inDates, outDates }, groutingDates, , zoneHolidayDates] = await Promise.all([
+        fetchMyDutyLogicalDatesForMonthByPhase(year, monthIndex, dim),
+        fetchMyGroutingLogicalDatesForMonth(year, monthIndex, dim),
+        fetchZoneDutyClaimsForMonth(year, monthIndex, dim),
+        fetchZoneHolidaysForMonth(year, monthIndex, dim),
+      ]);
+      const ctx = await loadProfile();
+      const username =
+        ctx?.profile?.username != null && String(ctx.profile.username).trim() !== ""
+          ? String(ctx.profile.username).trim()
+          : null;
+
+      const dayKeys = new Set(Object.keys(map));
+      for (const d of inDates) dayKeys.add(d);
+      for (const d of outDates) dayKeys.add(d);
+      for (const d of groutingDates) dayKeys.add(d);
+
+      const desiredByDate = new Map();
+      for (const dayKey of dayKeys) {
+        const rec = map[dayKey] || {};
+        const hasDutyIn = inDates.has(dayKey);
+        const hasDutyOut = outDates.has(dayKey);
+        const hasGrouting = groutingDates.has(dayKey);
+        const hasAttendance = dayRecHasUploadableData(rec);
+        if (!hasAttendance && !hasDutyIn && !hasDutyOut && !hasGrouting) continue;
+
+        const cur = { ...rec };
+        if (hasAttendance) {
+          await mergeRulePersistedLateMinutesIntoCur(cur, dayKey, workZone, uid);
+        }
+        const computed = hasAttendance
+          ? applyRulesEngine(
+              rec,
+              hasDutyIn,
+              hasDutyOut,
+              hasGrouting,
+              cfg,
+              dayKey,
+              zoneHolidayDates.has(dayKey)
+            )
+          : null;
+
+        desiredByDate.set(dayKey, {
+          user_id: uid,
+          work_zone: workZone,
+          record_date: dayKey,
+          punch_in: cur.in ?? null,
+          punch_out: cur.out ?? null,
+          attendance_hours: computed?.attendance_hours ?? null,
+          early_ot_hours:
+            computed && computed.early_ot_hours !== undefined
+              ? computed.early_ot_hours
+              : null,
+          night_ot_hours:
+            computed && computed.night_ot_hours !== undefined
+              ? computed.night_ot_hours
+              : null,
+          late_minutes: cur.late_minutes ?? null,
+          status: cur.status ?? null,
+          duty_in: hasDutyIn,
+          duty_out: hasDutyOut,
+          grouting: hasGrouting,
+          username,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      const { start, end } = monthDateRange(year, monthIndex);
+      const { data: serverRows, error: selErr } = await sb
+        .from(DAY_RECORDS_TABLE)
+        .select(
+          "record_date, punch_in, punch_out, status, duty_in, duty_out, grouting"
+        )
+        .eq("work_zone", workZone)
+        .eq("user_id", uid)
+        .gte("record_date", start)
+        .lte("record_date", end);
+      if (selErr) throw new Error(selErr.message || selErr.code);
+
+      const upsertRows = Array.from(desiredByDate.values());
+      if (upsertRows.length) {
+        const { error } = await sb
+          .from(DAY_RECORDS_TABLE)
+          .upsert(upsertRows, { onConflict: "user_id,work_zone,record_date" });
+        if (error) throw new Error(error.message || error.code);
+      }
+
+      for (const sr of serverRows || []) {
+        const dk = sliceLogicalDate(sr.record_date);
+        if (!dk || desiredByDate.has(dk)) continue;
+        const { error: delErr } = await sb
+          .from(DAY_RECORDS_TABLE)
+          .delete()
+          .eq("work_zone", workZone)
+          .eq("user_id", uid)
+          .eq("record_date", dk);
+        if (delErr) throw new Error(delErr.message || delErr.code);
+      }
+    }
+
+    async function uploadRulesConfigToSupabase(cfg, profile) {
+      if (!isZoneAdmin(profile)) return;
+      const wz = workZoneFromProfile(profile);
+      if (!wz) return;
+      let payload;
+      try {
+        payload = JSON.parse(JSON.stringify(cfg));
+      } catch (e) {
+        throw new Error("規則資料無法序列化");
+      }
+      const { error } = await sb
+        .from(ZONE_SETTINGS_TABLE)
+        .upsert(
+          { work_zone: wz, rules_config: payload, updated_at: new Date().toISOString() },
+          { onConflict: "work_zone" }
+        );
+      if (error) throw new Error(error.message || error.code);
+    }
+
+    async function uploadZoneMonthSettingsToSupabase(workZone, year, monthIndex) {
+      const wz = String(workZone || "").trim();
+      if (!wz) throw new Error("工區不可為空");
+      const { start, end } = monthDateRange(year, monthIndex);
+      const mk = attendanceMonthKey(year, monthIndex);
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      const localArr = lsReadJson(key, []);
+      const holiday_dates = (Array.isArray(localArr) ? localArr : [])
+        .map((d) => sliceLogicalDate(d))
+        .filter((d) => d >= start && d <= end);
+      const raw = readMonthRestDays(wz, year, monthIndex);
+      const parsed = raw === "" ? 0 : Number(sanitizeMonthRestDaysInput(raw) || "0");
+      const rest_days = Number.isFinite(parsed) ? parsed : 0;
+      const updated_at = new Date().toISOString();
+      const { data, error } = await sb
+        .from(ZONE_MONTHS_TABLE)
+        .upsert(
+          {
+            work_zone: wz,
+            month_key: mk,
+            rest_days,
+            holiday_dates,
+            updated_at,
+          },
+          { onConflict: "work_zone,month_key" }
+        )
+        .select("updated_at")
+        .single();
+      if (error) throw new Error(error.message || error.code);
+      if (data?.updated_at) {
+        lastAppliedZoneMonthServerAt = String(data.updated_at);
+      } else {
+        lastAppliedZoneMonthServerAt = updated_at;
+      }
+    }
+
+    /** 管理員變更節日／本月排休後立即上傳，供同工區其他使用者同步 */
+    async function pushZoneMonthSettingsToCloud(workZone, year, monthIndex) {
+      try {
+        await uploadZoneMonthSettingsToSupabase(workZone, year, monthIndex);
+        return true;
+      } catch (e) {
+        console.error("pushZoneMonthSettingsToCloud", e);
+        alert(`同工區設定上傳失敗：${e?.message || e}`);
+        return false;
+      }
+    }
+
+    async function uploadAllToSupabase(year, monthIndex) {
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+      if (!wz || !uid) {
+        alert("無法保存：請先登入且 profiles 已設定工區。");
+        return false;
+      }
+
+      await uploadMyDayRecordsForMonth(wz, uid, year, monthIndex);
+      if (isZoneAdmin(ctx.profile)) {
+        await uploadRulesConfigToSupabase(loadRulesConfig(), ctx.profile);
+        await uploadZoneMonthSettingsToSupabase(wz, year, monthIndex);
+      }
+      return true;
+    }
+
+    function loadMonthMap(year, monthIndex) {
+      const key = attendanceMonthKey(year, monthIndex);
+      if (Object.prototype.hasOwnProperty.call(cloudMonthMaps, key)) {
+        return cloudMonthMaps[key];
+      }
+      return {};
+    }
+
+    /** 自 LS 讀該使用者該月 map（不依賴記憶體快取；總結報告年度累計用） */
+    function loadMonthMapFromLocalStorage(userId, workZone, year, monthIndex) {
+      if (!workZone || !userId) return {};
+      const monthKey = attendanceMonthKey(year, monthIndex);
+      return readAttendanceMonthMap(userId, workZone, monthKey);
+    }
+
+    /** 檢視月份所屬「今年 2 月～明年 1 月」會計年度之起始西元年（該年 2 月起算） */
+    function fiscalYearFebJanStartYear(viewYear, viewMonthIndex) {
+      if (viewYear == null || viewMonthIndex == null) return null;
+      return viewMonthIndex >= 1 ? viewYear : viewYear - 1;
+    }
+
+    /** @returns {Array<[number, number]>} [year, monthIndex]，含頭尾共 12 個月 */
+    function fiscalYearFebJanMonths(fyStartYear) {
+      const out = /** @type {Array<[number, number]>} */ ([]);
+      for (let mi = 1; mi <= 11; mi++) out.push([fyStartYear, mi]);
+      out.push([fyStartYear + 1, 0]);
+      return out;
+    }
+
+    function countLeaveDaysInMonthMap(map, leaveLabel) {
+      let n = 0;
+      for (const dayKey of Object.keys(map)) {
+        const rec = map[dayKey];
+        const st = rec?.status != null ? String(rec.status).trim() : "";
+        if (st === leaveLabel) n++;
+      }
+      return n;
+    }
+
+    function sumLeaveDaysInFiscalFebJan(userId, workZone, fyStartYear, leaveLabel) {
+      if (!workZone || !userId || fyStartYear == null) return 0;
+      let sum = 0;
+      for (const [yy, mm] of fiscalYearFebJanMonths(fyStartYear)) {
+        const map = loadMonthMapFromLocalStorage(userId, workZone, yy, mm);
+        sum += countLeaveDaysInMonthMap(map, leaveLabel);
+      }
+      return sum;
+    }
+
+    async function saveDay(year, monthIndex, day, patch) {
+      const monthKey = attendanceMonthKey(year, monthIndex);
+      const dayKey = `${year}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+
+      const prev = loadMonthMap(year, monthIndex);
+      const cur = { ...(prev[dayKey] || {}), ...patch };
+
+      if (wz && uid) {
+        await mergeRulePersistedLateMinutesIntoCur(cur, dayKey, wz, uid);
+      }
+
+      const next = { ...prev, [dayKey]: cur };
+
+      if (wz && uid) {
+        cloudMonthMaps[monthKey] = next;
+        writeAttendanceMonthMap(uid, wz, monthKey, next);
+        markPendingCloudSync();
+      }
+    }
+
+    function getLogicalAttendanceDate(d = new Date()) {
+      const t = new Date(d.getTime());
+      if (t.getHours() < 3) {
+        t.setDate(t.getDate() - 1);
+      }
+      return {
+        y: t.getFullYear(),
+        m: t.getMonth(),
+        day: t.getDate()
+      };
+    }
+
+    function logicalDateString(logical) {
+      return `${logical.y}-${pad2(logical.m + 1)}-${pad2(logical.day)}`;
+    }
+
+    const btnRules = document.getElementById("btnRules");
+    const rulesModalBackdrop = document.getElementById("rulesModalBackdrop");
+    const rulesModalCloseBtn = document.getElementById("rulesModalCloseBtn");
+    const rulesEngineEnabledEl = document.getElementById("rulesEngineEnabled");
+    const rulesAttendanceTbody = document.getElementById("rulesAttendanceTbody");
+    const btnAddAttendanceRule = document.getElementById("btnAddAttendanceRule");
+    const rulesAttToleranceEl = document.getElementById("rulesAttTolerance");
+    const rulesEarlyEnabledEl = document.getElementById("rulesEarlyEnabled");
+    const rulesEarlyRequireDutyEl = document.getElementById("rulesEarlyRequireDuty");
+    const rulesEarlyBeforeTimeEl = document.getElementById("rulesEarlyBeforeTime");
+    const rulesEarlyValueEl = document.getElementById("rulesEarlyValue");
+    const rulesHolidayEnabledEl = document.getElementById("rulesHolidayEnabled");
+    const rulesHolidayAttMultiplierEl = document.getElementById("rulesHolidayAttMultiplier");
+    const rulesNightEnabledEl = document.getElementById("rulesNightEnabled");
+    const rulesNightRequireDutyOutEl = document.getElementById("rulesNightRequireDutyOut");
+    const rulesNightRequireGroutingEl = document.getElementById("rulesNightRequireGrouting");
+    const rulesNightBaseTimeEl = document.getElementById("rulesNightBaseTime");
+    const rulesNightBoundaryTimeEl = document.getElementById("rulesNightBoundaryTime");
+    const rulesNightCoeffBeforeEl = document.getElementById("rulesNightCoeffBefore");
+    const rulesNightCoeffAfterEl = document.getElementById("rulesNightCoeffAfter");
+    const rulesLateEnabledEl = document.getElementById("rulesLateEnabled");
+    const rulesLateBaselineTimeEl = document.getElementById("rulesLateBaselineTime");
+    const rulesLateDutyBaselineTimeEl = document.getElementById("rulesLateDutyBaselineTime");
+    const rulesLateNormalTbody = document.getElementById("rulesLateNormalTbody");
+    const rulesLateDutyTbody = document.getElementById("rulesLateDutyTbody");
+    const btnAddLateNormalRule = document.getElementById("btnAddLateNormalRule");
+    const btnAddLateDutyRule = document.getElementById("btnAddLateDutyRule");
+    const rulesExtraLeaveEnabledEl = document.getElementById("rulesExtraLeaveEnabled");
+    const rulesExtraLeaveKindsWrap = document.getElementById("rulesExtraLeaveKindsWrap");
+    const rulesSaveBtn = document.getElementById("rulesSaveBtn");
+    const monthLabel = document.getElementById("monthLabel");
+    const monthRestDaysInputEl = document.getElementById("monthRestDaysInput");
+    const monthRestDaysHintEl = document.getElementById("monthRestDaysHint");
+    const tbody = document.getElementById("tbody");
+
+    let lastViewMonth = "";
+    /** 列表最近一次繪製後之出勤總結（供總結報告） */
+    let lastSheetSummarySnapshot = {
+      year: /** @type {number | null} */ (null),
+      monthIndex: /** @type {number | null} */ (null),
+      dim: 0,
+      sumAttNum: 0,
+      sumAttDenom: 0,
+      hadAnyAttOriginal: false,
+      sumMeal: 0,
+      sumEarly: 0,
+      sumNight: 0,
+      sumLate: 0,
+      sumDutyInChecks: 0,
+      sumDutyOutChecks: 0,
+      sumGroutingChecks: 0,
+      sumZoneHoliday: 0
+    };
+    let cachedProfile = null;
+
+    function getEffectiveNow() {
+      return new Date();
+    }
+
+    /** 目前出勤邏輯日之年月日（與清單「今日」列高亮比對用） */
+    function getManualCalendarParts() {
+      return getLogicalAttendanceDate(new Date());
+    }
+
+    async function loadProfile() {
+      const { data: authData } = await sb.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        cachedProfile = null;
+        return null;
+      }
+      const { data: profile, error } = await sb
+        .from(PROFILE_TABLE)
+        .select("username, 工區, permission_level")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) {
+        cachedProfile = { user, profile: null, error: error.message };
+        return cachedProfile;
+      }
+      cachedProfile = { user, profile, error: null };
+      return cachedProfile;
+    }
+
+    /**
+     * diary_duty_claims.work_zone 唯一來源：登入使用者 profiles.工區（與後端 RLS 比對一致）
+     * @returns {string} 已 trim；未設定則 ""
+     */
+    function workZoneFromProfile(profile) {
+      if (!profile || profile.工區 == null) return "";
+      return String(profile.工區).trim();
+    }
+
+    /** 同工區共用設定（節日標記、本月排休）：僅 permission_level === 0 可寫入 */
+    function isZoneAdmin(profile) {
+      if (!profile) return false;
+      const raw = profile.permission_level;
+      if (raw === undefined || raw === null || raw === "") return false;
+      const n = Number(raw);
+      return Number.isFinite(n) && n === 0;
+    }
+
+    /** 規則設定彈窗：僅 permission_level === 0 可編輯（其餘唯讀） */
+    function rulesPermissionCanEdit(profile) {
+      return isZoneAdmin(profile);
+    }
+
+    async function applyRulesModalEditability() {
+      const ctx = await loadProfile();
+      const canEdit = rulesPermissionCanEdit(ctx?.profile);
+      const hint = document.getElementById("rulesPermissionHint");
+      if (hint) hint.hidden = canEdit;
+      if (rulesModalBackdrop) {
+        rulesModalBackdrop.classList.toggle("rules-modal-readonly", !canEdit);
+        rulesModalBackdrop.querySelectorAll("input, select, textarea, button").forEach((el) => {
+          if (el.id === "rulesModalCloseBtn") return;
+          el.disabled = !canEdit;
+        });
+      }
+      if (canEdit) syncRulesExtraLeaveKindsUi();
+    }
+
+    function syncRulesExtraLeaveKindsUi() {
+      const masterOn = !!(rulesExtraLeaveEnabledEl && rulesExtraLeaveEnabledEl.checked);
+      const cbs = rulesModalBackdrop?.querySelectorAll(".rules-extra-leave-cb") || [];
+      cbs.forEach((cb) => {
+        cb.disabled = !masterOn;
+      });
+      if (rulesExtraLeaveKindsWrap) {
+        rulesExtraLeaveKindsWrap.setAttribute("aria-disabled", masterOn ? "false" : "true");
+      }
+    }
+
+    const DUTY_IN_SUFFIX = " 🕖";
+    const DUTY_OUT_SUFFIX = " 🕠";
+    const GROUTING_OUT_SUFFIX = " 🛠️";
+
+    /**
+     * 當月本人「上班／下班」值班登記之 logical_date（分開計算，供 🕖 顯示）
+     * @returns {{ inDates: Set<string>, outDates: Set<string> }}
+     */
+    function sliceLogicalDate(v) {
+      if (v == null) return "";
+      return (typeof v === "string" ? v : String(v)).slice(0, 10);
+    }
+
+    function dutyClaimsForMonth(workZone, y, monthIndex) {
+      const mk = `${y}-${pad2(monthIndex + 1)}`;
+      const key = `${LS_DUTY_CLAIMS}:${mk}:${workZone}`;
+      const arr = lsReadJson(key, []);
+      return Array.isArray(arr) ? arr : [];
+    }
+
+    async function fetchMyDutyLogicalDatesForMonthByPhase(y, monthIndex, dim) {
+      const empty = { inDates: new Set(), outDates: new Set() };
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+      if (!wz || !uid) return empty;
+      const inDates = new Set();
+      const outDates = new Set();
+      for (const r of dutyClaimsForMonth(wz, y, monthIndex)) {
+        if (!idsEqual(r.user_id, uid)) continue;
+        const s = sliceLogicalDate(r.logical_date);
+        if (!s) continue;
+        const ph = r.duty_phase === "out" ? "out" : "in";
+        if (ph === "out") outDates.add(s);
+        else inDates.add(s);
+      }
+      return { inDates, outDates };
+    }
+
+    /** 當月本人灌漿登記之 logical_date（僅下班欄 🏗️） */
+    async function fetchMyGroutingLogicalDatesForMonth(y, monthIndex, dim) {
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+      if (!wz || !uid) return new Set();
+      const mk = `${y}-${pad2(monthIndex + 1)}`;
+      const key = `${LS_GROUT_CLAIMS}:${mk}:${wz}`;
+      const arr = lsReadJson(key, []);
+      if (!Array.isArray(arr) || !arr.length) return new Set();
+      const set = new Set();
+      for (const r of arr) {
+        if (!idsEqual(r.user_id, uid)) continue;
+        const s = sliceLogicalDate(r.logical_date);
+        if (s) set.add(s);
+      }
+      return set;
+    }
+
+    /**
+     * 當月該工區「上班／下班」值班列（每出勤日 × 班別至多一列），供清單勾選框判斷可否登記
+     * @returns {{ inMap: Map<string, { user_id: string, username?: string | null }>, outMap: Map<string, { user_id: string, username?: string | null }> }}
+     */
+    async function fetchZoneDutyClaimsForMonth(y, monthIndex, dim) {
+      const empty = { inMap: new Map(), outMap: new Map() };
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      if (!wz) return empty;
+      const inMap = new Map();
+      const outMap = new Map();
+      for (const r of dutyClaimsForMonth(wz, y, monthIndex)) {
+        const ld = sliceLogicalDate(r.logical_date);
+        if (!ld || !r.user_id) continue;
+        const row = { user_id: String(r.user_id), username: r.username ?? null };
+        const ph = r.duty_phase === "out" ? "out" : "in";
+        if (ph === "out") outMap.set(ld, row);
+        else inMap.set(ld, row);
+      }
+      return { inMap, outMap };
+    }
+
+    /**
+     * 當月該工區已標記為「假日」之出勤日（同工區共用；僅管理員可寫入）
+     */
+    async function fetchZoneHolidaysForMonth(y, monthIndex, dim) {
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      if (!wz) return new Set();
+      const mk = `${y}-${pad2(monthIndex + 1)}`;
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      const arr = lsReadJson(key, []);
+      const set = new Set();
+      for (const entry of Array.isArray(arr) ? arr : []) {
+        const ld = typeof entry === "string" ? entry.slice(0, 10) : sliceLogicalDate(entry?.logical_date ?? entry);
+        if (ld) set.add(ld);
+      }
+      return set;
+    }
+
+    async function persistZoneHolidayToggle(logicalDateStr, wantHoliday) {
+      const ctx = await loadProfile();
+      if (!isZoneAdmin(ctx?.profile)) {
+        alert("僅權限等級 0（管理員）可標記或取消節日；設定將套用於同工區所有使用者。");
+        return false;
+      }
+      const wz = workZoneFromProfile(ctx?.profile);
+      if (!wz || !logicalDateStr) {
+        alert("無法寫入假日：本機模式須有工區鍵值。");
+        return false;
+      }
+      const mk = monthKeyFromLogicalDate(logicalDateStr);
+      const key = `${LS_ZONE_HOLIDAYS}:${mk}:${wz}`;
+      let arr = lsReadJson(key, []);
+      if (!Array.isArray(arr)) arr = [];
+      const ld = logicalDateStr.slice(0, 10);
+      const prevArr = arr.slice();
+      if (wantHoliday) {
+        if (!arr.includes(ld)) arr.push(ld);
+      } else {
+        arr = arr.filter((d) => sliceLogicalDate(d) !== ld);
+      }
+      lsWriteJson(key, arr);
+      const y = parseInt(ld.slice(0, 4), 10);
+      const mo = parseInt(ld.slice(5, 7), 10) - 1;
+      if (!Number.isFinite(y) || !Number.isFinite(mo)) return false;
+      const pushed = await pushZoneMonthSettingsToCloud(wz, y, mo);
+      if (!pushed) {
+        lsWriteJson(key, prevArr);
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * 單日是否已登記「早班」（duty_phase in；與清單 dutyInDates／規則運算一致）
+     */
+    async function hasDutyInForLogicalDate(workZone, uid, logicalDateStr) {
+      if (!workZone || !uid || !logicalDateStr) return false;
+      const y = parseInt(logicalDateStr.slice(0, 4), 10);
+      const mo = parseInt(logicalDateStr.slice(5, 7), 10) - 1;
+      if (!Number.isFinite(y) || !Number.isFinite(mo)) return false;
+      for (const r of dutyClaimsForMonth(workZone, y, mo)) {
+        if (!idsEqual(r.user_id, uid)) continue;
+        if (r.duty_phase === "out") continue;
+        if (sliceLogicalDate(r.logical_date) === logicalDateStr.slice(0, 10)) return true;
+      }
+      return false;
+    }
+
+    function formatPunchWithDutyIn(iso, hasDutyIn) {
+      if (!iso) return "—";
+      const t = formatTime(iso);
+      return hasDutyIn ? t + DUTY_IN_SUFFIX : t;
+    }
+
+    function formatHoursMetric(v) {
+      if (v == null || v === "" || Number.isNaN(Number(v))) return "—";
+      const n = Number(v);
+      return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+    }
+
+    /**
+     * 未啟用規則引擎時之遲到欄顯示。
+     * 規則寫入之 <code>late_minutes</code> 為「計入時數×60」之整數（與清單規則顯示之純數字對應）；其餘可視為遲到分鐘。
+     */
+    function formatLateMetric(v) {
+      if (v == null || v === "") return "—";
+      const n = parseInt(String(v), 10);
+      if (Number.isNaN(n)) return "—";
+      if (n > 0 && n < 60) return `${n} 分`;
+      const h = n / 60;
+      if (!Number.isFinite(h) || h <= 0) return "—";
+      return Number.isInteger(h) ? String(h) : String(Math.round(h * 10) / 10);
+    }
+
+    /** 規則引擎遲到：顯示計入時數之純數字（無單位） */
+    function formatLateRuleHours(h) {
+      if (h == null || h === "") return "—";
+      const n = Number(h);
+      if (Number.isNaN(n)) return "—";
+      return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
+    }
+
+    function addMetricSum(acc, v) {
+      if (v == null || v === "") return acc;
+      const n = Number(v);
+      if (Number.isNaN(n)) return acc;
+      return acc + n;
+    }
+
+    /**
+     * 與列表「遲到」欄顯示一致之數值，統一換算為「時」再累加（供月總結）。
+     */
+    function lateNumericForSum(computed, rec, rulesCfg) {
+      if (rulesCfg.engineEnabled && computed && computed.late_rule_hours !== undefined) {
+        const v = computed.late_rule_hours;
+        if (v == null || v === "") return 0;
+        const n = Number(v);
+        return Number.isNaN(n) ? 0 : n;
+      }
+      const lm = rec.late_minutes;
+      if (lm == null || lm === "") return 0;
+      const n = parseInt(String(lm), 10);
+      if (Number.isNaN(n)) return 0;
+      if (n > 0 && n < 60) return n / 60;
+      const h = n / 60;
+      return Number.isFinite(h) && h > 0 ? h : 0;
+    }
+
+    /** 下班時間：值班 🕠 與灌漿 🏗️ 互斥（資料層僅會存一種） */
+    function formatPunchOut(iso, hasDutyOut, hasGrouting) {
+      if (!iso) return "—";
+      const t = formatTime(iso);
+      if (hasDutyOut) return t + DUTY_OUT_SUFFIX;
+      if (hasGrouting) return t + GROUTING_OUT_SUFFIX;
+      return t;
+    }
+
+    const RULES_STORAGE_KEY = "qt-attendance-rules-v1";
+
+    function readRulesLocalStorageRaw() {
+      try {
+        const raw = localStorage.getItem(RULES_STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    /** 未與預設合併之設定（null 表示尚未從雲端／工區本機讀取） */
+    let rulesConfigRaw = null;
+
+    function readRulesLocalStorageForWorkZone(wz) {
+      if (!wz) return readRulesLocalStorageRaw();
+      try {
+        const z = localStorage.getItem(`${RULES_STORAGE_KEY}:${wz}`);
+        if (z) return JSON.parse(z);
+      } catch {
+        /* ignore */
+      }
+      return readRulesLocalStorageRaw();
+    }
+
+    function getDefaultRulesConfig() {
+      return {
+        version: 1,
+        engineEnabled: true,
+        attendance: {
+          rules: [
+            { id: "def-8", hours: 8, value: 1 },
+            { id: "def-4", hours: 4, value: 0.5 }
+          ],
+          matchTolerance: 0.08
+        },
+        earlyOt: {
+          enabled: true,
+          requireDutyIn: true,
+          beforeTime: "07:00",
+          value: 1
+        },
+        nightOt: {
+          enabled: true,
+          requireDutyOutOrGrouting: true,
+          baseTime: "17:30",
+          coeffBeforeBoundary: 1.5,
+          coeffAfterBoundary: 1.75,
+          boundaryTime: "22:00"
+        },
+        holiday: {
+          enabled: true,
+          attendanceMultiplier: 1.5
+        },
+        late: {
+          enabled: true,
+          baselineTime: "08:00",
+          dutyBaselineTime: "08:00",
+          tiersNormal: [
+            { id: "ln-1", maxMinutes: 15, hours: 1 },
+            { id: "ln-2", maxMinutes: 30, hours: 2 },
+            { id: "ln-3", maxMinutes: 60, hours: 4 },
+            { id: "ln-4", maxMinutes: 120, hours: 8 },
+            { id: "ln-5", maxMinutes: 999999, hours: 16 }
+          ],
+          tiersDuty: [
+            { id: "ld-1", maxMinutes: 5, hours: 0.5 },
+            { id: "ld-2", maxMinutes: 15, hours: 1.5 },
+            { id: "ld-3", maxMinutes: 30, hours: 1 },
+            { id: "ld-4", maxMinutes: 60, hours: 2 },
+            { id: "ld-5", maxMinutes: 120, hours: 4 },
+            { id: "ld-6", maxMinutes: 999999, hours: 16 }
+          ]
+        },
+        leaveCategories: {
+          extraLeaveEnabled: false,
+          extraLeaveKinds: []
+        }
+      };
+    }
+
+    function mergeRulesWithDefaults(o) {
+      const d = getDefaultRulesConfig();
+      if (!o || typeof o !== "object") return d;
+      return {
+        ...d,
+        ...o,
+        attendance: (() => {
+          const merged = {
+            ...d.attendance,
+            ...o.attendance,
+            rules: (() => {
+              const saved = Array.isArray(o.attendance?.rules) ? o.attendance.rules : null;
+              // 雲端若曾存出 rules: []，先前會覆寫預設且與設定表單（空表時仍顯示預設列）不一致，導致清單出勤永遠比對不到。
+              return saved && saved.length > 0 ? saved : d.attendance.rules;
+            })()
+          };
+          delete merged.defaultValue;
+          return merged;
+        })(),
+        earlyOt: { ...d.earlyOt, ...o.earlyOt },
+        nightOt: { ...d.nightOt, ...o.nightOt },
+        holiday: {
+          ...d.holiday,
+          ...(o.holiday && typeof o.holiday === "object" ? o.holiday : {})
+        },
+        late: {
+          ...d.late,
+          ...o.late,
+          tiersNormal: Array.isArray(o.late?.tiersNormal)
+            ? o.late.tiersNormal
+            : d.late.tiersNormal,
+          tiersDuty: Array.isArray(o.late?.tiersDuty) ? o.late.tiersDuty : d.late.tiersDuty
+        },
+        leaveCategories: {
+          extraLeaveEnabled:
+            typeof o.leaveCategories?.extraLeaveEnabled === "boolean"
+              ? o.leaveCategories.extraLeaveEnabled
+              : d.leaveCategories.extraLeaveEnabled,
+          extraLeaveKinds: normalizeRulesExtraLeaveKinds(
+            Array.isArray(o.leaveCategories?.extraLeaveKinds)
+              ? o.leaveCategories.extraLeaveKinds
+              : d.leaveCategories.extraLeaveKinds
+          )
+        }
+      };
+    }
+
+    function loadRulesConfig() {
+      const base = rulesConfigRaw !== null ? rulesConfigRaw : readRulesLocalStorageRaw();
+      return mergeRulesWithDefaults(base);
+    }
+
+    function mirrorRulesToLocalStorage(cfg, wz) {
+      try {
+        const j = JSON.stringify(cfg);
+        localStorage.setItem(RULES_STORAGE_KEY, j);
+        if (wz) localStorage.setItem(`${RULES_STORAGE_KEY}:${wz}`, j);
+      } catch (e) {
+        console.warn("rules local mirror", e);
+      }
+    }
+
+    async function pullRulesConfigFromSupabase() {
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      const uid = ctx?.user?.id;
+      if (!wz || !uid) {
+        rulesConfigRaw = readRulesLocalStorageRaw();
+        return;
+      }
+
+      const { data, error } = await sb
+        .from(ZONE_SETTINGS_TABLE)
+        .select("rules_config")
+        .eq("work_zone", wz)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("pullRulesConfigFromSupabase", error);
+        rulesConfigRaw = readRulesLocalStorageForWorkZone(wz) || {};
+        return;
+      }
+
+      if (data?.rules_config != null && typeof data.rules_config === "object") {
+        rulesConfigRaw = data.rules_config;
+        mirrorRulesToLocalStorage(rulesConfigRaw, wz);
+      } else {
+        rulesConfigRaw = readRulesLocalStorageForWorkZone(wz) || {};
+        mirrorRulesToLocalStorage(rulesConfigRaw, wz);
+      }
+    }
+
+    /**
+     * @returns {Promise<{ cloudOk: boolean, reason?: string }>}
+     */
+    async function saveRulesConfig(cfg) {
+      rulesConfigRaw = cfg;
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      mirrorRulesToLocalStorage(cfg, wz || null);
+      markPendingCloudSync();
+      return { cloudOk: true };
+    }
+
+    function newAttendanceRuleId() {
+      return `r-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function newLateTierId() {
+      return `lt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function durationHours(inIso, outIso) {
+      if (!inIso || !outIso) return null;
+      const t0 = new Date(inIso).getTime();
+      const t1 = new Date(outIso).getTime();
+      if (Number.isNaN(t0) || Number.isNaN(t1) || t1 <= t0) return null;
+      return (t1 - t0) / 3600000;
+    }
+
+    /**
+     * 出勤規則：各列「門檻時數」代表至少須刷卡滿該時數（並可依 tol 略為放寬）。
+     * 命中順序為門檻由高到低取第一筆（長工時仍會命中較低門檻列中的較高者，例如 ≥8 即代入 8→1）。
+     * @param {number} dur 上下班換算小時數
+     * @param {Array<{ hours?: number, value?: number }>} rules
+     * @param {number} tol matchTolerance（小時）
+     */
+    function attendanceValueFromHoursRules(dur, rules, tol) {
+      const t = Number.isFinite(tol) && tol >= 0 ? tol : 0.08;
+      const rows = (rules || [])
+        .map((r) => ({ hours: Number(r?.hours), value: Number(r?.value) }))
+        .filter((x) => Number.isFinite(x.hours) && Number.isFinite(x.value))
+        .sort((a, b) => b.hours - a.hours);
+      for (const row of rows) {
+        if (dur >= row.hours - t - 1e-9) return row.value;
+      }
+      return null;
+    }
+
+    /** 上班打卡時間嚴格早於 hh:mm（不含該整點） */
+    function punchInStrictlyBefore(iso, hhmmStr) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return false;
+      const parts = String(hhmmStr || "07:00").split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1] || "0", 10);
+      if (Number.isNaN(h)) return false;
+      const limitMin = h * 60 + (Number.isNaN(m) ? 0 : m);
+      const mins = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+      return mins < limitMin;
+    }
+
+    /** 前段 17:30～22:00 滿檔時數上限 */
+    const NIGHT_FIRST_SEGMENT_MAX_HOURS = 4.5;
+
+    /**
+     * 夜加班進位（依「分」）：整點後 1～30 分加計半小時，31～59 分加計一小時；整點零分不加分。
+     * @param {number} h 小時（可為小數）
+     */
+    function roundNightOtByMinuteBracket(h) {
+      if (h <= 0) return 0;
+      const totalMin = Math.round(h * 60);
+      const fullH = Math.floor(totalMin / 60);
+      const rem = totalMin - fullH * 60;
+      if (rem <= 0) return fullH;
+      if (rem <= 30) return fullH + 0.5;
+      return fullH + 1;
+    }
+
+    /** 下班打卡「當地曆」同日之時分秒（避免 ISO/UTC 與 setHours 混用造成分界偏移） */
+    function localWallClockSameDay(ref, hh, mm, ss) {
+      const s = ss || 0;
+      return new Date(
+        ref.getFullYear(),
+        ref.getMonth(),
+        ref.getDate(),
+        hh,
+        mm,
+        s,
+        0
+      );
+    }
+
+    /**
+     * 夜加班兩段：
+     * 1) 基準～大夜起算：min(下班, 大夜起算) − 基準 → 上限 4.5 時 → 分鐘進位 × 基準～大夜係數
+     * 2) 大夜以後：下班 − 大夜起算 → 分鐘進位 × 大夜基準以後係數
+     */
+    function computeNightOtHours(punchOutIso, nightCfg) {
+      const out = new Date(punchOutIso);
+      if (Number.isNaN(out.getTime())) return null;
+
+      const bp = String(nightCfg.baseTime || "17:30").split(":");
+      const bh = parseInt(bp[0], 10);
+      const bm = parseInt(bp[1] || "0", 10);
+      const baseH = Number.isNaN(bh) ? 17 : bh;
+      const baseM = Number.isNaN(bm) ? 0 : bm;
+
+      const tp = String(nightCfg.boundaryTime || "22:00").split(":");
+      const th = parseInt(tp[0], 10);
+      const tm = parseInt(tp[1] || "0", 10);
+      const splitH = Number.isNaN(th) ? 22 : th;
+      const splitM = Number.isNaN(tm) ? 0 : tm;
+
+      const base = localWallClockSameDay(out, baseH, baseM, 0);
+      const split = localWallClockSameDay(out, splitH, splitM, 0);
+
+      if (out.getTime() <= base.getTime()) return 0;
+
+      const cB = Number(nightCfg.coeffBeforeBoundary);
+      const cA = Number(nightCfg.coeffAfterBoundary);
+      const coeffBefore = Number.isFinite(cB) ? cB : 1.5;
+      const coeffAfter = Number.isFinite(cA) ? cA : 1.75;
+
+      let sum = 0;
+
+      const seg1EndMs = Math.min(out.getTime(), split.getTime());
+      let h1 = (seg1EndMs - base.getTime()) / 3600000;
+      if (h1 > 0) {
+        h1 = Math.min(h1, NIGHT_FIRST_SEGMENT_MAX_HOURS);
+        h1 = roundNightOtByMinuteBracket(h1);
+        sum += h1 * coeffBefore;
+      }
+
+      // 大夜起算基準「之後」：下班時間 − 大夜起算時刻（與第一段拆開計）
+      if (out.getTime() > split.getTime()) {
+        let h2 = (out.getTime() - split.getTime()) / 3600000;
+        if (h2 > 0) {
+          h2 = roundNightOtByMinuteBracket(h2);
+          sum += h2 * coeffAfter;
+        }
+      }
+
+      return Math.round(sum * 100) / 100;
+    }
+
+    /**
+     * 以 attendance 列之日期（dayKey）+ 基準時間起算遲到「分鐘」數（≤0 表未遲到或準時）
+     * @param {string} dayKeyStr `YYYY-MM-DD`，與 diarytest_day_records.record_date 一致
+     */
+    function lateMinutesAfterBaseline(punchIso, dayKeyStr, baselineHm) {
+      const d = new Date(punchIso);
+      if (Number.isNaN(d.getTime())) return null;
+      const seg = String(dayKeyStr || "").trim().slice(0, 10).split("-");
+      if (seg.length !== 3) return null;
+      const y = parseInt(seg[0], 10);
+      const mo = parseInt(seg[1], 10) - 1;
+      const day = parseInt(seg[2], 10);
+      if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(day)) return null;
+      const parts = String(baselineHm || "08:00").split(":");
+      const bh = parseInt(parts[0], 10);
+      const bm = parseInt(parts[1] || "0", 10);
+      const base = new Date(
+        y,
+        mo,
+        day,
+        Number.isNaN(bh) ? 8 : bh,
+        Number.isNaN(bm) ? 0 : bm,
+        0,
+        0
+      );
+      return Math.round((d.getTime() - base.getTime()) / 60000);
+    }
+
+    /**
+     * 遲到分鐘 M 對照表：列依 maxMinutes 升序，回傳第一個滿足 M ≤ maxMinutes 的 hours。
+     */
+    function lateTierHoursFromTiers(M, tiers) {
+      if (M <= 0) return null;
+      if (!Array.isArray(tiers) || tiers.length === 0) return null;
+      const rows = tiers
+        .map((t) => ({
+          max: Number(t.maxMinutes),
+          h: Number(t.hours)
+        }))
+        .filter((t) => Number.isFinite(t.max) && Number.isFinite(t.h));
+      if (rows.length === 0) return null;
+      rows.sort((a, b) => a.max - b.max);
+      for (const t of rows) {
+        if (M <= t.max) return t.h;
+      }
+      return null;
+    }
+
+    /**
+     * @param {boolean} hasDutyIn 該 logical_date 清單是否已勾選「早班」（duty_phase in；與「未登記早班」分開套用 tiersDuty / tiersNormal）
+     */
+    function computeLateRuleHours(punchIso, dayKeyStr, hasDutyIn, lateCfg) {
+      /** 未勾「啟用遲到規則」時為 false；缺省與 true 皆套用公式 */
+      if (!lateCfg || lateCfg.enabled === false) return undefined;
+      if (!punchIso || !dayKeyStr) return null;
+      const defL = getDefaultRulesConfig().late;
+      const baseNorm = String(lateCfg.baselineTime || defL.baselineTime).trim() || defL.baselineTime;
+      const dutyB = String(lateCfg.dutyBaselineTime ?? "").trim();
+      const baselineHm = hasDutyIn ? (dutyB || baseNorm) : baseNorm;
+      const M = lateMinutesAfterBaseline(punchIso, dayKeyStr, baselineHm);
+      if (M == null || M <= 0) return null;
+      const raw = hasDutyIn ? lateCfg.tiersDuty : lateCfg.tiersNormal;
+      const tiers =
+        Array.isArray(raw) && raw.length > 0
+          ? raw
+          : hasDutyIn
+            ? defL.tiersDuty
+            : defL.tiersNormal;
+      return lateTierHoursFromTiers(M, tiers);
+    }
+
+    /**
+     * 規則啟用時將遲到計入值寫入 cur.late_minutes（整數＝計入時數×60），供 upsert diary_attendance。
+     */
+    async function mergeRulePersistedLateMinutesIntoCur(cur, dayKey, wz, uid) {
+      const cfg = loadRulesConfig();
+      if (!cfg.engineEnabled) return;
+      const lc = cfg.late || {};
+      if (lc.enabled === false) return;
+      if (!cur.in) {
+        cur.late_minutes = null;
+        return;
+      }
+      const hasDutyIn = await hasDutyInForLogicalDate(wz, uid, dayKey);
+      const h = computeLateRuleHours(cur.in, dayKey, hasDutyIn, lc);
+      if (h === undefined) return;
+      if (h === null || h === "") cur.late_minutes = null;
+      else {
+        const n = Math.round(Number(h) * 60);
+        cur.late_minutes = Number.isFinite(n) ? n : null;
+      }
+    }
+
+    /**
+     * 夜加班門檻：可分別要求「值班」（下班）與「灌漿」。
+     * 兩者皆未勾選 → 不檢查登記即可計算；僅勾選一項 → 須符合該項；兩項皆勾選 → 符合任一即可（OR）。
+     * 舊版僅存 requireDutyOutOrGrouting 時，視為兩項與該布林同步。
+     */
+    function resolveNightOtRequirementFlags(nightCfg) {
+      const n = nightCfg || {};
+      const hasSplit =
+        Object.prototype.hasOwnProperty.call(n, "requireDutyOutForNight") ||
+        Object.prototype.hasOwnProperty.call(n, "requireGroutingForNight");
+      if (!hasSplit) {
+        const legacy = n.requireDutyOutOrGrouting !== false;
+        return { rqOut: legacy, rqGr: legacy };
+      }
+      return {
+        rqOut: n.requireDutyOutForNight !== false,
+        rqGr: n.requireGroutingForNight !== false
+      };
+    }
+
+    /**
+     * 規則運算與清單三欄：「早班」「值班」（下班）「灌漿」→ hasDutyIn、hasDutyOut、hasGrouting。
+     * 早加班／遲到梯度看「早班」；夜加班門檻見 resolveNightOtRequirementFlags。
+     * @param {boolean} [isZoneHoliday] 該出勤日是否已標記為同工區「假日」（乘以規則假日出勤係數）
+     *
+     * @returns {{
+     *   attendance_hours: number | null,
+     *   attendance_before_holiday: number | null,
+     *   early_ot_hours: number | null | undefined,
+     *   night_ot_hours: number | null | undefined,
+     *   late_rule_hours: number | null | undefined
+     * } | null}
+     * early/night/late 為 undefined 表示該區塊未啟用，清單應顯示資料庫欄位。
+     */
+    function applyRulesEngine(rec, hasDutyIn, hasDutyOut, hasGrouting, cfg, dayKeyStr, isZoneHoliday) {
+      if (!cfg.engineEnabled) return null;
+      const tol = Number(cfg.attendance?.matchTolerance) || 0.08;
+
+      const dur = durationHours(rec.in, rec.out);
+      let attendance_hours = null;
+      if (dur != null) {
+        const rules =
+          Array.isArray(cfg.attendance?.rules) && cfg.attendance.rules.length > 0
+            ? cfg.attendance.rules
+            : getDefaultRulesConfig().attendance.rules;
+        attendance_hours = attendanceValueFromHoursRules(dur, rules, tol);
+      }
+
+      /** 套用假日係數前之出勤值（清單「出勤」欄分子） */
+      const attendance_before_holiday = attendance_hours;
+
+      const hol = cfg.holiday || {};
+      if (
+        isZoneHoliday &&
+        hol.enabled !== false &&
+        attendance_hours != null &&
+        Number.isFinite(Number(attendance_hours))
+      ) {
+        const mult = Number(hol.attendanceMultiplier);
+        if (Number.isFinite(mult) && mult > 0) {
+          attendance_hours = Number(attendance_hours) * mult;
+        }
+      }
+
+      const eo = cfg.earlyOt || {};
+      /** 須已登記「早班」（清單 duty in；設定項沿用鍵名 requireDutyIn） */
+      const needDutyEarly = eo.requireDutyIn !== false;
+      /** @type {number | null | undefined} */
+      let early_ot_hours;
+      if (!eo.enabled) {
+        early_ot_hours = undefined;
+      } else {
+        const v = Number(eo.value);
+        if (
+          (!needDutyEarly || hasDutyIn) &&
+          rec.in &&
+          punchInStrictlyBefore(rec.in, eo.beforeTime) &&
+          Number.isFinite(v)
+        ) {
+          early_ot_hours = v;
+        } else {
+          early_ot_hours = null;
+        }
+      }
+
+      const no = cfg.nightOt || {};
+      const { rqOut, rqGr } = resolveNightOtRequirementFlags(no);
+      const allowNight =
+        (!rqOut && !rqGr) || ((rqOut && hasDutyOut) || (rqGr && hasGrouting));
+      /** @type {number | null | undefined} */
+      let night_ot_hours;
+      if (!no.enabled) {
+        night_ot_hours = undefined;
+      } else if (allowNight && rec.out) {
+        night_ot_hours = computeNightOtHours(rec.out, no);
+      } else {
+        night_ot_hours = null;
+      }
+
+      const lc = cfg.late || {};
+      /** @type {number | null | undefined} */
+      let late_rule_hours;
+      if (lc.enabled === false) {
+        late_rule_hours = undefined;
+      } else {
+        late_rule_hours = computeLateRuleHours(rec.in, dayKeyStr, hasDutyIn, lc);
+      }
+
+      return {
+        attendance_hours,
+        attendance_before_holiday,
+        early_ot_hours,
+        night_ot_hours,
+        late_rule_hours
+      };
+    }
+
+    /**
+     * 出勤欄：原始值／指標。指標為「假日」勾選且原始出勤為 1（日）時 1，否則 0。
+     * @param {number | null | undefined} originalVal 規則算出或資料庫之係數前語意數值
+     */
+    function formatAttendanceCellSplit(originalVal, isZoneHoliday) {
+      if (originalVal == null || originalVal === "" || Number.isNaN(Number(originalVal))) return "—";
+      const n = Number(originalVal);
+      if (!Number.isFinite(n)) return "—";
+      const numStr = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+      const denom = isZoneHoliday && Math.abs(n - 1) < 1e-9 ? 1 : 0;
+      return `${numStr}/${denom}`;
+    }
+
+    /** 本月出勤總結：係數前出勤加總／「假日且原始出勤為 1」之日數加總 */
+    function formatAttendanceSummarySplit(sumNumerator, sumDenom, hadAnyOriginalAttendance) {
+      if (!hadAnyOriginalAttendance) return "—";
+      const n = Number(sumNumerator);
+      const numStr = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+      return `${numStr}/${sumDenom}`;
+    }
+
+    function renderAttendanceRulesTbody(cfg) {
+      if (!rulesAttendanceTbody) return;
+      rulesAttendanceTbody.innerHTML = "";
+      const rules = cfg.attendance?.rules?.length ? cfg.attendance.rules : getDefaultRulesConfig().attendance.rules;
+      for (const r of rules) {
+        const id = r.id || newAttendanceRuleId();
+        const tr = document.createElement("tr");
+        tr.dataset.ruleId = id;
+        const tdH = document.createElement("td");
+        const inpH = document.createElement("input");
+        inpH.type = "number";
+        inpH.step = "0.01";
+        inpH.className = "rules-inp-hours";
+        inpH.value = String(r.hours ?? "");
+        tdH.appendChild(inpH);
+        const tdV = document.createElement("td");
+        const inpV = document.createElement("input");
+        inpV.type = "number";
+        inpV.step = "0.1";
+        inpV.className = "rules-inp-val";
+        inpV.value = String(r.value ?? "");
+        tdV.appendChild(inpV);
+        const tdR = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-ghost btn-rules-remove";
+        btn.textContent = "移除";
+        btn.addEventListener("click", () => tr.remove());
+        tdR.appendChild(btn);
+        tr.appendChild(tdH);
+        tr.appendChild(tdV);
+        tr.appendChild(tdR);
+        rulesAttendanceTbody.appendChild(tr);
+      }
+    }
+
+    function renderLateTiersTbody(tbodyEl, tiers, fallbackTiers) {
+      if (!tbodyEl) return;
+      tbodyEl.innerHTML = "";
+      const list =
+        Array.isArray(tiers) && tiers.length > 0 ? tiers : fallbackTiers || [];
+      for (const r of list) {
+        const id = r.id || newLateTierId();
+        const tr = document.createElement("tr");
+        tr.dataset.ruleId = id;
+        const tdMax = document.createElement("td");
+        const inpMax = document.createElement("input");
+        inpMax.type = "number";
+        inpMax.step = "1";
+        inpMax.min = "0";
+        inpMax.className = "rules-inp-late-max";
+        inpMax.value = String(r.maxMinutes ?? "");
+        inpMax.title = "遲到分鐘 ≤ 此上限時套用右欄計入值";
+        tdMax.appendChild(inpMax);
+        const tdH = document.createElement("td");
+        const inpH = document.createElement("input");
+        inpH.type = "number";
+        inpH.step = "0.1";
+        inpH.className = "rules-inp-late-val";
+        inpH.value = String(r.hours ?? "");
+        tdH.appendChild(inpH);
+        const tdR = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-ghost btn-rules-remove";
+        btn.textContent = "移除";
+        btn.addEventListener("click", () => tr.remove());
+        tdR.appendChild(btn);
+        tr.appendChild(tdMax);
+        tr.appendChild(tdH);
+        tr.appendChild(tdR);
+        tbodyEl.appendChild(tr);
+      }
+    }
+
+    function syncRulesFormFromConfig() {
+      const cfg = loadRulesConfig();
+      if (rulesEngineEnabledEl) rulesEngineEnabledEl.checked = !!cfg.engineEnabled;
+      if (rulesHolidayEnabledEl) rulesHolidayEnabledEl.checked = cfg.holiday?.enabled !== false;
+      if (rulesHolidayAttMultiplierEl) {
+        const m = cfg.holiday?.attendanceMultiplier;
+        rulesHolidayAttMultiplierEl.value = String(
+          m != null && Number.isFinite(Number(m)) ? Number(m) : 1.5
+        );
+      }
+      if (rulesAttToleranceEl) rulesAttToleranceEl.value = String(cfg.attendance?.matchTolerance ?? 0.08);
+      renderAttendanceRulesTbody(cfg);
+      if (rulesEarlyEnabledEl) rulesEarlyEnabledEl.checked = !!cfg.earlyOt?.enabled;
+      if (rulesEarlyRequireDutyEl) rulesEarlyRequireDutyEl.checked = cfg.earlyOt?.requireDutyIn !== false;
+      if (rulesEarlyBeforeTimeEl) rulesEarlyBeforeTimeEl.value = cfg.earlyOt?.beforeTime || "07:00";
+      if (rulesEarlyValueEl) rulesEarlyValueEl.value = String(cfg.earlyOt?.value ?? 1);
+      if (rulesNightEnabledEl) rulesNightEnabledEl.checked = !!cfg.nightOt?.enabled;
+      const nightFlags = resolveNightOtRequirementFlags(cfg.nightOt);
+      if (rulesNightRequireDutyOutEl) rulesNightRequireDutyOutEl.checked = nightFlags.rqOut;
+      if (rulesNightRequireGroutingEl) rulesNightRequireGroutingEl.checked = nightFlags.rqGr;
+      if (rulesNightBaseTimeEl) rulesNightBaseTimeEl.value = cfg.nightOt?.baseTime || "17:30";
+      if (rulesNightBoundaryTimeEl) rulesNightBoundaryTimeEl.value = cfg.nightOt?.boundaryTime || "22:00";
+      if (rulesNightCoeffBeforeEl) rulesNightCoeffBeforeEl.value = String(cfg.nightOt?.coeffBeforeBoundary ?? 1.5);
+      if (rulesNightCoeffAfterEl) rulesNightCoeffAfterEl.value = String(cfg.nightOt?.coeffAfterBoundary ?? 1.75);
+      if (rulesLateEnabledEl) rulesLateEnabledEl.checked = cfg.late?.enabled !== false;
+      if (rulesLateBaselineTimeEl) rulesLateBaselineTimeEl.value = cfg.late?.baselineTime || "08:00";
+      if (rulesLateDutyBaselineTimeEl) {
+        rulesLateDutyBaselineTimeEl.value = cfg.late?.dutyBaselineTime || "08:00";
+      }
+      const defL = getDefaultRulesConfig().late;
+      renderLateTiersTbody(rulesLateNormalTbody, cfg.late?.tiersNormal, defL.tiersNormal);
+      renderLateTiersTbody(rulesLateDutyTbody, cfg.late?.tiersDuty, defL.tiersDuty);
+
+      const lc = cfg.leaveCategories || {};
+      if (rulesExtraLeaveEnabledEl) rulesExtraLeaveEnabledEl.checked = !!lc.extraLeaveEnabled;
+      const selected = new Set(normalizeRulesExtraLeaveKinds(lc.extraLeaveKinds));
+      (rulesModalBackdrop?.querySelectorAll(".rules-extra-leave-cb") || []).forEach((cb) => {
+        const k = cb.dataset.leaveKind;
+        cb.checked = k ? selected.has(k) : false;
+      });
+      syncRulesExtraLeaveKindsUi();
+    }
+
+    function collectAttendanceRulesFromTbody() {
+      const rows = rulesAttendanceTbody?.querySelectorAll("tr") || [];
+      const list = [];
+      rows.forEach((tr) => {
+        const hInp = tr.querySelector(".rules-inp-hours");
+        const vInp = tr.querySelector(".rules-inp-val");
+        const hours = hInp ? Number(hInp.value) : NaN;
+        const value = vInp ? Number(vInp.value) : NaN;
+        if (!Number.isFinite(hours) || !Number.isFinite(value)) return;
+        list.push({
+          id: tr.dataset.ruleId || newAttendanceRuleId(),
+          hours,
+          value
+        });
+      });
+      return list;
+    }
+
+    function collectLateTiersFromTbody(tbodyEl) {
+      const rows = tbodyEl?.querySelectorAll("tr") || [];
+      const list = [];
+      rows.forEach((tr) => {
+        const maxInp = tr.querySelector(".rules-inp-late-max");
+        const valInp = tr.querySelector(".rules-inp-late-val");
+        const maxMinutes = maxInp ? Number(maxInp.value) : NaN;
+        const hours = valInp ? Number(valInp.value) : NaN;
+        if (!Number.isFinite(maxMinutes) || !Number.isFinite(hours)) return;
+        list.push({
+          id: tr.dataset.ruleId || newLateTierId(),
+          maxMinutes,
+          hours
+        });
+      });
+      return list;
+    }
+
+    function collectRulesFormToConfig() {
+      const base = loadRulesConfig();
+      const tolV = rulesAttToleranceEl ? Number(rulesAttToleranceEl.value) : 0.08;
+      const attendanceBase = { ...(base.attendance || {}) };
+      delete attendanceBase.defaultValue;
+      return {
+        ...base,
+        version: 1,
+        engineEnabled: !!(rulesEngineEnabledEl && rulesEngineEnabledEl.checked),
+        attendance: {
+          ...attendanceBase,
+          rules: collectAttendanceRulesFromTbody(),
+          matchTolerance: Number.isFinite(tolV) && tolV > 0 ? tolV : 0.08
+        },
+        earlyOt: {
+          ...base.earlyOt,
+          enabled: !!(rulesEarlyEnabledEl && rulesEarlyEnabledEl.checked),
+          requireDutyIn: !!(rulesEarlyRequireDutyEl && rulesEarlyRequireDutyEl.checked),
+          beforeTime: (rulesEarlyBeforeTimeEl && rulesEarlyBeforeTimeEl.value) || "07:00",
+          value: rulesEarlyValueEl ? Number(rulesEarlyValueEl.value) : 1
+        },
+        holiday: {
+          ...base.holiday,
+          enabled: !!(rulesHolidayEnabledEl && rulesHolidayEnabledEl.checked),
+          attendanceMultiplier: (() => {
+            const v = rulesHolidayAttMultiplierEl ? Number(rulesHolidayAttMultiplierEl.value) : 1.5;
+            return Number.isFinite(v) && v > 0 ? v : 1.5;
+          })()
+        },
+        nightOt: {
+          ...base.nightOt,
+          enabled: !!(rulesNightEnabledEl && rulesNightEnabledEl.checked),
+          requireDutyOutForNight: !!(rulesNightRequireDutyOutEl && rulesNightRequireDutyOutEl.checked),
+          requireGroutingForNight: !!(rulesNightRequireGroutingEl && rulesNightRequireGroutingEl.checked),
+          requireDutyOutOrGrouting:
+            !!(rulesNightRequireDutyOutEl && rulesNightRequireDutyOutEl.checked) ||
+            !!(rulesNightRequireGroutingEl && rulesNightRequireGroutingEl.checked),
+          baseTime: (rulesNightBaseTimeEl && rulesNightBaseTimeEl.value) || "17:30",
+          boundaryTime: (rulesNightBoundaryTimeEl && rulesNightBoundaryTimeEl.value) || "22:00",
+          coeffBeforeBoundary: rulesNightCoeffBeforeEl ? Number(rulesNightCoeffBeforeEl.value) : 1.5,
+          coeffAfterBoundary: rulesNightCoeffAfterEl ? Number(rulesNightCoeffAfterEl.value) : 1.75
+        },
+        late: {
+          ...base.late,
+          enabled: !!(rulesLateEnabledEl && rulesLateEnabledEl.checked),
+          baselineTime: (rulesLateBaselineTimeEl && rulesLateBaselineTimeEl.value) || "08:00",
+          dutyBaselineTime:
+            (rulesLateDutyBaselineTimeEl && rulesLateDutyBaselineTimeEl.value) || "08:00",
+          tiersNormal: collectLateTiersFromTbody(rulesLateNormalTbody),
+          tiersDuty: collectLateTiersFromTbody(rulesLateDutyTbody)
+        },
+        leaveCategories: {
+          ...base.leaveCategories,
+          extraLeaveEnabled: !!(rulesExtraLeaveEnabledEl && rulesExtraLeaveEnabledEl.checked),
+          extraLeaveKinds: (() => {
+            if (!rulesExtraLeaveEnabledEl || !rulesExtraLeaveEnabledEl.checked) return [];
+            const out = [];
+            (rulesModalBackdrop?.querySelectorAll(".rules-extra-leave-cb:checked") || []).forEach((cb) => {
+              const k = cb.dataset.leaveKind;
+              if (k && RULES_EXTRA_LEAVE_KIND_SET.has(k) && !out.includes(k)) out.push(k);
+            });
+            return out;
+          })()
+        }
+      };
+    }
+
+    async function renderTable(options = {}) {
+      const punchUploadToast = options.punchUploadToast === true;
+      const showSyncCompleteToast = options.showSyncCompleteToast !== false;
+
+      setSupabaseLoadHint(true);
+      try {
+        const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+        const profileSnap = await loadProfile();
+        const sheetWz = workZoneFromProfile(profileSnap?.profile);
+        if (sheetWz) {
+          await syncZoneMonthSettingsFromSupabase(sheetWz, y, m);
+        }
+        lastViewMonth = `${y}-${m}`;
+        const dim = daysInMonth(y, m);
+        monthLabel.textContent = `${y} 年 ${m + 1} 月`;
+
+        const [{ inDates: dutyInDates, outDates: dutyOutDates }, groutingDates, zoneDutyMaps, zoneHolidayDates] =
+          await Promise.all([
+            fetchMyDutyLogicalDatesForMonthByPhase(y, m, dim),
+            fetchMyGroutingLogicalDatesForMonth(y, m, dim),
+            fetchZoneDutyClaimsForMonth(y, m, dim),
+            fetchZoneHolidaysForMonth(y, m, dim)
+          ]);
+        const zoneDutyInByDate = zoneDutyMaps.inMap;
+        const zoneDutyOutByDate = zoneDutyMaps.outMap;
+
+        const sheetUid = profileSnap?.user?.id ?? null;
+        const canManageZoneSettings = isZoneAdmin(profileSnap?.profile);
+
+        if (monthRestDaysInputEl) {
+          monthRestDaysInputEl.dataset.year = String(y);
+          monthRestDaysInputEl.dataset.monthIndex = String(m);
+          const zoneRestDays = sheetWz ? readMonthRestDays(sheetWz, y, m) : "";
+          const canEditMonthRest = canManageZoneSettings && !!sheetWz;
+          monthRestDaysInputEl.value = zoneRestDays;
+          monthRestDaysInputEl.readOnly = !canEditMonthRest;
+          monthRestDaysInputEl.disabled = false;
+          monthRestDaysInputEl.classList.toggle("sheet-head-rest-input--readonly", !canEditMonthRest);
+          monthRestDaysInputEl.title = canEditMonthRest
+            ? "本月排休日數（同工區共用；僅權限等級 0 可編輯）"
+            : "本月排休由管理員設定，同工區所有使用者共用";
+          if (monthRestDaysHintEl) monthRestDaysHintEl.hidden = !sheetWz;
+        }
+
+        const map = loadMonthMap(y, m);
+        tbody.innerHTML = "";
+
+        const manualParts = getManualCalendarParts();
+        const rulesCfg = loadRulesConfig();
+
+        let sumAttNum = 0;
+        let sumAttDenom = 0;
+        let hadAnyAttOriginal = false;
+        let sumMeal = 0;
+        let sumEarly = 0;
+        let sumNight = 0;
+        let sumLate = 0;
+        let sumZoneHoliday = 0;
+        let sumDutyInChecks = 0;
+        let sumDutyOutChecks = 0;
+        let sumGroutingChecks = 0;
+
+        for (let day = 1; day <= dim; day++) {
+          const dayKey = `${y}-${pad2(m + 1)}-${pad2(day)}`;
+          const logicalStr = `${y}-${pad2(m + 1)}-${pad2(day)}`;
+          const rec = map[dayKey] || {};
+          const hasDutyIn = dutyInDates.has(logicalStr);
+          const hasDutyOut = dutyOutDates.has(logicalStr);
+          const hasGrouting = groutingDates.has(logicalStr);
+          const isZoneHoliday = zoneHolidayDates.has(logicalStr);
+          const matchesTopDate =
+            manualParts &&
+            manualParts.y === y &&
+            manualParts.m === m &&
+            manualParts.day === day;
+
+          const computed = rulesCfg.engineEnabled
+            ? applyRulesEngine(rec, hasDutyIn, hasDutyOut, hasGrouting, rulesCfg, dayKey, isZoneHoliday)
+            : null;
+          const attOriginalForSplit = computed
+            ? computed.attendance_before_holiday
+            : rec.attendance_hours;
+          const attCellText = formatAttendanceCellSplit(attOriginalForSplit, isZoneHoliday);
+          const displayEarly =
+            computed && computed.early_ot_hours !== undefined
+              ? computed.early_ot_hours
+              : rec.early_ot_hours;
+          const displayNight =
+            computed && computed.night_ot_hours !== undefined
+              ? computed.night_ot_hours
+              : rec.night_ot_hours;
+          const ruleTitle = "依本機規則設定計算（未寫入資料庫）";
+          const showRuleAttTitle = !!computed;
+          const showRuleEarlyTitle = !!computed && computed.early_ot_hours !== undefined;
+          const showRuleNightTitle = !!computed && computed.night_ot_hours !== undefined;
+          const showRuleLateTitle = !!computed && computed.late_rule_hours !== undefined;
+          const lateText =
+            computed && computed.late_rule_hours !== undefined
+              ? formatLateRuleHours(computed.late_rule_hours)
+              : formatLateMetric(rec.late_minutes);
+
+          const displayMeal = mealAllowanceUnits(rec, hasDutyOut, hasGrouting);
+
+          if (
+            attOriginalForSplit != null &&
+            attOriginalForSplit !== "" &&
+            Number.isFinite(Number(attOriginalForSplit))
+          ) {
+            hadAnyAttOriginal = true;
+          }
+          sumAttNum = addMetricSum(sumAttNum, attOriginalForSplit);
+          if (
+            isZoneHoliday &&
+            attOriginalForSplit != null &&
+            Number.isFinite(Number(attOriginalForSplit)) &&
+            Math.abs(Number(attOriginalForSplit) - 1) < 1e-9
+          ) {
+            sumAttDenom += 1;
+          }
+          sumMeal = addMetricSum(sumMeal, displayMeal);
+          sumEarly = addMetricSum(sumEarly, displayEarly);
+          sumNight = addMetricSum(sumNight, displayNight);
+          sumLate += lateNumericForSum(computed, rec, rulesCfg);
+          if (isZoneHoliday) sumZoneHoliday++;
+          if (hasDutyIn) sumDutyInChecks++;
+          if (hasDutyOut) sumDutyOutChecks++;
+          if (hasGrouting) sumGroutingChecks++;
+
+          const tr = document.createElement("tr");
+          if (matchesTopDate) tr.classList.add("row-date-match");
+
+          const tdHol = document.createElement("td");
+          tdHol.className = "sheet-check-cell";
+          const lblHol = document.createElement("label");
+          const cbHol = document.createElement("input");
+          cbHol.type = "checkbox";
+          cbHol.className = "sheet-zone-holiday";
+          cbHol.dataset.date = logicalStr;
+          cbHol.checked = isZoneHoliday;
+          cbHol.disabled = !canManageZoneSettings || !sheetWz;
+          cbHol.title = canManageZoneSettings
+            ? "標記為節日（同工區共用，套用於所有使用者表格）"
+            : "節日由權限等級 0 管理員設定，同工區共用";
+          lblHol.appendChild(cbHol);
+          tdHol.appendChild(lblHol);
+
+          const tdDate = document.createElement("td");
+          tdDate.className = "col-day-num";
+          tdDate.textContent = String(day);
+          const dow = new Date(y, m, day).getDay();
+          if (dow === 0 || dow === 6) tdDate.classList.add("col-date-weekend");
+
+          const claimedInRow = zoneDutyInByDate.get(logicalStr);
+          const vacantDutyIn = !claimedInRow?.user_id;
+
+          const tdDutyIn = document.createElement("td");
+          tdDutyIn.className = "sheet-check-cell";
+          const lblDutyIn = document.createElement("label");
+          const cbDutyIn = document.createElement("input");
+          cbDutyIn.type = "checkbox";
+          cbDutyIn.className = "sheet-duty-in";
+          cbDutyIn.dataset.date = logicalStr;
+          cbDutyIn.checked = hasDutyIn;
+          cbDutyIn.disabled = !sheetUid || (!vacantDutyIn && !hasDutyIn);
+          cbDutyIn.title = "";
+          if (!vacantDutyIn && !hasDutyIn) {
+            const onm =
+              claimedInRow.username != null && String(claimedInRow.username).trim() !== ""
+                ? String(claimedInRow.username).trim()
+                : "同仁";
+            cbDutyIn.title = `「早班」已由「${onm}」登記`;
+          }
+          lblDutyIn.appendChild(cbDutyIn);
+          tdDutyIn.appendChild(lblDutyIn);
+
+          const claimedOutRow = zoneDutyOutByDate.get(logicalStr);
+          const vacantDutyOut = !claimedOutRow?.user_id;
+
+          const tdDutyOut = document.createElement("td");
+          tdDutyOut.className = "sheet-check-cell";
+          const lblDutyOut = document.createElement("label");
+          const cbDutyOut = document.createElement("input");
+          cbDutyOut.type = "checkbox";
+          cbDutyOut.className = "sheet-duty-out";
+          cbDutyOut.dataset.date = logicalStr;
+          cbDutyOut.checked = hasDutyOut;
+          cbDutyOut.disabled = !sheetUid || (!vacantDutyOut && !hasDutyOut);
+          cbDutyOut.title = "";
+          if (!vacantDutyOut && !hasDutyOut) {
+            const onm =
+              claimedOutRow.username != null && String(claimedOutRow.username).trim() !== ""
+                ? String(claimedOutRow.username).trim()
+                : "同仁";
+            cbDutyOut.title = `「值班」已由「${onm}」登記`;
+          }
+          lblDutyOut.appendChild(cbDutyOut);
+          tdDutyOut.appendChild(lblDutyOut);
+
+          const tdGrouting = document.createElement("td");
+          tdGrouting.className = "sheet-check-cell";
+          const lblGrouting = document.createElement("label");
+          const cbGrouting = document.createElement("input");
+          cbGrouting.type = "checkbox";
+          cbGrouting.className = "sheet-grouting";
+          cbGrouting.dataset.date = logicalStr;
+          cbGrouting.checked = hasGrouting;
+          cbGrouting.disabled = !sheetUid || !sheetWz;
+          lblGrouting.appendChild(cbGrouting);
+          tdGrouting.appendChild(lblGrouting);
+
+          const tdIn = document.createElement("td");
+          tdIn.className = "sheet-time-cell time-cell" + (rec.in ? "" : " empty");
+          const inpIn = document.createElement("input");
+          inpIn.type = "time";
+          inpIn.step = "1";
+          inpIn.className = "sheet-time-input sheet-punch-in";
+          inpIn.dataset.date = logicalStr;
+          inpIn.value = rec.in ? formatTime(rec.in) : "";
+          inpIn.setAttribute("aria-label", `${logicalStr} 上班時間`);
+          tdIn.appendChild(inpIn);
+
+          const tdOut = document.createElement("td");
+          tdOut.className = "sheet-time-cell time-cell" + (rec.out ? "" : " empty");
+          const inpOut = document.createElement("input");
+          inpOut.type = "time";
+          inpOut.step = "1";
+          inpOut.className = "sheet-time-input sheet-punch-out";
+          inpOut.dataset.date = logicalStr;
+          inpOut.value = rec.out ? formatTime(rec.out) : "";
+          inpOut.setAttribute("aria-label", `${logicalStr} 下班時間`);
+          tdOut.appendChild(inpOut);
+
+          const tdStatus = document.createElement("td");
+          tdStatus.className = "col-metric col-status time-cell";
+          const selLeave = document.createElement("select");
+          selLeave.className = "sheet-leave-select";
+          selLeave.dataset.date = logicalStr;
+          selLeave.setAttribute("aria-label", `${logicalStr} 休假`);
+          const optDash = document.createElement("option");
+          optDash.value = "";
+          optDash.textContent = "—";
+          selLeave.appendChild(optDash);
+          for (const label of LEAVE_OPTIONS) {
+            const opt = document.createElement("option");
+            opt.value = label;
+            opt.textContent = label;
+            selLeave.appendChild(opt);
+          }
+          const stored = rec.status != null ? String(rec.status).trim() : "";
+          if (stored && LEAVE_OPTIONS.includes(stored)) {
+            selLeave.value = stored;
+          } else if (stored) {
+            const optLegacy = document.createElement("option");
+            optLegacy.value = stored;
+            optLegacy.textContent = stored;
+            selLeave.appendChild(optLegacy);
+            selLeave.value = stored;
+          } else {
+            selLeave.value = "";
+          }
+          if (!selLeave.value) {
+            selLeave.classList.add("sheet-leave-empty");
+            tdStatus.classList.add("empty");
+          }
+          tdStatus.appendChild(selLeave);
+
+          const tdAtt = document.createElement("td");
+          tdAtt.className =
+            "col-metric time-cell" + (attCellText !== "—" ? "" : " empty");
+          tdAtt.textContent = attCellText;
+          tdAtt.title =
+            "出勤顯示為「原始出勤值／假日指標」。假日指標：該列「假日」已勾選且原始出勤為 1（日）時為 1，否則 0。列尾總結為本月係數前出勤加總／符合前述條件之日數加總。";
+          if (showRuleAttTitle) {
+            let attTitle = tdAtt.title + " " + ruleTitle;
+            if (isZoneHoliday && rulesCfg.holiday?.enabled !== false) {
+              const mult = Number(rulesCfg.holiday?.attendanceMultiplier);
+              if (Number.isFinite(mult) && mult > 0 && mult !== 1) {
+                const ms = Number.isInteger(mult) ? String(mult) : String(Math.round(mult * 100) / 100);
+                attTitle = `${attTitle}（假日出勤 × ${ms}）`;
+              }
+            }
+            tdAtt.title = attTitle;
+          }
+
+          const tdMeal = document.createElement("td");
+          tdMeal.className = "col-metric time-cell" + (displayMeal != null ? "" : " empty");
+          tdMeal.textContent = formatHoursMetric(displayMeal);
+          tdMeal.title =
+            "誤餐：下班時間晚於或等於 18:30（含）為 1；已勾選「值班」（下班）或「灌漿」者不適用";
+
+          const tdEarly = document.createElement("td");
+          tdEarly.className = "col-metric time-cell" + (displayEarly != null ? "" : " empty");
+          tdEarly.textContent = formatHoursMetric(displayEarly);
+          if (showRuleEarlyTitle) tdEarly.title = ruleTitle;
+          else tdEarly.removeAttribute("title");
+
+          const tdNight = document.createElement("td");
+          tdNight.className = "col-metric time-cell" + (displayNight != null ? "" : " empty");
+          tdNight.textContent = formatHoursMetric(displayNight);
+          if (showRuleNightTitle) tdNight.title = ruleTitle;
+          else tdNight.removeAttribute("title");
+
+          const tdLate = document.createElement("td");
+          tdLate.className = "col-metric time-cell" + (lateText !== "—" ? "" : " empty");
+          tdLate.textContent = lateText;
+          if (showRuleLateTitle) {
+            const lateTierHint = hasDutyIn ? "早班梯度" : "未登記早班梯度";
+            tdLate.title = `${ruleTitle}（${lateTierHint}）`;
+          } else tdLate.removeAttribute("title");
+
+          tr.appendChild(tdHol);
+          tr.appendChild(tdDutyIn);
+          tr.appendChild(tdDutyOut);
+          tr.appendChild(tdGrouting);
+          tr.appendChild(tdDate);
+          tr.appendChild(tdIn);
+          tr.appendChild(tdOut);
+          tr.appendChild(tdStatus);
+          tr.appendChild(tdAtt);
+          tr.appendChild(tdMeal);
+          tr.appendChild(tdEarly);
+          tr.appendChild(tdNight);
+          tr.appendChild(tdLate);
+          tbody.appendChild(tr);
+        }
+
+        const trSum = document.createElement("tr");
+        trSum.className = "row-month-summary";
+
+        const tdSumHol = document.createElement("td");
+        tdSumHol.className = "sheet-check-cell time-cell" + (sumZoneHoliday ? "" : " empty");
+        tdSumHol.textContent = String(sumZoneHoliday);
+        tdSumHol.title = "本月「假日」勾選日數";
+
+        const tdSumLabel = document.createElement("td");
+        tdSumLabel.className = "col-month-summary-label";
+        tdSumLabel.textContent = "總結";
+        tdSumLabel.title =
+          "假日／早班／值班／灌漿為勾選日數；出勤總結為係數前加總／假日且出勤 1 之日數；誤餐、早／夜加班、遲到為數值加總（休假無合計；遲到換算為時）";
+
+        const tdSumDutyIn = document.createElement("td");
+        tdSumDutyIn.className = "sheet-check-cell time-cell" + (sumDutyInChecks ? "" : " empty");
+        tdSumDutyIn.textContent = String(sumDutyInChecks);
+        tdSumDutyIn.title = "本月「早班」勾選日數";
+
+        const tdSumDutyOut = document.createElement("td");
+        tdSumDutyOut.className = "sheet-check-cell time-cell" + (sumDutyOutChecks ? "" : " empty");
+        tdSumDutyOut.textContent = String(sumDutyOutChecks);
+        tdSumDutyOut.title = "本月「值班」勾選日數";
+
+        const tdSumGrouting = document.createElement("td");
+        tdSumGrouting.className = "sheet-check-cell time-cell" + (sumGroutingChecks ? "" : " empty");
+        tdSumGrouting.textContent = String(sumGroutingChecks);
+        tdSumGrouting.title = "本月「灌漿」勾選日數";
+
+        const tdSumIn = document.createElement("td");
+        tdSumIn.className = "time-cell empty";
+        tdSumIn.textContent = "—";
+        const tdSumOut = document.createElement("td");
+        tdSumOut.className = "time-cell empty";
+        tdSumOut.textContent = "—";
+        const tdSumStatus = document.createElement("td");
+        tdSumStatus.className = "col-metric col-status time-cell empty";
+        tdSumStatus.textContent = "—";
+        tdSumStatus.title = "休假無月合計";
+
+        const sumAttCellText = formatAttendanceSummarySplit(
+          sumAttNum,
+          sumAttDenom,
+          hadAnyAttOriginal
+        );
+        const tdSumAtt = document.createElement("td");
+        tdSumAtt.className =
+          "col-metric time-cell" + (sumAttCellText !== "—" ? "" : " empty");
+        tdSumAtt.textContent = sumAttCellText;
+        tdSumAtt.title =
+          "出勤總結：分子為本月係數前出勤加總，分母為「假日」勾選且原始出勤為 1（日）之日數加總（與列上分拆規則一致）";
+
+        const tdSumMeal = document.createElement("td");
+        tdSumMeal.className = "col-metric time-cell";
+        tdSumMeal.textContent = formatHoursMetric(sumMeal);
+        tdSumMeal.title = "誤餐合計（日數）";
+
+        const tdSumEarly = document.createElement("td");
+        tdSumEarly.className = "col-metric time-cell";
+        tdSumEarly.textContent = formatHoursMetric(sumEarly);
+        tdSumEarly.title = "早加班合計";
+
+        const tdSumNight = document.createElement("td");
+        tdSumNight.className = "col-metric time-cell";
+        tdSumNight.textContent = formatHoursMetric(sumNight);
+        tdSumNight.title = "夜加班合計";
+
+        const tdSumLate = document.createElement("td");
+        tdSumLate.className = "col-metric time-cell";
+        tdSumLate.textContent = formatLateRuleHours(sumLate);
+        tdSumLate.title = "遲到合計（時）";
+
+        trSum.appendChild(tdSumHol);
+        trSum.appendChild(tdSumDutyIn);
+        trSum.appendChild(tdSumDutyOut);
+        trSum.appendChild(tdSumGrouting);
+        trSum.appendChild(tdSumLabel);
+        trSum.appendChild(tdSumIn);
+        trSum.appendChild(tdSumOut);
+        trSum.appendChild(tdSumStatus);
+        trSum.appendChild(tdSumAtt);
+        trSum.appendChild(tdSumMeal);
+        trSum.appendChild(tdSumEarly);
+        trSum.appendChild(tdSumNight);
+        trSum.appendChild(tdSumLate);
+        tbody.appendChild(trSum);
+
+        lastSheetSummarySnapshot = {
+          year: y,
+          monthIndex: m,
+          dim,
+          sumAttNum,
+          sumAttDenom,
+          hadAnyAttOriginal,
+          sumMeal,
+          sumEarly,
+          sumNight,
+          sumLate,
+          sumDutyInChecks,
+          sumDutyOutChecks,
+          sumGroutingChecks,
+          sumZoneHoliday
+        };
+
+        if (punchUploadToast) {
+          showStatusToast("已上傳打卡資料", 5000, 650);
+        } else if (showSyncCompleteToast) {
+          showStatusToast("資料已同步完成", 5000, 650);
+        }
+      } finally {
+        setSupabaseLoadHint(false);
+      }
+    }
+
+    /** @param {string} dateStr YYYY-MM-DD */
+    function logicalFromISODateStr(dateStr) {
+      const parts = dateStr.split("-");
+      if (parts.length !== 3) return null;
+      const y = parseInt(parts[0], 10);
+      const mo = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      if (Number.isNaN(y) || Number.isNaN(mo) || Number.isNaN(day)) return null;
+      return { y, m: mo, day };
+    }
+
+    async function handleAttendanceSheetChange(ev) {
+      const t = ev.target;
+      if (!(t instanceof HTMLInputElement) && !(t instanceof HTMLSelectElement)) return;
+      const dateStr = t.dataset.date;
+      if (!dateStr) return;
+      const logical = logicalFromISODateStr(dateStr);
+      if (!logical) return;
+
+      try {
+        if (t instanceof HTMLSelectElement && t.classList.contains("sheet-leave-select")) {
+          const v = t.value.trim();
+          await saveDay(logical.y, logical.m, logical.day, { status: v === "" ? null : v });
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-zone-holiday")) {
+          const ctx = await loadProfile();
+          if (!isZoneAdmin(ctx?.profile)) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            return;
+          }
+          const ok = await persistZoneHolidayToggle(dateStr, t.checked);
+          if (!ok) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            return;
+          }
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-punch-in")) {
+          const v = t.value.trim();
+          if (!v) {
+            await saveDay(logical.y, logical.m, logical.day, { in: null });
+          } else {
+            const iso = isoFromAttendanceDateStrAndTime(dateStr, v);
+            if (!iso) return;
+            await saveDay(logical.y, logical.m, logical.day, { in: iso });
+          }
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-punch-out")) {
+          const v = t.value.trim();
+          if (!v) {
+            await saveDay(logical.y, logical.m, logical.day, { out: null });
+          } else {
+            const iso = isoFromAttendanceDateStrAndTime(dateStr, v);
+            if (!iso) return;
+            await saveDay(logical.y, logical.m, logical.day, { out: iso });
+          }
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-duty-in")) {
+          const want = t.checked;
+          await persistDutyToggleForLogical(logical, "in", want);
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-duty-out")) {
+          const want = t.checked;
+          const row = t.closest("tr");
+          if (want && row) {
+            const g = row.querySelector(".sheet-grouting");
+            if (g instanceof HTMLInputElement) g.checked = false;
+          }
+          await persistDutyToggleForLogical(logical, "out", want);
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          return;
+        }
+
+        if (t.classList.contains("sheet-grouting")) {
+          const want = t.checked;
+          const row = t.closest("tr");
+          if (want && row) {
+            const o = row.querySelector(".sheet-duty-out");
+            if (o instanceof HTMLInputElement) o.checked = false;
+          }
+          await persistGroutingToggleForLogical(logical, want);
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+        }
+      } catch (e) {
+        console.error(e);
+        alert(`清單更新失敗：${e?.message || e}`);
+      }
+    }
+
+    function attachAttendanceSheetListeners() {
+      if (!tbody || tbody.dataset.sheetBound === "1") return;
+      tbody.dataset.sheetBound = "1";
+      tbody.addEventListener("change", (ev) => {
+        void handleAttendanceSheetChange(ev);
+      });
+    }
+
+    const userGreetingEl = document.getElementById("userGreeting");
+    const userGreetingTextEl = document.getElementById("userGreetingText");
+    const btnSummaryReport = document.getElementById("btnSummaryReport");
+    const btnCompanySummary = document.getElementById("btnCompanySummary");
+    const btnSaveCloud = document.getElementById("btnSaveCloud");
+    const companySummaryBackdrop = document.getElementById("companySummaryBackdrop");
+    const companySummaryCloseBtn = document.getElementById("companySummaryCloseBtn");
+    const companySummaryBody = document.getElementById("companySummaryBody");
+    const summaryReportBackdrop = document.getElementById("summaryReportBackdrop");
+    const summaryReportCloseBtn = document.getElementById("summaryReportCloseBtn");
+    const summaryReportBody = document.getElementById("summaryReportBody");
+    const supabaseLoadHintEl = document.getElementById("supabaseLoadHint");
+    const statusToastEl = document.getElementById("statusToast");
+
+    let statusToastVisibleTimer = 0;
+    let statusToastFadeFallbackTimer = 0;
+
+    function setSupabaseLoadHint(_visible) {
+      if (!supabaseLoadHintEl) return;
+      supabaseLoadHintEl.hidden = true;
+    }
+
+    /**
+     * 顯示綠色提示：可見 visibleMs 後以淡出結束（fadeMs 為 CSS transition 時間）
+     */
+    function showStatusToast(message, visibleMs = 5000, fadeMs = 650) {
+      const el = statusToastEl;
+      if (!el) return;
+      clearTimeout(statusToastVisibleTimer);
+      clearTimeout(statusToastFadeFallbackTimer);
+      el.classList.remove("is-fading");
+      el.textContent = message;
+      el.hidden = false;
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(statusToastFadeFallbackTimer);
+        el.removeEventListener("transitionend", onTransitionEnd);
+        el.hidden = true;
+        el.classList.remove("is-fading");
+      };
+      function onTransitionEnd(ev) {
+        if (ev.propertyName !== "opacity") return;
+        finish();
+      }
+
+      statusToastVisibleTimer = setTimeout(() => {
+        el.addEventListener("transitionend", onTransitionEnd);
+        el.classList.add("is-fading");
+        statusToastFadeFallbackTimer = setTimeout(finish, fadeMs + 100);
+      }, visibleMs);
+    }
+
+    async function refreshUserGreeting() {
+      const textEl = userGreetingTextEl || userGreetingEl;
+      if (!textEl) return;
+      const ctx = await loadProfile();
+      if (!ctx?.user) {
+        textEl.textContent = "你好，請先登入";
+        if (btnCompanySummary) btnCompanySummary.hidden = true;
+        return;
+      }
+      const name =
+        ctx.profile?.username != null && String(ctx.profile.username).trim() !== ""
+          ? String(ctx.profile.username).trim()
+          : ctx.user.email || "使用者";
+      const zone = workZoneFromProfile(ctx.profile);
+      textEl.textContent =
+        zone !== "" ? `你好，${name}（${zone}）` : `你好，${name}（未設定工區）`;
+      if (btnCompanySummary) btnCompanySummary.hidden = !isZoneAdmin(ctx.profile);
+    }
+
+    function formatReportDayNumber(n) {
+      if (!Number.isFinite(Number(n))) return "—";
+      const x = Number(n);
+      return Number.isInteger(x) ? String(x) : String(Math.round(x * 100) / 100);
+    }
+
+    /** @param {string} text @param {boolean} [accentOrange] 橘黃色（指定欄位數值） */
+    function summaryReportValSpan(text, accentOrange) {
+      const s = document.createElement("span");
+      s.className =
+        accentOrange === true ? "summary-report-val summary-report-val-accent" : "summary-report-val";
+      s.textContent = text;
+      return s;
+    }
+
+    /** 假別統計等非零數值是否套用總結報告橘黃色 */
+    function summaryReportLeaveMetricAccent(num) {
+      const n = Number(num);
+      return Number.isFinite(n) && n !== 0;
+    }
+
+    /** @param {HTMLElement} p @param {Array<string | HTMLElement>} chunks */
+    function summaryReportAppendMixed(p, chunks) {
+      for (const c of chunks) {
+        if (typeof c === "string") p.appendChild(document.createTextNode(c));
+        else p.appendChild(c);
+      }
+    }
+
+    function computeUserMonthSummary(
+      map,
+      dutyInDates,
+      dutyOutDates,
+      groutingDates,
+      zoneHolidayDates,
+      y,
+      monthIndex,
+      rulesCfg
+    ) {
+      const dim = daysInMonth(y, monthIndex);
+      let sumAttNum = 0;
+      let sumAttDenom = 0;
+      let hadAnyAttOriginal = false;
+      let sumMeal = 0;
+      let sumEarly = 0;
+      let sumNight = 0;
+      let sumLate = 0;
+      let sumDutyInChecks = 0;
+      let sumDutyOutChecks = 0;
+      let sumGroutingChecks = 0;
+      let sumZoneHoliday = 0;
+
+      for (let day = 1; day <= dim; day++) {
+        const dayKey = `${y}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+        const rec = map[dayKey] || {};
+        const hasDutyIn = dutyInDates.has(dayKey);
+        const hasDutyOut = dutyOutDates.has(dayKey);
+        const hasGrouting = groutingDates.has(dayKey);
+        const isZoneHoliday = zoneHolidayDates.has(dayKey);
+        const computed = rulesCfg.engineEnabled
+          ? applyRulesEngine(rec, hasDutyIn, hasDutyOut, hasGrouting, rulesCfg, dayKey, isZoneHoliday)
+          : null;
+        const attOriginalForSplit = computed
+          ? computed.attendance_before_holiday
+          : rec.attendance_hours;
+        const displayEarly =
+          computed && computed.early_ot_hours !== undefined
+            ? computed.early_ot_hours
+            : rec.early_ot_hours;
+        const displayNight =
+          computed && computed.night_ot_hours !== undefined
+            ? computed.night_ot_hours
+            : rec.night_ot_hours;
+        const displayMeal = mealAllowanceUnits(rec, hasDutyOut, hasGrouting);
+
+        if (
+          attOriginalForSplit != null &&
+          attOriginalForSplit !== "" &&
+          Number.isFinite(Number(attOriginalForSplit))
+        ) {
+          hadAnyAttOriginal = true;
+        }
+        sumAttNum = addMetricSum(sumAttNum, attOriginalForSplit);
+        if (
+          isZoneHoliday &&
+          attOriginalForSplit != null &&
+          Number.isFinite(Number(attOriginalForSplit)) &&
+          Math.abs(Number(attOriginalForSplit) - 1) < 1e-9
+        ) {
+          sumAttDenom += 1;
+        }
+        sumMeal = addMetricSum(sumMeal, displayMeal);
+        sumEarly = addMetricSum(sumEarly, displayEarly);
+        sumNight = addMetricSum(sumNight, displayNight);
+        sumLate += lateNumericForSum(computed, rec, rulesCfg);
+        if (isZoneHoliday) sumZoneHoliday++;
+        if (hasDutyIn) sumDutyInChecks++;
+        if (hasDutyOut) sumDutyOutChecks++;
+        if (hasGrouting) sumGroutingChecks++;
+      }
+
+      return {
+        year: y,
+        monthIndex,
+        dim,
+        sumAttNum,
+        sumAttDenom,
+        hadAnyAttOriginal,
+        sumMeal,
+        sumEarly,
+        sumNight,
+        sumLate,
+        sumDutyInChecks,
+        sumDutyOutChecks,
+        sumGroutingChecks,
+        sumZoneHoliday,
+      };
+    }
+
+    /**
+     * @param {object} snap
+     * @param {object} options
+     * @param {string} [options.periodStr]
+     * @param {string} [options.userStr]
+     * @param {string} options.workZone
+     * @param {string} options.userId
+     * @param {Record<string, object>} [options.statusMonthMap]
+     * @param {Record<string, object>} [options.fiscalStatusMap]
+     * @param {boolean} [options.includePeriodUserLine]
+     */
+    function buildSummaryReportElements(snap, options) {
+      const {
+        periodStr = "—",
+        userStr = "",
+        workZone = "",
+        userId = "",
+        statusMonthMap = null,
+        fiscalStatusMap = null,
+        includePeriodUserLine = true,
+      } = options;
+
+      const elements = [];
+      if (includePeriodUserLine) {
+        const linePeriodUser = document.createElement("p");
+        linePeriodUser.className =
+          "summary-report-line report-line-period report-line-user";
+        summaryReportAppendMixed(linePeriodUser, [
+          summaryReportValSpan(periodStr),
+          userStr ? ` | ${userStr}` : "",
+        ]);
+        elements.push(linePeriodUser);
+      }
+
+      const molStr = snap.hadAnyAttOriginal ? formatReportDayNumber(snap.sumAttNum) : "—";
+      const denStr = String(snap.sumAttDenom);
+      const dimStr = String(snap.dim);
+      const line3 = document.createElement("p");
+      line3.className = "summary-report-line";
+      summaryReportAppendMixed(line3, [
+        "本月天數：",
+        summaryReportValSpan(dimStr),
+        " 日 | 出勤：",
+        summaryReportValSpan(molStr, true),
+        " 日",
+      ]);
+      elements.push(line3);
+
+      const monthMap =
+        statusMonthMap ??
+        (workZone && userId && snap.year != null && snap.monthIndex != null
+          ? loadMonthMapFromLocalStorage(userId, workZone, snap.year, snap.monthIndex)
+          : {});
+      const lcReport = loadRulesConfig().leaveCategories || {};
+      const extraKindsForRest =
+        lcReport.extraLeaveEnabled === true
+          ? normalizeRulesExtraLeaveKinds(lcReport.extraLeaveKinds)
+          : [];
+      let extraLeaveDaysForPlannedRest = 0;
+      if (extraKindsForRest.length > 0) {
+        const kindSet = new Set(extraKindsForRest);
+        for (const dayKey of Object.keys(monthMap)) {
+          const rec = monthMap[dayKey];
+          const st = rec?.status != null ? String(rec.status).trim() : "";
+          if (kindSet.has(st)) extraLeaveDaysForPlannedRest++;
+        }
+      }
+
+      const restRaw =
+        workZone && snap.year != null && snap.monthIndex != null
+          ? readMonthRestDays(workZone, snap.year, snap.monthIndex)
+          : monthRestDaysInputEl?.value?.trim() ?? "";
+      const plannedRestParsed =
+        restRaw === "" ? 0 : Number(sanitizeMonthRestDaysInput(restRaw) || "0");
+      const plannedRestInput = Number.isFinite(plannedRestParsed) ? plannedRestParsed : 0;
+      const plannedRest = plannedRestInput + extraLeaveDaysForPlannedRest;
+      const actualRestNum = snap.dim - snap.sumAttNum;
+      const unspentRestNum = plannedRest - actualRestNum;
+      const line4 = document.createElement("p");
+      line4.className = "summary-report-line";
+      summaryReportAppendMixed(line4, [
+        "本月應休：",
+        summaryReportValSpan(String(plannedRest)),
+        " 日 | 實休：",
+        summaryReportValSpan(formatReportDayNumber(actualRestNum)),
+        " 日 | 未休：",
+        summaryReportValSpan(formatReportDayNumber(unspentRestNum), true),
+        " 日",
+      ]);
+      elements.push(line4);
+
+      const lineHolidayFest = document.createElement("p");
+      lineHolidayFest.className = "summary-report-line";
+      summaryReportAppendMixed(lineHolidayFest, [
+        "本月節日：",
+        summaryReportValSpan(String(snap.sumZoneHoliday)),
+        " 日 | 節日出勤：",
+        summaryReportValSpan(denStr, true),
+      ]);
+      elements.push(lineHolidayFest);
+
+      const line5 = document.createElement("p");
+      line5.className = "summary-report-line";
+      summaryReportAppendMixed(line5, [
+        "誤餐：",
+        summaryReportValSpan(formatHoursMetric(snap.sumMeal), true),
+        " 日",
+      ]);
+      elements.push(line5);
+
+      const line6 = document.createElement("p");
+      line6.className = "summary-report-line";
+      summaryReportAppendMixed(line6, [
+        "早班：",
+        summaryReportValSpan(String(snap.sumDutyInChecks)),
+        " 日 | 加班共：",
+        summaryReportValSpan(formatHoursMetric(snap.sumEarly), true),
+        " 時",
+      ]);
+      elements.push(line6);
+
+      const line7 = document.createElement("p");
+      line7.className = "summary-report-line";
+      summaryReportAppendMixed(line7, [
+        "值班：",
+        summaryReportValSpan(String(snap.sumDutyOutChecks)),
+        " 日 | 加班共：",
+        summaryReportValSpan(formatHoursMetric(snap.sumNight), true),
+        " 時",
+      ]);
+      elements.push(line7);
+
+      const line8 = document.createElement("p");
+      line8.className = "summary-report-line";
+      summaryReportAppendMixed(line8, [
+        "遲到：",
+        summaryReportValSpan(formatLateRuleHours(snap.sumLate), true),
+        " 時 | 灌漿：",
+        summaryReportValSpan(String(snap.sumGroutingChecks)),
+        " 日",
+      ]);
+      elements.push(line8);
+
+      const fyStart =
+        snap.year != null && snap.monthIndex != null
+          ? fiscalYearFebJanStartYear(snap.year, snap.monthIndex)
+          : null;
+
+      const leaveLines = [];
+      for (const label of SUMMARY_REPORT_LEAVE_LABELS) {
+        const monthLeave = countLeaveDaysInMonthMap(monthMap, label);
+        const fyLeave =
+          fiscalStatusMap != null
+            ? countLeaveDaysInMonthMap(fiscalStatusMap, label)
+            : workZone && userId && fyStart != null
+              ? sumLeaveDaysInFiscalFebJan(userId, workZone, fyStart, label)
+              : 0;
+        const lp = document.createElement("p");
+        lp.className = "summary-report-line";
+        if (label === "特休") {
+          summaryReportAppendMixed(lp, [
+            `${label}：`,
+            summaryReportValSpan(String(monthLeave), summaryReportLeaveMetricAccent(monthLeave)),
+            " 日 | 今年度累計：",
+            summaryReportValSpan(String(fyLeave)),
+            " 日 | 今年度享特休：",
+            summaryReportValSpan(
+              String(summaryReportAnnualSpecialLeaveEntitlementDays),
+              summaryReportLeaveMetricAccent(summaryReportAnnualSpecialLeaveEntitlementDays)
+            ),
+            " 日",
+          ]);
+        } else {
+          summaryReportAppendMixed(lp, [
+            `${label}：`,
+            summaryReportValSpan(String(monthLeave), summaryReportLeaveMetricAccent(monthLeave)),
+            " 日 | 今年度累計：",
+            summaryReportValSpan(String(fyLeave)),
+            " 日",
+          ]);
+        }
+        leaveLines.push(lp);
+      }
+
+      const summaryLeaveDivider = document.createElement("hr");
+      summaryLeaveDivider.className = "summary-report-divider";
+      elements.push(summaryLeaveDivider);
+      elements.push(...leaveLines);
+      return elements;
+    }
+
+    async function populateSummaryReportBody() {
+      if (!summaryReportBody) return;
+      summaryReportBody.innerHTML = "";
+      const snap = lastSheetSummarySnapshot;
+      const ctx = await loadProfile();
+      const periodStr =
+        snap.year != null && snap.monthIndex != null
+          ? `${snap.year}年${snap.monthIndex + 1}月`
+          : "—";
+      const name =
+        ctx?.profile?.username != null && String(ctx.profile.username).trim() !== ""
+          ? String(ctx.profile.username).trim()
+          : ctx?.user?.email || "使用者";
+      const zone = workZoneFromProfile(ctx?.profile);
+      const userStr = `${name}（${zone !== "" ? zone : "未設定工區"}）`;
+      for (const el of buildSummaryReportElements(snap, {
+        periodStr,
+        userStr,
+        workZone: zone,
+        userId: ctx?.user?.id ?? "",
+        includePeriodUserLine: true,
+      })) {
+        summaryReportBody.appendChild(el);
+      }
+    }
+
+    function closeSummaryReportModal() {
+      if (!summaryReportBackdrop) return;
+      summaryReportBackdrop.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    async function openSummaryReportModal() {
+      if (!summaryReportBackdrop) return;
+      await populateSummaryReportBody();
+      summaryReportBackdrop.hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+
+    function idsEqual(a, b) {
+      return String(a ?? "") === String(b ?? "");
+    }
+
+    function dutyDatesForUser(workZone, uid, y, monthIndex) {
+      const inDates = new Set();
+      const outDates = new Set();
+      for (const r of dutyClaimsForMonth(workZone, y, monthIndex)) {
+        if (!idsEqual(r.user_id, uid)) continue;
+        const s = sliceLogicalDate(r.logical_date);
+        if (!s) continue;
+        if (r.duty_phase === "out") outDates.add(s);
+        else inDates.add(s);
+      }
+      return { inDates, outDates };
+    }
+
+    function groutingDatesForUser(workZone, uid, y, monthIndex) {
+      const set = new Set();
+      const mk = attendanceMonthKey(y, monthIndex);
+      const key = `${LS_GROUT_CLAIMS}:${mk}:${workZone}`;
+      const arr = lsReadJson(key, []);
+      if (!Array.isArray(arr)) return set;
+      for (const r of arr) {
+        if (!idsEqual(r.user_id, uid)) continue;
+        const s = sliceLogicalDate(r.logical_date);
+        if (s) set.add(s);
+      }
+      return set;
+    }
+
+    function aggregateDayRecordsRows(rows) {
+      const mapsByUser = new Map();
+      const dutyInByUser = new Map();
+      const dutyOutByUser = new Map();
+      const groutingByUser = new Map();
+
+      for (const row of rows || []) {
+        const parsed = dayRecordFromRow(row);
+        if (!parsed) continue;
+        const { dayKey, rec, duty_in, duty_out, grouting, user_id } = parsed;
+        if (!mapsByUser.has(user_id)) mapsByUser.set(user_id, {});
+        mapsByUser.get(user_id)[dayKey] = rec;
+        if (duty_in) {
+          if (!dutyInByUser.has(user_id)) dutyInByUser.set(user_id, new Set());
+          dutyInByUser.get(user_id).add(dayKey);
+        }
+        if (duty_out) {
+          if (!dutyOutByUser.has(user_id)) dutyOutByUser.set(user_id, new Set());
+          dutyOutByUser.get(user_id).add(dayKey);
+        }
+        if (grouting) {
+          if (!groutingByUser.has(user_id)) groutingByUser.set(user_id, new Set());
+          groutingByUser.get(user_id).add(dayKey);
+        }
+      }
+
+      return { mapsByUser, dutyInByUser, dutyOutByUser, groutingByUser };
+    }
+
+    async function fetchZoneProfilesForCompanySummary(workZone) {
+      const { data, error } = await sb.from(PROFILE_TABLE).select("id, username, 工區");
+      if (error) throw new Error(error.message);
+      const members = [];
+      for (const p of data || []) {
+        if (workZoneFromProfile(p) !== workZone) continue;
+        members.push({
+          id: String(p.id),
+          username:
+            p.username != null && String(p.username).trim() !== ""
+              ? String(p.username).trim()
+              : "使用者",
+        });
+      }
+      members.sort((a, b) => a.username.localeCompare(b.username, "zh-Hant"));
+      return members;
+    }
+
+    async function fetchZoneDayRecordsForMonth(workZone, year, monthIndex) {
+      const { start, end } = monthDateRange(year, monthIndex);
+      const { data, error } = await sb
+        .from(DAY_RECORDS_TABLE)
+        .select(
+          "user_id, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
+        )
+        .eq("work_zone", workZone)
+        .gte("record_date", start)
+        .lte("record_date", end);
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+
+    async function fetchZoneDayRecordsForDateRange(workZone, startDate, endDate) {
+      const { data, error } = await sb
+        .from(DAY_RECORDS_TABLE)
+        .select(
+          "user_id, record_date, punch_in, punch_out, attendance_hours, early_ot_hours, night_ot_hours, late_minutes, status, duty_in, duty_out, grouting, username"
+        )
+        .eq("work_zone", workZone)
+        .gte("record_date", startDate)
+        .lte("record_date", endDate);
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+
+    function formatCompanySummaryCheckCell(checked) {
+      return checked ? "✓" : "—";
+    }
+
+    function buildUserPunchTimesTable(
+      map,
+      dutyInDates,
+      dutyOutDates,
+      groutingDates,
+      zoneHolidayDates,
+      y,
+      monthIndex
+    ) {
+      const dim = daysInMonth(y, monthIndex);
+      const wrap = document.createElement("div");
+      wrap.className = "company-summary-punch-table-wrap";
+      const table = document.createElement("table");
+      table.className = "company-summary-punch-table";
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+      for (const label of ["節日", "早班", "值班", "灌漿", "日期", "上班", "下班", "休假"]) {
+        const th = document.createElement("th");
+        th.textContent = label;
+        hr.appendChild(th);
+      }
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      const dowNames = ["日", "一", "二", "三", "四", "五", "六"];
+
+      for (let day = 1; day <= dim; day++) {
+        const dayKey = `${y}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+        const rec = map[dayKey] || {};
+        const hasDutyIn = dutyInDates.has(dayKey);
+        const hasDutyOut = dutyOutDates.has(dayKey);
+        const hasGrouting = groutingDates.has(dayKey);
+        const isZoneHoliday = zoneHolidayDates.has(dayKey);
+        const inText = rec.in ? formatPunchWithDutyIn(rec.in, hasDutyIn) : "—";
+        const outText = rec.out ? formatPunchOut(rec.out, hasDutyOut, hasGrouting) : "—";
+        const statusText =
+          rec.status != null && String(rec.status).trim() !== ""
+            ? String(rec.status).trim()
+            : "—";
+
+        const tr = document.createElement("tr");
+        const dow = new Date(y, monthIndex, day).getDay();
+        if (dow === 0 || dow === 6) tr.classList.add("row-weekend");
+
+        const tdHol = document.createElement("td");
+        tdHol.textContent = formatCompanySummaryCheckCell(isZoneHoliday);
+        if (isZoneHoliday) tdHol.classList.add("col-check-on");
+        else tdHol.classList.add("empty-punch");
+
+        const tdDutyIn = document.createElement("td");
+        tdDutyIn.textContent = formatCompanySummaryCheckCell(hasDutyIn);
+        if (hasDutyIn) tdDutyIn.classList.add("col-check-on");
+        else tdDutyIn.classList.add("empty-punch");
+
+        const tdDutyOut = document.createElement("td");
+        tdDutyOut.textContent = formatCompanySummaryCheckCell(hasDutyOut);
+        if (hasDutyOut) tdDutyOut.classList.add("col-check-on");
+        else tdDutyOut.classList.add("empty-punch");
+
+        const tdGrouting = document.createElement("td");
+        tdGrouting.textContent = formatCompanySummaryCheckCell(hasGrouting);
+        if (hasGrouting) tdGrouting.classList.add("col-check-on");
+        else tdGrouting.classList.add("empty-punch");
+
+        const tdDate = document.createElement("td");
+        tdDate.className = "col-punch-date";
+        tdDate.textContent = `${pad2(monthIndex + 1)}/${pad2(day)}（${dowNames[dow]}）`;
+
+        const tdIn = document.createElement("td");
+        tdIn.textContent = inText;
+        if (inText === "—") tdIn.classList.add("empty-punch");
+
+        const tdOut = document.createElement("td");
+        tdOut.textContent = outText;
+        if (outText === "—") tdOut.classList.add("empty-punch");
+
+        const tdStatus = document.createElement("td");
+        tdStatus.textContent = statusText;
+        if (statusText === "—") tdStatus.classList.add("empty-punch");
+
+        tr.appendChild(tdHol);
+        tr.appendChild(tdDutyIn);
+        tr.appendChild(tdDutyOut);
+        tr.appendChild(tdGrouting);
+        tr.appendChild(tdDate);
+        tr.appendChild(tdIn);
+        tr.appendChild(tdOut);
+        tr.appendChild(tdStatus);
+        tbody.appendChild(tr);
+      }
+
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      return wrap;
+    }
+
+    async function populateCompanySummaryBody() {
+      if (!companySummaryBody) return;
+      companySummaryBody.innerHTML = '<p class="company-summary-loading">載入中…</p>';
+      const ctx = await loadProfile();
+      if (!isZoneAdmin(ctx?.profile)) {
+        companySummaryBody.innerHTML =
+          '<p class="company-summary-empty">僅權限等級 0（管理員）可使用公司總結。</p>';
+        return;
+      }
+      const workZone = workZoneFromProfile(ctx?.profile);
+      if (!workZone) {
+        companySummaryBody.innerHTML =
+          '<p class="company-summary-empty">請先在 profiles 設定工區。</p>';
+        return;
+      }
+
+      const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+      const dim = daysInMonth(y, m);
+      const periodStr = `${y}年${m + 1}月`;
+      const reviewerId = ctx?.user?.id ? String(ctx.user.id) : "";
+
+      try {
+        const fyStart = fiscalYearFebJanStartYear(y, m);
+        const fyEndYear = fyStart != null ? fyStart + 1 : null;
+        const fyRangeStart = fyStart != null ? `${fyStart}-02-01` : "";
+        const fyRangeEnd =
+          fyEndYear != null
+            ? `${fyEndYear}-01-${pad2(daysInMonth(fyEndYear, 0))}`
+            : "";
+
+        const [members, dayRows, zoneHolidayDates, fyDayRows] = await Promise.all([
+          fetchZoneProfilesForCompanySummary(workZone),
+          fetchZoneDayRecordsForMonth(workZone, y, m),
+          fetchZoneHolidaysForMonth(y, m, dim),
+          fyStart != null
+            ? fetchZoneDayRecordsForDateRange(workZone, fyRangeStart, fyRangeEnd)
+            : Promise.resolve([]),
+        ]);
+        const monthAgg = aggregateDayRecordsRows(dayRows);
+        const fyAgg = aggregateDayRecordsRows(fyDayRows);
+        const mapsByUser = monthAgg.mapsByUser;
+        const fyMapsByUser = fyAgg.mapsByUser;
+        const rulesCfg = loadRulesConfig();
+
+        const memberById = new Map(members.map((mb) => [mb.id, mb]));
+        for (const uid of mapsByUser.keys()) {
+          if (!memberById.has(uid)) {
+            memberById.set(uid, { id: uid, username: `使用者 ${uid.slice(0, 8)}…` });
+          }
+        }
+        const allMembers = Array.from(memberById.values()).sort((a, b) =>
+          a.username.localeCompare(b.username, "zh-Hant")
+        );
+
+        companySummaryBody.innerHTML = "";
+        const periodEl = document.createElement("p");
+        periodEl.className = "company-summary-period";
+        periodEl.textContent = `${periodStr}｜工區：${workZone}`;
+        companySummaryBody.appendChild(periodEl);
+
+        if (!allMembers.length) {
+          const empty = document.createElement("p");
+          empty.className = "company-summary-empty";
+          empty.textContent = "此工區尚無使用者資料。";
+          companySummaryBody.appendChild(empty);
+          return;
+        }
+
+        for (const member of allMembers) {
+          const uid = member.id;
+          const map = mapsByUser.get(uid) || {};
+          const inDates = monthAgg.dutyInByUser.get(uid) || new Set();
+          const outDates = monthAgg.dutyOutByUser.get(uid) || new Set();
+          const groutingDates = monthAgg.groutingByUser.get(uid) || new Set();
+          const snap = computeUserMonthSummary(
+            map,
+            inDates,
+            outDates,
+            groutingDates,
+            zoneHolidayDates,
+            y,
+            m,
+            rulesCfg
+          );
+
+          const block = document.createElement("section");
+          block.className = "company-summary-user-block";
+          const verified = isCompanySummaryUserVerified(reviewerId, workZone, y, m, uid);
+          if (verified) block.classList.add("is-verified");
+
+          const head = document.createElement("div");
+          head.className = "company-summary-user-head";
+
+          const title = document.createElement("h3");
+          title.className = "company-summary-user-title";
+          title.textContent = member.username;
+          head.appendChild(title);
+
+          const verifyLabel = document.createElement("label");
+          verifyLabel.className = "company-summary-verify-label";
+          const verifyCb = document.createElement("input");
+          verifyCb.type = "checkbox";
+          verifyCb.className = "company-summary-verify-cb";
+          verifyCb.checked = verified;
+          verifyCb.setAttribute("aria-label", `${member.username} 檢核完成`);
+          verifyLabel.appendChild(verifyCb);
+          verifyLabel.appendChild(document.createTextNode("檢核完成"));
+          verifyCb.addEventListener("change", () => {
+            const on = verifyCb.checked;
+            void persistCompanySummaryUserVerified(reviewerId, workZone, y, m, uid, on);
+            block.classList.toggle("is-verified", on);
+          });
+          head.appendChild(verifyLabel);
+          block.appendChild(head);
+
+          const summaryWrap = document.createElement("div");
+          summaryWrap.className = "company-summary-user-summary summary-report-body";
+          for (const el of buildSummaryReportElements(snap, {
+            workZone,
+            userId: uid,
+            statusMonthMap: map,
+            fiscalStatusMap: fyMapsByUser.get(uid) || {},
+            includePeriodUserLine: false,
+          })) {
+            summaryWrap.appendChild(el);
+          }
+          block.appendChild(summaryWrap);
+
+          const punchDetails = document.createElement("details");
+          punchDetails.className = "company-summary-punch-details";
+          const punchSummary = document.createElement("summary");
+          punchSummary.className = "company-summary-punch-heading";
+          punchSummary.textContent = "上下班時間";
+          punchDetails.appendChild(punchSummary);
+          punchDetails.appendChild(
+            buildUserPunchTimesTable(
+              map,
+              inDates,
+              outDates,
+              groutingDates,
+              zoneHolidayDates,
+              y,
+              m
+            )
+          );
+          block.appendChild(punchDetails);
+
+          companySummaryBody.appendChild(block);
+        }
+      } catch (e) {
+        console.error("populateCompanySummaryBody", e);
+        companySummaryBody.innerHTML = `<p class="company-summary-empty">載入失敗：${e?.message || e}</p>`;
+      }
+    }
+
+    function closeCompanySummaryModal() {
+      if (!companySummaryBackdrop) return;
+      companySummaryBackdrop.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    async function openCompanySummaryModal() {
+      const ctx = await loadProfile();
+      if (!isZoneAdmin(ctx?.profile)) {
+        alert("僅權限等級 0（管理員）可使用公司總結。");
+        return;
+      }
+      if (!companySummaryBackdrop) return;
+      companySummaryBackdrop.hidden = false;
+      document.body.style.overflow = "hidden";
+      await populateCompanySummaryBody();
+    }
+
+    async function deleteMyGroutingClaim(workZone, logicalStr, uid) {
+      if (!workZone || !uid) return;
+      const mk = monthKeyFromLogicalDate(logicalStr);
+      const key = `${LS_GROUT_CLAIMS}:${mk}:${workZone}`;
+      let arr = lsReadJson(key, []);
+      if (!Array.isArray(arr)) arr = [];
+      const ld = logicalStr.slice(0, 10);
+      arr = arr.filter((r) => !(sliceLogicalDate(r.logical_date) === ld && idsEqual(r.user_id, uid)));
+      lsWriteJson(key, arr);
+    }
+
+    async function deleteMyDutyOutClaim(workZone, logicalStr, uid) {
+      if (!workZone || !uid) return;
+      const mk = monthKeyFromLogicalDate(logicalStr);
+      const key = `${LS_DUTY_CLAIMS}:${mk}:${workZone}`;
+      let arr = lsReadJson(key, []);
+      if (!Array.isArray(arr)) arr = [];
+      const ld = logicalStr.slice(0, 10);
+      arr = arr.filter(
+        (r) =>
+          !(
+            sliceLogicalDate(r.logical_date) === ld &&
+            r.duty_phase === "out" &&
+            idsEqual(r.user_id, uid)
+          )
+      );
+      lsWriteJson(key, arr);
+    }
+
+    async function openRulesModal() {
+      if (!rulesModalBackdrop) return;
+      const ctx = await loadProfile();
+      const wz = workZoneFromProfile(ctx?.profile);
+      if (rulesConfigRaw === null) {
+        rulesConfigRaw = readRulesLocalStorageForWorkZone(wz) || {};
+      }
+      syncRulesFormFromConfig();
+      rulesModalBackdrop.hidden = false;
+      document.body.style.overflow = "hidden";
+      await applyRulesModalEditability();
+    }
+
+    function closeRulesModal() {
+      if (!rulesModalBackdrop) return;
+      rulesModalBackdrop.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    /**
+     * 僅處理值班勾選：寫入或刪除 diary_duty_claims（與上下班打卡分開）
+     * @param {{ y: number, m: number, day: number }} logical
+     * @param {"in" | "out"} dutyPhaseRaw 上班或下班班別
+     * @param {boolean} wantDuty 勾選為 true、取消為 false
+     */
+    async function persistDutyToggleForLogical(logical, dutyPhaseRaw, wantDuty) {
+      if (!logical) return false;
+      const dutyPhase = dutyPhaseRaw === "out" ? "out" : "in";
+
+      const authCtx = await loadProfile();
+      const workZone = workZoneFromProfile(authCtx?.profile);
+      const logicalStr = logicalDateString(logical);
+      const displayName = authCtx?.profile?.username
+        ? String(authCtx.profile.username).trim()
+        : authCtx?.user?.email || "";
+      const uid = authCtx?.user?.id;
+
+      const mk = `${logical.y}-${pad2(logical.m + 1)}`;
+      const key = `${LS_DUTY_CLAIMS}:${mk}:${workZone}`;
+
+      const refreshAfterDutyInIfNeeded = async () => {
+        if (dutyPhase !== "in") return;
+        await saveDay(logical.y, logical.m, logical.day, {});
+      };
+
+      if (wantDuty) {
+        if (!workZone) {
+          alert("無法寫入值班：profiles 未設定工區。");
+          return false;
+        }
+        if (!uid) {
+          alert("無法寫入值班：無使用者 ID。");
+          return false;
+        }
+        if (dutyPhase === "out") {
+          await deleteMyGroutingClaim(workZone, logicalStr, uid);
+        }
+        let arr = lsReadJson(key, []);
+        if (!Array.isArray(arr)) arr = [];
+        arr = arr.filter(
+          (r) =>
+            !(
+              sliceLogicalDate(r.logical_date) === logicalStr &&
+              (r.duty_phase === "out" ? "out" : "in") === dutyPhase
+            )
+        );
+        arr.push({
+          work_zone: workZone,
+          logical_date: logicalStr,
+          duty_phase: dutyPhase,
+          user_id: uid,
+          username: displayName || null
+        });
+        lsWriteJson(key, arr);
+        await refreshAfterDutyInIfNeeded();
+        markPendingCloudSync();
+        return true;
+      }
+
+      if (!workZone || !uid) {
+        await refreshAfterDutyInIfNeeded();
+        return true;
+      }
+      let arr = lsReadJson(key, []);
+      if (!Array.isArray(arr)) arr = [];
+      arr = arr.filter(
+        (r) =>
+          !(
+            sliceLogicalDate(r.logical_date) === logicalStr &&
+            (r.duty_phase === "out" ? "out" : "in") === dutyPhase &&
+            idsEqual(r.user_id, uid)
+          )
+      );
+      lsWriteJson(key, arr);
+      await refreshAfterDutyInIfNeeded();
+      markPendingCloudSync();
+      return true;
+    }
+
+    /**
+     * 灌漿勾選：與「下班值班」互斥，勾選時會刪除本人下班值班列
+     * @param {{ y: number, m: number, day: number }} logical
+     */
+    async function persistGroutingToggleForLogical(logical, want) {
+      if (!logical) return false;
+      const logicalStr = logicalDateString(logical);
+      const authCtx = await loadProfile();
+      const workZone = workZoneFromProfile(authCtx?.profile);
+      const displayName = authCtx?.profile?.username
+        ? String(authCtx.profile.username).trim()
+        : authCtx?.user?.email || "";
+      const uid = authCtx?.user?.id;
+
+      if (!workZone || !uid) {
+        if (want) {
+          alert("無法寫入灌漿：請確認 profiles 已設定工區。");
+        }
+        return false;
+      }
+
+      const mk = `${logical.y}-${pad2(logical.m + 1)}`;
+      const gkey = `${LS_GROUT_CLAIMS}:${mk}:${workZone}`;
+
+      if (want) {
+        await deleteMyDutyOutClaim(workZone, logicalStr, uid);
+        let arr = lsReadJson(gkey, []);
+        if (!Array.isArray(arr)) arr = [];
+        arr = arr.filter((r) => !(sliceLogicalDate(r.logical_date) === logicalStr && idsEqual(r.user_id, uid)));
+        arr.push({
+          work_zone: workZone,
+          logical_date: logicalStr,
+          user_id: uid,
+          username: displayName || null
+        });
+        lsWriteJson(gkey, arr);
+        markPendingCloudSync();
+        return true;
+      }
+
+      let arr = lsReadJson(gkey, []);
+      if (!Array.isArray(arr)) arr = [];
+      arr = arr.filter((r) => !(sliceLogicalDate(r.logical_date) === logicalStr && idsEqual(r.user_id, uid)));
+      lsWriteJson(gkey, arr);
+      markPendingCloudSync();
+      return true;
+    }
+
+    if (btnSummaryReport) {
+      btnSummaryReport.addEventListener("click", () => {
+        openSummaryReportModal().catch((e) => console.error(e));
+      });
+    }
+    if (btnCompanySummary) {
+      btnCompanySummary.addEventListener("click", () => {
+        openCompanySummaryModal().catch((e) => console.error(e));
+      });
+    }
+    if (companySummaryCloseBtn) {
+      companySummaryCloseBtn.addEventListener("click", () => closeCompanySummaryModal());
+    }
+    if (companySummaryBackdrop) {
+      companySummaryBackdrop.addEventListener("click", (e) => {
+        if (e.target === companySummaryBackdrop) closeCompanySummaryModal();
+      });
+    }
+    if (btnSaveCloud) {
+      btnSaveCloud.addEventListener("click", () => {
+        void (async () => {
+          if (!pendingCloudSync) {
+            showStatusToast("沒有需要保存的變更", 2500);
+            return;
+          }
+          btnSaveCloud.disabled = true;
+          const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+          try {
+            const ok = await uploadAllToSupabase(y, m);
+            if (!ok) return;
+            await fullSyncFromSupabase(y, m);
+            showStatusToast("已保存至 Supabase", 3500);
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          } catch (e) {
+            console.error("uploadAllToSupabase", e);
+            alert(`保存失敗：${e?.message || e}`);
+          } finally {
+            btnSaveCloud.disabled = false;
+          }
+        })();
+      });
+    }
+    updateSaveButtonUi();
+    if (summaryReportCloseBtn) {
+      summaryReportCloseBtn.addEventListener("click", () => closeSummaryReportModal());
+    }
+    if (summaryReportBackdrop) {
+      summaryReportBackdrop.addEventListener("click", (e) => {
+        if (e.target === summaryReportBackdrop) closeSummaryReportModal();
+      });
+    }
+
+    if (btnRules) {
+      btnRules.addEventListener("click", () => {
+        openRulesModal().catch((e) => console.error(e));
+      });
+    }
+    if (rulesModalCloseBtn) {
+      rulesModalCloseBtn.addEventListener("click", () => closeRulesModal());
+    }
+    if (rulesModalBackdrop) {
+      rulesModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === rulesModalBackdrop) closeRulesModal();
+      });
+    }
+    if (rulesExtraLeaveEnabledEl) {
+      rulesExtraLeaveEnabledEl.addEventListener("change", () => syncRulesExtraLeaveKindsUi());
+    }
+
+    if (btnAddAttendanceRule && rulesAttendanceTbody) {
+      btnAddAttendanceRule.addEventListener("click", () => {
+        const cfg = collectRulesFormToConfig();
+        const next = {
+          ...cfg,
+          attendance: {
+            ...cfg.attendance,
+            rules: [...(cfg.attendance?.rules || []), { id: newAttendanceRuleId(), hours: 8, value: 1 }]
+          }
+        };
+        renderAttendanceRulesTbody(next);
+      });
+    }
+
+    if (btnAddLateNormalRule && rulesLateNormalTbody) {
+      btnAddLateNormalRule.addEventListener("click", () => {
+        const cfg = collectRulesFormToConfig();
+        const cur = cfg.late?.tiersNormal || [];
+        const next = {
+          ...cfg,
+          late: {
+            ...cfg.late,
+            tiersNormal: [...cur, { id: newLateTierId(), maxMinutes: 60, hours: 1 }]
+          }
+        };
+        renderLateTiersTbody(rulesLateNormalTbody, next.late.tiersNormal, getDefaultRulesConfig().late.tiersNormal);
+      });
+    }
+
+    if (btnAddLateDutyRule && rulesLateDutyTbody) {
+      btnAddLateDutyRule.addEventListener("click", () => {
+        const cfg = collectRulesFormToConfig();
+        const cur = cfg.late?.tiersDuty || [];
+        const next = {
+          ...cfg,
+          late: {
+            ...cfg.late,
+            tiersDuty: [...cur, { id: newLateTierId(), maxMinutes: 60, hours: 1 }]
+          }
+        };
+        renderLateTiersTbody(rulesLateDutyTbody, next.late.tiersDuty, getDefaultRulesConfig().late.tiersDuty);
+      });
+    }
+
+    if (rulesSaveBtn) {
+      rulesSaveBtn.addEventListener("click", () => {
+        const cfg = collectRulesFormToConfig();
+        saveRulesConfig(cfg)
+          .then((r) => {
+            if (r?.cloudOk) {
+              closeRulesModal();
+              return renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            }
+          })
+          .catch((e) => console.error(e));
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (companySummaryBackdrop && !companySummaryBackdrop.hidden) {
+        e.preventDefault();
+        closeCompanySummaryModal();
+        return;
+      }
+      if (summaryReportBackdrop && !summaryReportBackdrop.hidden) {
+        e.preventDefault();
+        closeSummaryReportModal();
+        return;
+      }
+      if (rulesModalBackdrop && !rulesModalBackdrop.hidden) {
+        e.preventDefault();
+        closeRulesModal();
+      }
+    });
+
+    if (monthRestDaysInputEl) {
+      monthRestDaysInputEl.addEventListener("keydown", (e) => {
+        if (monthRestDaysInputEl.readOnly) e.preventDefault();
+      });
+      monthRestDaysInputEl.addEventListener("paste", (e) => {
+        if (monthRestDaysInputEl.readOnly) e.preventDefault();
+      });
+      monthRestDaysInputEl.addEventListener("change", () => {
+        void (async () => {
+          const ctx = await loadProfile();
+          if (!isZoneAdmin(ctx?.profile)) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            return;
+          }
+          const wz = workZoneFromProfile(ctx?.profile);
+          if (!wz) return;
+          const y = parseInt(monthRestDaysInputEl.dataset.year || "", 10);
+          const m = parseInt(monthRestDaysInputEl.dataset.monthIndex || "", 10);
+          if (!Number.isFinite(y) || !Number.isFinite(m)) return;
+          const sanitized = sanitizeMonthRestDaysInput(monthRestDaysInputEl.value);
+          monthRestDaysInputEl.value = sanitized;
+          const ok = writeMonthRestDays(wz, y, m, sanitized, ctx?.profile);
+          if (!ok) {
+            alert("無法儲存本月排休：僅權限等級 0 可編輯同工區共用設定。");
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            return;
+          }
+          const pushed = await pushZoneMonthSettingsToCloud(wz, y, m);
+          if (!pushed) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+            return;
+          }
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+        })();
+      });
+    }
+
+    attachAttendanceSheetListeners();
+
+    async function initDiaryPage() {
+      await refreshUserGreeting();
+      const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+      try {
+        await fullSyncFromSupabase(y, m);
+      } catch (e) {
+        console.error("initDiaryPage sync", e);
+        showStatusToast("雲端同步失敗，顯示本機快取", 4500);
+      }
+      await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+      startZoneMonthSettingsPoller();
+    }
+
+    initDiaryPage().catch((e) => console.error(e));
+    window.addEventListener("focus", () => {
+      void (async () => {
+        const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+        const ctx = await loadProfile();
+        const wz = workZoneFromProfile(ctx?.profile);
+        if (!wz) return;
+        const changed = await syncZoneMonthSettingsFromSupabase(wz, y, m, { force: true });
+        if (changed) {
+          await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+        }
+      })();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshUserGreeting();
+      void (async () => {
+        const { y, m } = getLogicalAttendanceDate(getEffectiveNow());
+        const ctx = await loadProfile();
+        try {
+          const wz = workZoneFromProfile(ctx?.profile);
+          if (!wz) return;
+          const changed = await syncZoneMonthSettingsFromSupabase(wz, y, m, { force: true });
+          if (changed) {
+            await renderTable({ showSyncCompleteToast: false, punchUploadToast: false });
+          }
+        } catch (e) {
+          console.warn("visibilitychange zone sync", e);
+        }
+      })();
+    });
+  </script>
+</body>
+</html>
