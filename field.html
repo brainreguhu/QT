@@ -1791,6 +1791,8 @@
           return;
         }
 
+        currentUserId = authData.user.id;
+
         const { data: profile, error: profileErr } = await sb
           .from(PROFILE_TABLE)
           .select("username, permission_level, 工區, approved")
