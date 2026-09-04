@@ -1071,6 +1071,7 @@
     const FIELD_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
     const GOOGLE_DRIVE_STORAGE_URL = "https://drive.google.com/drive/folders/1CpedoUN1qgIP3g_jmgbTCo6GRIbvXu6G";
     const DRIVE_UPLOAD_API = "/api/drive-upload";
+    const DRIVE_DELETE_API = "/api/drive-delete";
     const DRIVE_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
     const GDRIVE_PATH_PREFIX = "gdrive:";
     const FIELD_UPLOAD_SELECT =
@@ -1153,6 +1154,27 @@
       if (!rest) return GOOGLE_DRIVE_STORAGE_URL;
       if (/^https?:\/\//i.test(rest)) return rest;
       return `https://drive.google.com/file/d/${rest}/view`;
+    }
+
+    async function removeGoogleDriveFile(filePath) {
+      const { data: sessionData } = await sb.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        throw new Error("登入狀態已失效，無法同步刪除 Google Drive 檔案。");
+      }
+
+      const response = await fetch(DRIVE_DELETE_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ filePath })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || `無法從 Google Drive 刪除檔案（${response.status}）`);
+      }
     }
 
     function getTotalStorageUsageBytes() {
@@ -1433,7 +1455,9 @@
       const record = records.find(item => item.id === id);
       if (!record) return;
 
-      if (record.filePath && !isGoogleDrivePath(record.filePath)) {
+      if (record.filePath && isGoogleDrivePath(record.filePath)) {
+        await removeGoogleDriveFile(record.filePath);
+      } else if (record.filePath) {
         const { error: removeFileError } = await sb.storage
           .from(FIELD_FILES_BUCKET)
           .remove([record.filePath]);
@@ -2168,6 +2192,7 @@
         }
 
         await finishUploadRecord(data);
+        showUploadSuccess(file.name);
         uploadForm.reset();
         syncUploadTargetRequirements();
       } catch (error) {
