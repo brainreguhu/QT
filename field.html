@@ -88,6 +88,53 @@
       flex-shrink: 0;
     }
 
+    .storage-usage {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 8px;
+      background: rgba(15, 20, 25, 0.35);
+    }
+
+    .storage-usage-text {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+    }
+
+    .storage-usage-note {
+      font-size: 0.78rem;
+      color: var(--subtle);
+    }
+
+    .storage-usage-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+      overflow: hidden;
+    }
+
+    .storage-usage-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #2563eb, #38bdf8);
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .storage-usage-fill.is-warning {
+      background: linear-gradient(90deg, #d97706, #fbbf24);
+    }
+
+    .storage-usage-fill.is-danger {
+      background: linear-gradient(90deg, #b91c1c, #f87171);
+    }
+
     /* 窄螢幕：第一列標題、第二列使用者、第三列展開＋返回 */
     @media (max-width: 640px) {
       .title-area {
@@ -165,7 +212,7 @@
 
     .upload-row.secondary {
       align-items: start;
-      grid-template-columns: minmax(160px, 220px) minmax(160px, 220px) auto;
+      grid-template-columns: minmax(160px, 220px) minmax(160px, 220px) auto minmax(200px, 280px);
     }
 
     @media (max-width: 720px) {
@@ -841,6 +888,15 @@
           <a href="./index.html" class="toolbar-back-link" title="返回功能選單">↩ 返回</a>
         </div>
       </div>
+      <div id="storageUsage" class="storage-usage" role="progressbar" aria-label="儲存空間使用量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="storage-usage-text">
+          <span id="storageUsageMain">儲存空間：讀取中...</span>
+          <span class="storage-usage-note">依本系統已上傳檔案統計</span>
+        </div>
+        <div class="storage-usage-bar">
+          <div id="storageUsageFill" class="storage-usage-fill"></div>
+        </div>
+      </div>
       <form id="uploadForm">
         <div id="uploadPanel" class="form-grid upload-panel is-collapsed">
           <div class="upload-row">
@@ -872,6 +928,13 @@
             </div>
             <div class="upload-submit-wrap">
               <button type="submit" class="upload-submit-btn">上傳資料</button>
+            </div>
+            <div class="field-group">
+              <label for="uploadTargetInput">上傳位置</label>
+              <select id="uploadTargetInput">
+                <option value="supabase" selected>Supabase</option>
+                <option value="gdrive">Google Drive Storage</option>
+              </select>
             </div>
           </div>
         </div>
@@ -976,6 +1039,11 @@
     const PROFILE_TABLE = "profiles";
     const FIELD_UPLOADS_TABLE = "field_uploads";
     const FIELD_FILES_BUCKET = "field-files";
+    // 本系統 field-files 配額上限（位元組）；請依 Supabase 方案／bucket 配置調整，例如 1 GB = 1073741824
+    const FIELD_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
+    const GOOGLE_DRIVE_STORAGE_URL = "https://drive.google.com/drive/folders/1CpedoUN1qgIP3g_jmgbTCo6GRIbvXu6G";
+    const DRIVE_UPLOAD_API = "/api/drive-upload";
+    const DRIVE_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -985,6 +1053,7 @@
     const fileInput = document.getElementById("fileInput");
     const zoneInput = document.getElementById("zoneInput");
     const orgTypeInput = document.getElementById("orgTypeInput");
+    const uploadTargetInput = document.getElementById("uploadTargetInput");
     const zoneFilter = document.getElementById("zoneFilter");
     const orgTypeFilter = document.getElementById("orgTypeFilter");
     const textFilter = document.getElementById("textFilter");
@@ -994,6 +1063,9 @@
     const listEl = document.getElementById("list");
     const paginationEl = document.getElementById("pagination");
     const statsEl = document.getElementById("stats");
+    const storageUsageEl = document.getElementById("storageUsage");
+    const storageUsageMainEl = document.getElementById("storageUsageMain");
+    const storageUsageFillEl = document.getElementById("storageUsageFill");
     const userInfoEl = document.getElementById("userInfo");
     const editTagDialog = document.getElementById("editTagDialog");
     const editTagForm = document.getElementById("editTagForm");
@@ -1030,9 +1102,32 @@
     }
 
     function formatSize(bytes) {
-      if (bytes < 1024) return `${bytes} B`;
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      const value = Number(bytes || 0);
+      if (value < 1024) return `${value} B`;
+      if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+      if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    }
+
+    function getTotalStorageUsageBytes() {
+      return records.reduce((sum, record) => sum + Number(record.fileSize || 0), 0);
+    }
+
+    function renderStorageUsage() {
+      if (!storageUsageMainEl || !storageUsageFillEl) return;
+
+      const usedBytes = getTotalStorageUsageBytes();
+      const limitBytes = FIELD_STORAGE_LIMIT_BYTES;
+      const percent = limitBytes > 0 ? Math.min(100, (usedBytes / limitBytes) * 100) : 0;
+
+      storageUsageMainEl.textContent = `儲存空間：${formatSize(usedBytes)} / ${formatSize(limitBytes)}（${percent.toFixed(1)}%）`;
+      storageUsageFillEl.style.width = `${percent}%`;
+      storageUsageFillEl.classList.toggle("is-warning", percent >= 80 && percent < 95);
+      storageUsageFillEl.classList.toggle("is-danger", percent >= 95);
+
+      if (storageUsageEl) {
+        storageUsageEl.setAttribute("aria-valuenow", String(Math.round(percent)));
+      }
     }
 
     function escapeHtml(text) {
@@ -1260,10 +1355,12 @@
         console.error("讀取資料失敗", error);
         statsEl.textContent = "總筆數：0，符合篩選：0";
         listEl.innerHTML = `<div class="empty">讀取資料失敗：${escapeHtml(error.message)}</div>`;
+        if (storageUsageMainEl) storageUsageMainEl.textContent = "儲存空間：讀取失敗";
         return;
       }
 
       records = Array.isArray(data) ? data.map(normalizeRecord) : [];
+      renderStorageUsage();
       renderList();
     }
 
@@ -1306,6 +1403,7 @@
       }
 
       records = records.filter(item => item.id !== id);
+      renderStorageUsage();
       renderList();
     }
 
@@ -1841,23 +1939,81 @@
       return `${currentUserId}/${Date.now()}-${crypto.randomUUID()}-${safeBase}${ext}`;
     }
 
+    function syncUploadTargetRequirements() {
+      const isSupabase = (uploadTargetInput?.value || "supabase") === "supabase";
+      if (fileInput) fileInput.required = true;
+      if (zoneInput) zoneInput.required = isSupabase;
+      if (orgTypeInput) orgTypeInput.required = isSupabase;
+    }
+
+    async function uploadToGoogleDrive(file, submitBtn) {
+      if (file.size > DRIVE_UPLOAD_MAX_BYTES) {
+        alert("Google Drive 線上上傳目前上限約 4 MB。較大的檔案將改開資料夾，請改為手動上傳。");
+        window.open(GOOGLE_DRIVE_STORAGE_URL, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const { data: sessionData } = await sb.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        alert("登入狀態已失效，請重新登入後再上傳。");
+        return;
+      }
+
+      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+      try {
+        const response = await fetch(DRIVE_UPLOAD_API, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": file.type || "application/octet-stream",
+            "X-File-Name": encodeURIComponent(file.name)
+          },
+          body: file
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || `上傳失敗（${response.status}）`);
+        }
+
+        alert("已上傳至 Google Drive Storage。");
+        window.open(result.webViewLink || GOOGLE_DRIVE_STORAGE_URL, "_blank", "noopener,noreferrer");
+        uploadForm.reset();
+        syncUploadTargetRequirements();
+      } catch (error) {
+        console.error("Google Drive 上傳失敗", error);
+        alert(`Google Drive 上傳失敗：${error.message}`);
+      } finally {
+        if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+      }
+    }
+
+    uploadTargetInput?.addEventListener("change", syncUploadTargetRequirements);
+    syncUploadTargetRequirements();
+
     uploadForm.addEventListener("submit", async event => {
       event.preventDefault();
 
+      const uploadTarget = uploadTargetInput?.value || "supabase";
       const file = fileInput.files[0];
       const zone = zoneInput.value;
       const orgType = orgTypeInput.value;
+      const submitBtn = uploadForm.querySelector('button[type="submit"]');
 
       if (!file) {
         alert("請先選擇要上傳的檔案。");
         return;
       }
-      if (!zone || zone === ZONE_ADD_VALUE) {
-        alert("請選擇工區。");
-        return;
-      }
       if (!currentUserId || !currentUsername) {
         alert("目前無法取得登入使用者，請先登入後再上傳。");
+        return;
+      }
+      if (uploadTarget === "gdrive") {
+        await uploadToGoogleDrive(file, submitBtn);
+        return;
+      }
+      if (!zone || zone === ZONE_ADD_VALUE) {
+        alert("請選擇工區。");
         return;
       }
       if (!orgType) {
@@ -1866,7 +2022,6 @@
       }
 
       const filePath = buildStoragePath(file.name);
-      const submitBtn = uploadForm.querySelector('button[type="submit"]');
       if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
 
       try {
@@ -1905,12 +2060,14 @@
 
         if (canManageRestrictedActions()) {
           records.unshift(normalizeRecord(data));
+          renderStorageUsage();
           renderList();
         } else {
           await loadRecords();
           alert("資料已上傳，待權限 0 管理者批准後才會公開顯示。");
         }
         uploadForm.reset();
+        syncUploadTargetRequirements();
       } catch (error) {
         console.error("上傳失敗", error);
         alert(`上傳失敗：${error.message}`);
