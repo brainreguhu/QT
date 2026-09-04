@@ -1,11 +1,8 @@
-const { createSign } = require("crypto");
-
 const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
 const DEFAULT_FOLDER_ID = "1CpedoUN1qgIP3g_jmgbTCo6GRIbvXu6G";
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink";
+const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink,webContentLink";
 const MAX_BYTES = 4 * 1024 * 1024;
 
 function sendJson(res, status, payload) {
@@ -42,52 +39,23 @@ function readRawBody(req) {
   });
 }
 
-function parseServiceAccount() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "";
-  if (!raw) {
-    throw new Error("尚未設定 GOOGLE_SERVICE_ACCOUNT_JSON");
+async function getAccessToken() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN || "";
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("尚未完成 Google 擁有者授權，請先開啟 /api/drive-oauth 設定");
   }
-  const text = raw.trim().startsWith("{")
-    ? raw
-    : Buffer.from(raw, "base64").toString("utf8");
-  const account = JSON.parse(text);
-  if (!account.client_email || !account.private_key) {
-    throw new Error("服務帳戶金鑰格式不正確");
-  }
-  return account;
-}
 
-function toBase64Url(value) {
-  return Buffer.from(value).toString("base64url");
-}
-
-function createSignedJwt(account) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = toBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const payload = toBase64Url(JSON.stringify({
-    iss: account.client_email,
-    scope: DRIVE_SCOPE,
-    aud: TOKEN_URL,
-    iat: now,
-    exp: now + 3600
-  }));
-  const unsigned = `${header}.${payload}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(unsigned);
-  const signature = signer.sign(account.private_key, "base64url");
-  return `${unsigned}.${signature}`;
-}
-
-async function getAccessToken(account) {
-  const assertion = createSignedJwt(account);
-  const body = new URLSearchParams({
-    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-    assertion
-  });
   const response = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken
+    })
   });
   const data = await response.json();
   if (!response.ok || !data.access_token) {
@@ -156,8 +124,7 @@ module.exports = async function handler(req, res) {
     const fileName = safeFileName(req.headers["x-file-name"]);
     const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID;
-    const account = parseServiceAccount();
-    const accessToken = await getAccessToken(account);
+    const accessToken = await getAccessToken();
     const { body, contentType } = buildMultipart(
       {
         name: fileName,
