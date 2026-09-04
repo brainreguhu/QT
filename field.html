@@ -714,11 +714,35 @@
       background: rgba(15, 20, 25, 0.35);
     }
 
+    .user-status-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      min-width: 0;
+    }
+
     .user-info {
       margin-top: 0;
       margin-bottom: 0;
       color: var(--subtle);
       font-size: 0.9rem;
+    }
+
+    .upload-success-msg {
+      color: #4ade80;
+      font-size: 0.9rem;
+      opacity: 0;
+      max-width: min(360px, 52vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    .upload-success-msg.is-visible {
+      opacity: 1;
     }
 
     dialog {
@@ -881,7 +905,10 @@
       <div class="title-area">
         <div class="title-row">
           <h1>資料管理系統</h1>
-          <div id="userInfo" class="user-info">目前使用者：讀取中...</div>
+          <div class="user-status-row">
+            <div id="userInfo" class="user-info">目前使用者：讀取中...</div>
+            <span id="uploadSuccessMsg" class="upload-success-msg" aria-live="polite"></span>
+          </div>
         </div>
         <div class="title-actions">
           <button id="toggleUploadPanelBtn" class="secondary upload-toggle-btn" type="button" aria-expanded="false" aria-controls="uploadPanel">展開上傳</button>
@@ -1067,6 +1094,8 @@
     const storageUsageMainEl = document.getElementById("storageUsageMain");
     const storageUsageFillEl = document.getElementById("storageUsageFill");
     const userInfoEl = document.getElementById("userInfo");
+    const uploadSuccessMsgEl = document.getElementById("uploadSuccessMsg");
+    let uploadSuccessTimer = 0;
     const editTagDialog = document.getElementById("editTagDialog");
     const editTagForm = document.getElementById("editTagForm");
     const editZoneInput = document.getElementById("editZoneInput");
@@ -1939,6 +1968,19 @@
       return `${currentUserId}/${Date.now()}-${crypto.randomUUID()}-${safeBase}${ext}`;
     }
 
+    function showUploadSuccess(fileName) {
+      if (!uploadSuccessMsgEl) return;
+      window.clearTimeout(uploadSuccessTimer);
+      uploadSuccessMsgEl.textContent = `上傳成功+${fileName || ""}`;
+      uploadSuccessMsgEl.classList.add("is-visible");
+      uploadSuccessTimer = window.setTimeout(() => {
+        uploadSuccessMsgEl.classList.remove("is-visible");
+        uploadSuccessTimer = window.setTimeout(() => {
+          uploadSuccessMsgEl.textContent = "";
+        }, 800);
+      }, 5000);
+    }
+
     function syncUploadTargetRequirements() {
       const isSupabase = (uploadTargetInput?.value || "supabase") === "supabase";
       if (fileInput) fileInput.required = true;
@@ -1976,8 +2018,7 @@
           throw new Error(result.error || `上傳失敗（${response.status}）`);
         }
 
-        alert("已上傳至 Google Drive Storage。");
-        window.open(result.webViewLink || GOOGLE_DRIVE_STORAGE_URL, "_blank", "noopener,noreferrer");
+        showUploadSuccess(file.name);
         uploadForm.reset();
         syncUploadTargetRequirements();
       } catch (error) {
