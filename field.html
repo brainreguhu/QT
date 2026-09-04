@@ -732,6 +732,7 @@
     .upload-success-msg {
       color: #4ade80;
       font-size: 0.9rem;
+      font-weight: 700;
       opacity: 0;
       max-width: min(360px, 52vw);
       overflow: hidden;
@@ -1971,14 +1972,14 @@
     function showUploadSuccess(fileName) {
       if (!uploadSuccessMsgEl) return;
       window.clearTimeout(uploadSuccessTimer);
-      uploadSuccessMsgEl.textContent = `上傳成功+${fileName || ""}`;
+      uploadSuccessMsgEl.textContent = `上傳成功 ${fileName || ""}`;
       uploadSuccessMsgEl.classList.add("is-visible");
       uploadSuccessTimer = window.setTimeout(() => {
         uploadSuccessMsgEl.classList.remove("is-visible");
         uploadSuccessTimer = window.setTimeout(() => {
           uploadSuccessMsgEl.textContent = "";
         }, 800);
-      }, 5000);
+      }, 8000);
     }
 
     function syncUploadTargetRequirements() {
