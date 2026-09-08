@@ -1071,8 +1071,11 @@
     const FIELD_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
     const GOOGLE_DRIVE_STORAGE_URL = "https://drive.google.com/drive/folders/1CpedoUN1qgIP3g_jmgbTCo6GRIbvXu6G";
     const DRIVE_UPLOAD_API = "/api/drive-upload";
+    const DRIVE_SESSION_API = "/api/drive-session";
+    const DRIVE_CHUNK_API = "/api/drive-chunk";
     const DRIVE_DELETE_API = "/api/drive-delete";
-    const DRIVE_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+    const DRIVE_UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
+    const DRIVE_CHUNK_BYTES = 256 * 1024 * 12;
     const GDRIVE_PATH_PREFIX = "gdrive:";
     const FIELD_UPLOAD_SELECT =
       "id, file_name, file_size, file_path, zone, username, user_id, org_type, approved, pending_zone, pending_org_type, approved_by, approved_at, locked, down_by, down_at, pinned, tag_updated_by, tag_updated_at, created_at, updated_at";
@@ -2062,9 +2065,89 @@
       }
     }
 
+    function buildDriveFilePath(result) {
+      const driveFileId = String(result?.id || "").trim();
+      const driveViewLink = String(result?.webViewLink || "").trim();
+      if (driveFileId) return `${GDRIVE_PATH_PREFIX}${driveFileId}`;
+      if (driveViewLink) return `${GDRIVE_PATH_PREFIX}${driveViewLink}`;
+      return "";
+    }
+
+    async function createDriveUploadSession(accessToken, file) {
+      const response = await fetch(DRIVE_SESSION_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.uploadUrl) {
+        throw new Error(result.error || `無法建立 Google Drive 上傳工作階段（${response.status}）`);
+      }
+      return result;
+    }
+
+    async function putFileDirectToDrive(uploadUrl, file) {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error?.message || `直接上傳 Google Drive 失敗（${response.status}）`);
+      }
+      return result;
+    }
+
+    async function putFileToDriveInChunks(accessToken, uploadUrl, file) {
+      const mimeType = file.type || "application/octet-stream";
+      let offset = 0;
+      let lastResult = {};
+      while (offset < file.size) {
+        const end = Math.min(offset + DRIVE_CHUNK_BYTES, file.size);
+        const chunk = file.slice(offset, end);
+        const response = await fetch(DRIVE_CHUNK_API, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": mimeType,
+            "Content-Range": `bytes ${offset}-${end - 1}/${file.size}`,
+            "X-Upload-Url": uploadUrl
+          },
+          body: chunk
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || `Google Drive 分塊上傳失敗（${response.status}）`);
+        }
+        lastResult = result;
+        offset = end;
+      }
+      return lastResult;
+    }
+
+    async function uploadFileToGoogleDrive(accessToken, file) {
+      const session = await createDriveUploadSession(accessToken, file);
+      try {
+        return await putFileDirectToDrive(session.uploadUrl, file);
+      } catch (directError) {
+        console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
+        return putFileToDriveInChunks(accessToken, session.uploadUrl, file);
+      }
+    }
+
     async function uploadToGoogleDrive(file, submitBtn, zone, orgType) {
       if (file.size > DRIVE_UPLOAD_MAX_BYTES) {
-        alert("Google Drive 線上上傳目前上限約 4 MB。較大的檔案將改開資料夾，請改為手動上傳。");
+        alert("Google Drive 線上上傳目前上限約 100 MB。較大的檔案將改開資料夾，請改為手動上傳。");
         window.open(GOOGLE_DRIVE_STORAGE_URL, "_blank", "noopener,noreferrer");
         return;
       }
@@ -2078,25 +2161,8 @@
 
       if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
       try {
-        const response = await fetch(DRIVE_UPLOAD_API, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": file.type || "application/octet-stream",
-            "X-File-Name": encodeURIComponent(file.name)
-          },
-          body: file
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(result.error || `上傳失敗（${response.status}）`);
-        }
-
-        const driveFileId = String(result.id || "").trim();
-        const driveViewLink = String(result.webViewLink || "").trim();
-        const filePath = driveFileId
-          ? `${GDRIVE_PATH_PREFIX}${driveFileId}`
-          : (driveViewLink ? `${GDRIVE_PATH_PREFIX}${driveViewLink}` : "");
+        const result = await uploadFileToGoogleDrive(accessToken, file);
+        const filePath = buildDriveFilePath(result);
         if (!filePath) {
           throw new Error("已傳到 Google Drive，但沒有取得檔案編號，無法寫入清單。");
         }
