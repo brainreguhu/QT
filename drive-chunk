@@ -1,0 +1,136 @@
+const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
+const MAX_CHUNK_BYTES = 4 * 1024 * 1024;
+
+function sendJson(res, status, payload) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(payload));
+}
+
+function applyCors(req, res) {
+  const origin = req.headers.origin;
+  if (origin && (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Range, X-Upload-Url");
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on("data", chunk => {
+      total += chunk.length;
+      if (total > MAX_CHUNK_BYTES + 1024) {
+        reject(new Error("分塊超過 4 MB"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+function isAllowedUploadUrl(rawUrl) {
+  try {
+    const url = new URL(String(rawUrl || ""));
+    return url.protocol === "https:"
+      && url.hostname === "www.googleapis.com"
+      && url.pathname.startsWith("/upload/drive/");
+  } catch (_) {
+    return false;
+  }
+}
+
+async function verifySupabaseUser(authorization) {
+  const token = String(authorization || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_ANON_KEY
+    }
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+module.exports = async function handler(req, res) {
+  applyCors(req, res);
+
+  if (req.method === "OPTIONS") {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+
+  if (req.method !== "POST") {
+    sendJson(res, 405, { error: "只接受 POST" });
+    return;
+  }
+
+  try {
+    const user = await verifySupabaseUser(req.headers.authorization);
+    if (!user?.id) {
+      sendJson(res, 401, { error: "請先登入後再上傳" });
+      return;
+    }
+
+    const uploadUrl = req.headers["x-upload-url"];
+    const contentRange = req.headers["content-range"];
+    const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
+    if (!isAllowedUploadUrl(uploadUrl)) {
+      sendJson(res, 400, { error: "上傳網址不正確" });
+      return;
+    }
+    if (!contentRange) {
+      sendJson(res, 400, { error: "缺少 Content-Range" });
+      return;
+    }
+
+    const chunk = await readRawBody(req);
+    if (!chunk.length) {
+      sendJson(res, 400, { error: "沒有收到分塊" });
+      return;
+    }
+
+    const googleRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": mimeType,
+        "Content-Length": String(chunk.length),
+        "Content-Range": contentRange
+      },
+      body: chunk
+    });
+
+    if (googleRes.status === 308) {
+      sendJson(res, 200, { ok: true, incomplete: true });
+      return;
+    }
+
+    const uploaded = await googleRes.json().catch(() => ({}));
+    if (!googleRes.ok) {
+      throw new Error(uploaded.error?.message || "Google Drive 分塊上傳失敗");
+    }
+
+    sendJson(res, 200, {
+      id: uploaded.id,
+      name: uploaded.name,
+      webViewLink: uploaded.webViewLink || (uploaded.id ? `https://drive.google.com/file/d/${uploaded.id}/view` : "")
+    });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Google Drive 分塊上傳失敗" });
+  }
+};
+
+module.exports.config = {
+  api: {
+    bodyParser: false
+  }
+};
