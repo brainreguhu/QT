@@ -746,6 +746,11 @@
       opacity: 1;
     }
 
+    .upload-success-msg.is-pending {
+      color: #fbbf24;
+      opacity: 1;
+    }
+
     dialog {
       border: 1px solid rgba(148, 163, 184, 0.45);
       border-radius: 10px;
@@ -2025,9 +2030,30 @@
       return `${currentUserId}/${Date.now()}-${crypto.randomUUID()}-${safeBase}${ext}`;
     }
 
+    function setSubmitBusy(submitBtn, busy) {
+      if (!(submitBtn instanceof HTMLButtonElement)) return;
+      submitBtn.disabled = busy;
+      submitBtn.textContent = busy ? "上傳中..." : "上傳資料";
+    }
+
+    function showUploadProgress(fileName) {
+      if (!uploadSuccessMsgEl) return;
+      window.clearTimeout(uploadSuccessTimer);
+      uploadSuccessMsgEl.textContent = `上傳中 ${fileName || ""}`;
+      uploadSuccessMsgEl.classList.add("is-visible", "is-pending");
+    }
+
+    function clearUploadStatus() {
+      if (!uploadSuccessMsgEl) return;
+      window.clearTimeout(uploadSuccessTimer);
+      uploadSuccessMsgEl.classList.remove("is-visible", "is-pending");
+      uploadSuccessMsgEl.textContent = "";
+    }
+
     function showUploadSuccess(fileName) {
       if (!uploadSuccessMsgEl) return;
       window.clearTimeout(uploadSuccessTimer);
+      uploadSuccessMsgEl.classList.remove("is-pending");
       uploadSuccessMsgEl.textContent = `上傳成功 ${fileName || ""}`;
       uploadSuccessMsgEl.classList.add("is-visible");
       uploadSuccessTimer = window.setTimeout(() => {
@@ -2185,7 +2211,8 @@
         return;
       }
 
-      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+      setSubmitBusy(submitBtn, true);
+      showUploadProgress(file.name);
       try {
         const result = await uploadFileToGoogleDrive(accessToken, file);
         const filePath = buildDriveFilePath(result);
@@ -2210,9 +2237,10 @@
         syncUploadTargetRequirements();
       } catch (error) {
         console.error("Google Drive 上傳失敗", error);
+        clearUploadStatus();
         alert(`Google Drive 上傳失敗：${error.message}`);
       } finally {
-        if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+        setSubmitBusy(submitBtn, false);
       }
     }
 
@@ -2250,7 +2278,8 @@
       }
 
       const filePath = buildStoragePath(file.name);
-      if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+      setSubmitBusy(submitBtn, true);
+      showUploadProgress(file.name);
 
       try {
         const { error: uploadError } = await sb.storage
@@ -2289,9 +2318,10 @@
         syncUploadTargetRequirements();
       } catch (error) {
         console.error("上傳失敗", error);
+        clearUploadStatus();
         alert(`上傳失敗：${error.message}`);
       } finally {
-        if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+        setSubmitBusy(submitBtn, false);
       }
     });
 
