@@ -2135,13 +2135,39 @@
       return lastResult;
     }
 
+    async function uploadFileViaLegacyDriveApi(accessToken, file) {
+      const response = await fetch(DRIVE_UPLOAD_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name)
+        },
+        body: file
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || `上傳失敗（${response.status}）`);
+      }
+      return result;
+    }
+
     async function uploadFileToGoogleDrive(accessToken, file) {
-      const session = await createDriveUploadSession(accessToken, file);
+      if (file.size <= 4 * 1024 * 1024) {
+        return uploadFileViaLegacyDriveApi(accessToken, file);
+      }
+
       try {
-        return await putFileDirectToDrive(session.uploadUrl, file);
-      } catch (directError) {
-        console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
-        return putFileToDriveInChunks(accessToken, session.uploadUrl, file);
+        const session = await createDriveUploadSession(accessToken, file);
+        try {
+          return await putFileDirectToDrive(session.uploadUrl, file);
+        } catch (directError) {
+          console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
+          return putFileToDriveInChunks(accessToken, session.uploadUrl, file);
+        }
+      } catch (sessionError) {
+        console.warn("Google Drive 工作階段失敗", sessionError);
+        throw sessionError;
       }
     }
 
