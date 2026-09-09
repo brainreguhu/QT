@@ -20,7 +20,8 @@ function applyCors(req, res) {
     res.setHeader("Vary", "Origin");
   }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Range, X-File-Name, X-Upload-Url");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Range, X-File-Name, X-Upload-Url, X-Drive-Action");
+  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 }
 
 function readRawBody(req, maxBytes) {
@@ -60,6 +61,20 @@ async function readGoogleError(response) {
   } catch (_) {
     return text || `Google 回應 ${response.status}`;
   }
+}
+
+function extractDriveFileId(filePath) {
+  const path = String(filePath || "").trim();
+  const rest = path.startsWith("gdrive:") ? path.slice("gdrive:".length) : path;
+  const fromUrl = rest.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (fromUrl) return fromUrl[1];
+  if (/^[a-zA-Z0-9_-]+$/.test(rest)) return rest;
+  return "";
+}
+
+function contentDisposition(fileName) {
+  const safe = String(fileName || "download").replace(/[^\x20-\x7E]/g, "_") || "download";
+  return `attachment; filename="${safe}"; filename*=UTF-8''${encodeURIComponent(fileName || "download")}`;
 }
 
 function isAllowedUploadUrl(rawUrl) {
@@ -121,6 +136,57 @@ async function verifySupabaseUser(authorization) {
   });
   if (!response.ok) return null;
   return response.json();
+}
+
+async function handleDownload(req, res) {
+  const raw = await readRawBody(req, MAX_BYTES);
+  let body = {};
+  try {
+    body = JSON.parse(raw.toString("utf8") || "{}");
+  } catch (_) {
+    sendJson(res, 400, { error: "下載請求格式不正確" });
+    return;
+  }
+  const fileId = extractDriveFileId(body.fileId || body.filePath);
+  if (!fileId) {
+    sendJson(res, 400, { error: "缺少 Google Drive 檔案編號" });
+    return;
+  }
+
+  const accessToken = await getAccessToken();
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=name,size,mimeType&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const meta = await metaRes.json().catch(() => ({}));
+  if (!metaRes.ok) {
+    throw new Error(meta.error?.message || "找不到 Google Drive 檔案");
+  }
+
+  const fileName = meta.name || "download";
+  const fileSize = Number(meta.size || 0);
+  if (fileSize > MAX_BYTES) {
+    sendJson(res, 200, {
+      mode: "redirect",
+      url: `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+    });
+    return;
+  }
+
+  const mediaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!mediaRes.ok) {
+    throw new Error(await readGoogleError(mediaRes));
+  }
+
+  const bytes = Buffer.from(await mediaRes.arrayBuffer());
+  res.statusCode = 200;
+  res.setHeader("Content-Type", meta.mimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", contentDisposition(fileName));
+  res.setHeader("Content-Length", String(bytes.length));
+  res.end(bytes);
 }
 
 async function handleSession(req, res) {
@@ -273,6 +339,10 @@ module.exports = async function handler(req, res) {
     const contentType = String(req.headers["content-type"] || "");
     if (req.headers["x-upload-url"]) {
       await handleChunk(req, res);
+      return;
+    }
+    if (String(req.headers["x-drive-action"] || "") === "download") {
+      await handleDownload(req, res);
       return;
     }
     if (contentType.includes("application/json")) {
