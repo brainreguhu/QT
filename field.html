@@ -991,8 +991,8 @@
             <div class="field-group">
               <label for="uploadTargetInput">上傳位置</label>
               <select id="uploadTargetInput">
-                <option value="supabase" selected>Supabase Storage</option>
-                <option value="gdrive">Google Drive Storage</option>
+                <option value="supabase">Supabase Storage</option>
+                <option value="gdrive" selected>Google Drive Storage</option>
               </select>
             </div>
           </div>
@@ -1190,14 +1190,54 @@
       return `https://drive.google.com/file/d/${rest}/view`;
     }
 
-    function openDriveLink(url) {
-      const link = document.createElement("a");
-      link.href = url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+    function saveBlobAsFile(blob, fileName) {
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = String(fileName || "").trim() || "download";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(blobUrl);
+    }
+
+    async function downloadGoogleDriveFile(filePath, fileName) {
+      const { data: sessionData } = await sb.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        throw new Error("登入狀態已失效，請重新登入後再下載。");
+      }
+
+      const response = await fetch(DRIVE_UPLOAD_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "X-Drive-Action": "download"
+        },
+        body: JSON.stringify({ filePath })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || "無法下載 Google Drive 檔案");
+        }
+        if (result.url) {
+          const link = document.createElement("a");
+          link.href = result.url;
+          link.download = fileName || "download";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          return;
+        }
+        throw new Error(result.error || "無法下載 Google Drive 檔案");
+      }
+      if (!response.ok) {
+        throw new Error("無法下載 Google Drive 檔案");
+      }
+      saveBlobAsFile(await response.blob(), fileName);
     }
 
     async function removeGoogleDriveFile(filePath) {
@@ -1675,13 +1715,9 @@
         return;
       }
 
+      const downloadName = String(record.fileName || "").trim() || "download";
       if (isGoogleDrivePath(record.filePath)) {
-        const driveUrl = getGoogleDriveViewUrl(record.filePath);
-        if (!driveUrl) {
-          alert("找不到 Google Drive 連結。");
-          return;
-        }
-        openDriveLink(driveUrl);
+        await downloadGoogleDriveFile(record.filePath, downloadName);
         return;
       }
 
@@ -1697,17 +1733,7 @@
       if (!response.ok) {
         throw new Error("下載檔案失敗，請稍後再試。");
       }
-      const fileBlob = await response.blob();
-      const blobUrl = URL.createObjectURL(fileBlob);
-      const downloadName = String(record.fileName || "").trim() || "download";
-
-      const anchor = document.createElement("a");
-      anchor.href = blobUrl;
-      anchor.download = downloadName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(blobUrl);
+      saveBlobAsFile(await response.blob(), downloadName);
     }
 
     /**
@@ -1958,15 +1984,9 @@
           canManage && !item.approved
             ? `<button class="success" type="button" data-action="approve" data-id="${item.id}">批准</button>`
             : "";
-        const driveUrl = isGoogleDrivePath(item.filePath) ? getGoogleDriveViewUrl(item.filePath) : "";
-        const downloadControl = blockedDownload
-          ? `<button class="secondary" type="button" data-action="download" data-id="${item.id}" disabled>下載</button>`
-          : driveUrl
-            ? `<a class="action-link" href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener noreferrer">下載</a>`
-            : `<button class="secondary" type="button" data-action="download" data-id="${item.id}">下載</button>`;
         const row1ActionButtons = [
           leadingActionButtons,
-          downloadControl,
+          `<button class="secondary" type="button" data-action="download" data-id="${item.id}" ${blockedDownload ? "disabled" : ""}>下載</button>`,
           canManage ? `<button class="${isPinned ? "success" : "secondary"}" type="button" data-action="pin" data-id="${item.id}">置頂</button>` : "",
           canDown && canEdit ? `<button class="${isLocked ? "success" : "secondary"}" type="button" data-action="down" data-id="${item.id}">下架</button>` : "",
           canManage ? `<button class="danger" type="button" data-action="delete" data-id="${item.id}">刪除</button>` : "",
@@ -2296,7 +2316,7 @@
     uploadForm.addEventListener("submit", async event => {
       event.preventDefault();
 
-      const uploadTarget = uploadTargetInput?.value || "supabase";
+      const uploadTarget = uploadTargetInput?.value || "gdrive";
       const file = fileInput.files[0];
       const zone = zoneInput.value;
       const orgType = orgTypeInput.value;
