@@ -245,7 +245,33 @@
       loginLink.href = `login.html?next=field-share.html&id=${encodeURIComponent(recordId)}`;
     }
 
+    function isGoogleDrivePath(filePath) {
+      return String(filePath || "").startsWith("gdrive:");
+    }
+
+    function getGoogleDriveViewUrl(filePath) {
+      const path = String(filePath || "").trim();
+      if (!isGoogleDrivePath(path)) return "";
+      const rest = path.slice("gdrive:".length);
+      if (!rest) return "";
+      if (/^https?:\/\//i.test(rest)) return rest;
+      return `https://drive.google.com/file/d/${rest}/view`;
+    }
+
     async function runDownload(record) {
+      if (isGoogleDrivePath(record.filePath)) {
+        const driveUrl = getGoogleDriveViewUrl(record.filePath);
+        if (!driveUrl) throw new Error("找不到 Google Drive 連結");
+        const link = document.createElement("a");
+        link.href = driveUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
       const { data, error } = await sb.storage
         .from(FIELD_FILES_BUCKET)
         .createSignedUrl(record.filePath, 60);
@@ -367,7 +393,9 @@
 
       const dl = canDownloadHere(record, isAdmin);
       hintEl.textContent = dl.ok
-        ? "檔案將下載到您的裝置；連結本身不含可直接存取檔案的網址。"
+        ? (isGoogleDrivePath(record.filePath)
+          ? "此檔存放於 Google Drive，按下載會開啟雲端硬碟連結。"
+          : "檔案將下載到您的裝置；連結本身不含可直接存取檔案的網址。")
         : "";
 
       if (!dl.ok) {

@@ -354,6 +354,32 @@
       background: var(--secondary);
     }
 
+    a.action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      padding: 2px 5px 3px 5px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      color: #fff;
+      background: var(--secondary);
+      transform-origin: center center;
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    a.action-link:hover {
+      transform: scale(1.1);
+      filter: brightness(1.18);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+    }
+
     button.icon-btn {
       display: inline-flex;
       align-items: center;
@@ -1164,6 +1190,16 @@
       return `https://drive.google.com/file/d/${rest}/view`;
     }
 
+    function openDriveLink(url) {
+      const link = document.createElement("a");
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
     async function removeGoogleDriveFile(filePath) {
       const { data: sessionData } = await sb.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -1641,7 +1677,11 @@
 
       if (isGoogleDrivePath(record.filePath)) {
         const driveUrl = getGoogleDriveViewUrl(record.filePath);
-        window.open(driveUrl, "_blank", "noopener,noreferrer");
+        if (!driveUrl) {
+          alert("找不到 Google Drive 連結。");
+          return;
+        }
+        openDriveLink(driveUrl);
         return;
       }
 
@@ -1918,9 +1958,15 @@
           canManage && !item.approved
             ? `<button class="success" type="button" data-action="approve" data-id="${item.id}">批准</button>`
             : "";
+        const driveUrl = isGoogleDrivePath(item.filePath) ? getGoogleDriveViewUrl(item.filePath) : "";
+        const downloadControl = blockedDownload
+          ? `<button class="secondary" type="button" data-action="download" data-id="${item.id}" disabled>下載</button>`
+          : driveUrl
+            ? `<a class="action-link" href="${escapeHtml(driveUrl)}" target="_blank" rel="noopener noreferrer">下載</a>`
+            : `<button class="secondary" type="button" data-action="download" data-id="${item.id}">下載</button>`;
         const row1ActionButtons = [
           leadingActionButtons,
-          `<button class="secondary" type="button" data-action="download" data-id="${item.id}" ${blockedDownload ? "disabled" : ""}>下載</button>`,
+          downloadControl,
           canManage ? `<button class="${isPinned ? "success" : "secondary"}" type="button" data-action="pin" data-id="${item.id}">置頂</button>` : "",
           canDown && canEdit ? `<button class="${isLocked ? "success" : "secondary"}" type="button" data-action="down" data-id="${item.id}">下架</button>` : "",
           canManage ? `<button class="danger" type="button" data-action="delete" data-id="${item.id}">刪除</button>` : "",
