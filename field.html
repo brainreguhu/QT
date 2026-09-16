@@ -777,6 +777,45 @@
       opacity: 1;
     }
 
+    .upload-progress {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 8px;
+      background: rgba(15, 20, 25, 0.35);
+    }
+
+    .upload-progress.is-hidden {
+      display: none;
+    }
+
+    .upload-progress-text {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      color: #fbbf24;
+      font-weight: 600;
+    }
+
+    .upload-progress-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+      overflow: hidden;
+    }
+
+    .upload-progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #d97706, #fbbf24);
+      transition: width 0.15s ease;
+    }
+
     dialog {
       border: 1px solid rgba(148, 163, 184, 0.45);
       border-radius: 10px;
@@ -996,6 +1035,15 @@
               </select>
             </div>
           </div>
+          <div id="uploadProgress" class="upload-progress is-hidden" role="progressbar" aria-label="上傳進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="upload-progress-text">
+              <span id="uploadProgressLabel">上傳中...</span>
+              <span id="uploadProgressPercent">0%</span>
+            </div>
+            <div class="upload-progress-bar">
+              <div id="uploadProgressFill" class="upload-progress-fill"></div>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -1134,6 +1182,10 @@
     const storageUsageFillEl = document.getElementById("storageUsageFill");
     const userInfoEl = document.getElementById("userInfo");
     const uploadSuccessMsgEl = document.getElementById("uploadSuccessMsg");
+    const uploadProgressEl = document.getElementById("uploadProgress");
+    const uploadProgressLabelEl = document.getElementById("uploadProgressLabel");
+    const uploadProgressPercentEl = document.getElementById("uploadProgressPercent");
+    const uploadProgressFillEl = document.getElementById("uploadProgressFill");
     let uploadSuccessTimer = 0;
     const editTagDialog = document.getElementById("editTagDialog");
     const editTagForm = document.getElementById("editTagForm");
@@ -2102,32 +2154,100 @@
       submitBtn.textContent = busy ? "上傳中..." : "上傳資料";
     }
 
+    function setUploadProgressPercent(percent) {
+      const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+      if (uploadProgressFillEl) uploadProgressFillEl.style.width = `${value}%`;
+      if (uploadProgressPercentEl) uploadProgressPercentEl.textContent = `${value}%`;
+      if (uploadProgressEl) uploadProgressEl.setAttribute("aria-valuenow", String(value));
+    }
+
     function showUploadProgress(fileName) {
-      if (!uploadSuccessMsgEl) return;
-      window.clearTimeout(uploadSuccessTimer);
-      uploadSuccessMsgEl.textContent = `上傳中 ${fileName || ""}`;
-      uploadSuccessMsgEl.classList.add("is-visible", "is-pending");
+      if (uploadSuccessMsgEl) {
+        window.clearTimeout(uploadSuccessTimer);
+        uploadSuccessMsgEl.textContent = `上傳中 ${fileName || ""}`;
+        uploadSuccessMsgEl.classList.add("is-visible", "is-pending");
+      }
+      if (uploadProgressEl) {
+        uploadProgressEl.classList.remove("is-hidden");
+        if (uploadProgressLabelEl) uploadProgressLabelEl.textContent = `上傳中 ${fileName || ""}`;
+        setUploadProgressPercent(0);
+      }
+    }
+
+    function updateUploadProgress(loaded, total, fileName) {
+      const percent = total > 0 ? (loaded / total) * 100 : 0;
+      setUploadProgressPercent(percent);
+      if (uploadProgressLabelEl) {
+        uploadProgressLabelEl.textContent = `上傳中 ${fileName || ""}（${formatSize(loaded)} / ${formatSize(total)}）`;
+      }
+      if (uploadSuccessMsgEl) {
+        uploadSuccessMsgEl.textContent = `上傳中 ${fileName || ""} ${Math.round(percent)}%`;
+        uploadSuccessMsgEl.classList.add("is-visible", "is-pending");
+      }
     }
 
     function clearUploadStatus() {
-      if (!uploadSuccessMsgEl) return;
-      window.clearTimeout(uploadSuccessTimer);
-      uploadSuccessMsgEl.classList.remove("is-visible", "is-pending");
-      uploadSuccessMsgEl.textContent = "";
+      if (uploadSuccessMsgEl) {
+        window.clearTimeout(uploadSuccessTimer);
+        uploadSuccessMsgEl.classList.remove("is-visible", "is-pending");
+        uploadSuccessMsgEl.textContent = "";
+      }
+      if (uploadProgressEl) {
+        uploadProgressEl.classList.add("is-hidden");
+        setUploadProgressPercent(0);
+        if (uploadProgressLabelEl) uploadProgressLabelEl.textContent = "上傳中...";
+      }
     }
 
     function showUploadSuccess(fileName) {
-      if (!uploadSuccessMsgEl) return;
+      if (uploadProgressEl) {
+        setUploadProgressPercent(100);
+        if (uploadProgressLabelEl) uploadProgressLabelEl.textContent = `上傳成功 ${fileName || ""}`;
+      }
+      if (!uploadSuccessMsgEl) {
+        window.setTimeout(() => {
+          if (uploadProgressEl) uploadProgressEl.classList.add("is-hidden");
+        }, 800);
+        return;
+      }
       window.clearTimeout(uploadSuccessTimer);
       uploadSuccessMsgEl.classList.remove("is-pending");
       uploadSuccessMsgEl.textContent = `上傳成功 ${fileName || ""}`;
       uploadSuccessMsgEl.classList.add("is-visible");
       uploadSuccessTimer = window.setTimeout(() => {
         uploadSuccessMsgEl.classList.remove("is-visible");
+        if (uploadProgressEl) uploadProgressEl.classList.add("is-hidden");
         uploadSuccessTimer = window.setTimeout(() => {
           uploadSuccessMsgEl.textContent = "";
+          setUploadProgressPercent(0);
         }, 800);
       }, 8000);
+    }
+
+    function uploadWithProgress({ url, method = "POST", headers = {}, body, onProgress }) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        Object.entries(headers || {}).forEach(([key, value]) => {
+          if (value != null && value !== "") xhr.setRequestHeader(key, String(value));
+        });
+        xhr.upload.onprogress = event => {
+          if (!onProgress) return;
+          if (event.lengthComputable) onProgress(event.loaded, event.total);
+          else if (body && typeof body.size === "number") onProgress(event.loaded, body.size);
+        };
+        xhr.onload = () => {
+          resolve({
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            responseText: xhr.responseText,
+            getHeader: name => xhr.getResponseHeader(name)
+          });
+        };
+        xhr.onerror = () => reject(new Error("網路錯誤，上傳中斷"));
+        xhr.onabort = () => reject(new Error("上傳已取消"));
+        xhr.send(body);
+      });
     }
 
     function syncUploadTargetRequirements() {
@@ -2185,29 +2305,38 @@
       return result;
     }
 
-    async function putFileDirectToDrive(uploadUrl, file) {
-      const response = await fetch(uploadUrl, {
+    async function putFileDirectToDrive(uploadUrl, file, onProgress) {
+      const response = await uploadWithProgress({
+        url: uploadUrl,
         method: "PUT",
         headers: {
           "Content-Type": file.type || "application/octet-stream"
         },
-        body: file
+        body: file,
+        onProgress
       });
-      const result = await response.json().catch(() => ({}));
+      const result = (() => {
+        try {
+          return JSON.parse(response.responseText || "{}");
+        } catch (_) {
+          return {};
+        }
+      })();
       if (!response.ok) {
         throw new Error(result.error?.message || `直接上傳 Google Drive 失敗（${response.status}）`);
       }
       return result;
     }
 
-    async function putFileToDriveInChunks(accessToken, uploadUrl, file) {
+    async function putFileToDriveInChunks(accessToken, uploadUrl, file, onProgress) {
       const mimeType = file.type || "application/octet-stream";
       let offset = 0;
       let lastResult = {};
       while (offset < file.size) {
         const end = Math.min(offset + DRIVE_CHUNK_BYTES, file.size);
         const chunk = file.slice(offset, end);
-        const response = await fetch(DRIVE_CHUNK_API, {
+        const response = await uploadWithProgress({
+          url: DRIVE_CHUNK_API,
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -2215,51 +2344,100 @@
             "Content-Range": `bytes ${offset}-${end - 1}/${file.size}`,
             "X-Upload-Url": uploadUrl
           },
-          body: chunk
+          body: chunk,
+          onProgress: (loaded) => {
+            if (onProgress) onProgress(offset + loaded, file.size);
+          }
         });
-        const result = await response.json().catch(() => ({}));
+        const result = (() => {
+          try {
+            return JSON.parse(response.responseText || "{}");
+          } catch (_) {
+            return {};
+          }
+        })();
         if (!response.ok) {
           throw new Error(result.error || `Google Drive 分塊上傳失敗（${response.status}）`);
         }
         lastResult = result;
         offset = end;
+        if (onProgress) onProgress(offset, file.size);
       }
       return lastResult;
     }
 
-    async function uploadFileViaLegacyDriveApi(accessToken, file) {
-      const response = await fetch(DRIVE_UPLOAD_API, {
+    async function uploadFileViaLegacyDriveApi(accessToken, file, onProgress) {
+      const response = await uploadWithProgress({
+        url: DRIVE_UPLOAD_API,
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": file.type || "application/octet-stream",
           "X-File-Name": encodeURIComponent(file.name)
         },
-        body: file
+        body: file,
+        onProgress
       });
-      const result = await response.json().catch(() => ({}));
+      const result = (() => {
+        try {
+          return JSON.parse(response.responseText || "{}");
+        } catch (_) {
+          return {};
+        }
+      })();
       if (!response.ok) {
         throw new Error(result.error || `上傳失敗（${response.status}）`);
       }
       return result;
     }
 
-    async function uploadFileToGoogleDrive(accessToken, file) {
+    async function uploadFileToGoogleDrive(accessToken, file, onProgress) {
       if (file.size <= 4 * 1024 * 1024) {
-        return uploadFileViaLegacyDriveApi(accessToken, file);
+        return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
       }
 
       try {
         const session = await createDriveUploadSession(accessToken, file);
         try {
-          return await putFileDirectToDrive(session.uploadUrl, file);
+          return await putFileDirectToDrive(session.uploadUrl, file, onProgress);
         } catch (directError) {
           console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
-          return putFileToDriveInChunks(accessToken, session.uploadUrl, file);
+          return putFileToDriveInChunks(accessToken, session.uploadUrl, file, onProgress);
         }
       } catch (sessionError) {
         console.warn("Google Drive 工作階段失敗", sessionError);
         throw sessionError;
+      }
+    }
+
+    async function uploadFileToSupabaseStorage(file, filePath, onProgress) {
+      const { data: sessionData } = await sb.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        throw new Error("登入狀態已失效，請重新登入後再上傳。");
+      }
+
+      const response = await uploadWithProgress({
+        url: `${SUPABASE_URL}/storage/v1/object/${FIELD_FILES_BUCKET}/${filePath}`,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": file.type || "application/octet-stream",
+          "x-upsert": "false",
+          "cache-control": "3600"
+        },
+        body: file,
+        onProgress
+      });
+
+      if (!response.ok) {
+        let message = `上傳失敗（${response.status}）`;
+        try {
+          const detail = JSON.parse(response.responseText || "{}");
+          message = detail.error || detail.message || message;
+        } catch (_) {}
+        throw new Error(message);
       }
     }
 
@@ -2280,7 +2458,9 @@
       setSubmitBusy(submitBtn, true);
       showUploadProgress(file.name);
       try {
-        const result = await uploadFileToGoogleDrive(accessToken, file);
+        const result = await uploadFileToGoogleDrive(accessToken, file, (loaded, total) => {
+          updateUploadProgress(loaded, total, file.name);
+        });
         const filePath = buildDriveFilePath(result);
         if (!filePath) {
           throw new Error("已傳到 Google Drive，但沒有取得檔案編號，無法寫入清單。");
@@ -2348,16 +2528,9 @@
       showUploadProgress(file.name);
 
       try {
-        const { error: uploadError } = await sb.storage
-          .from(FIELD_FILES_BUCKET)
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
+        await uploadFileToSupabaseStorage(file, filePath, (loaded, total) => {
+          updateUploadProgress(loaded, total, file.name);
+        });
 
         const payload = {
           file_name: file.name,
