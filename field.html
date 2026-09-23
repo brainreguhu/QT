@@ -974,7 +974,7 @@
       <div id="storageUsage" class="storage-usage" role="progressbar" aria-label="儲存空間使用量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="storage-usage-text">
           <span id="storageUsageMain">儲存空間：讀取中...</span>
-          <span class="storage-usage-note">依本系統已上傳檔案統計</span>
+          <span class="storage-usage-note">Supabase ＋ Google Drive</span>
         </div>
         <div class="storage-usage-bar">
           <div id="storageUsageFill" class="storage-usage-fill"></div>
@@ -1304,16 +1304,26 @@
     }
 
     function getTotalStorageUsageBytes() {
-      return records.reduce((sum, record) => {
-        if (isGoogleDrivePath(record.filePath)) return sum;
-        return sum + Number(record.fileSize || 0);
-      }, 0);
+      return records.reduce((sum, record) => sum + Number(record.fileSize || 0), 0);
+    }
+
+    function getStorageUsageBreakdown() {
+      return records.reduce(
+        (acc, record) => {
+          const size = Number(record.fileSize || 0);
+          if (isGoogleDrivePath(record.filePath)) acc.drive += size;
+          else acc.supabase += size;
+          return acc;
+        },
+        { supabase: 0, drive: 0 }
+      );
     }
 
     function renderStorageUsage() {
       if (!storageUsageMainEl || !storageUsageFillEl) return;
 
       const usedBytes = getTotalStorageUsageBytes();
+      const { supabase, drive } = getStorageUsageBreakdown();
       const limitBytes = FIELD_STORAGE_LIMIT_BYTES;
       const percent = limitBytes > 0 ? Math.min(100, (usedBytes / limitBytes) * 100) : 0;
 
@@ -1321,6 +1331,11 @@
       storageUsageFillEl.style.width = `${percent}%`;
       storageUsageFillEl.classList.toggle("is-warning", percent >= 80 && percent < 95);
       storageUsageFillEl.classList.toggle("is-danger", percent >= 95);
+
+      const noteEl = document.querySelector(".storage-usage-note");
+      if (noteEl) {
+        noteEl.textContent = `Supabase ${formatSize(supabase)} ＋ Drive ${formatSize(drive)}`;
+      }
 
       if (storageUsageEl) {
         storageUsageEl.setAttribute("aria-valuenow", String(Math.round(percent)));
