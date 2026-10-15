@@ -2220,6 +2220,10 @@
           else if (body && typeof body.size === "number") onProgress(event.loaded, body.size);
         };
         xhr.onload = () => {
+          if (!xhr.status) {
+            reject(new Error(uploadNetworkError(url)));
+            return;
+          }
           resolve({
             ok: xhr.status >= 200 && xhr.status < 300,
             status: xhr.status,
@@ -2227,10 +2231,29 @@
             getHeader: name => xhr.getResponseHeader(name)
           });
         };
-        xhr.onerror = () => reject(new Error("網路錯誤，上傳中斷"));
+        xhr.onerror = () => reject(new Error(uploadNetworkError(url)));
         xhr.onabort = () => reject(new Error("上傳已取消"));
         xhr.send(body);
       });
+    }
+
+    function uploadNetworkError(url) {
+      let host = "";
+      try {
+        host = new URL(url, window.location.href).host;
+      } catch (_) {}
+      return host ? `網路錯誤，上傳中斷（${host}）` : "網路錯誤，上傳中斷";
+    }
+
+    function isBrowserDriveUploadUrl(rawUrl) {
+      try {
+        const url = new URL(String(rawUrl || ""));
+        const host = url.hostname;
+        return url.protocol === "https:"
+          && (host === "googleapis.com" || host.endsWith(".googleapis.com") || host === "googleusercontent.com" || host.endsWith(".googleusercontent.com"));
+      } catch (_) {
+        return false;
+      }
     }
 
     function syncUploadTargetRequirements() {
@@ -2278,7 +2301,8 @@
         body: JSON.stringify({
           fileName: file.name,
           mimeType: file.type || "application/octet-stream",
-          fileSize: file.size
+          fileSize: file.size,
+          origin: window.location.origin
         })
       });
       const result = await response.json().catch(() => ({}));
@@ -2288,12 +2312,15 @@
       return result;
     }
 
-    async function putFileDirectToDrive(uploadUrl, file, onProgress) {
+    async function putFileDirectToDrive(uploadUrl, file, mimeType, onProgress) {
+      if (!isBrowserDriveUploadUrl(uploadUrl)) {
+        throw new Error("上傳網址不正確");
+      }
       const response = await uploadWithProgress({
         url: uploadUrl,
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "application/octet-stream"
+          "Content-Type": mimeType || file.type || "application/octet-stream"
         },
         body: file,
         onProgress
@@ -2311,8 +2338,8 @@
       return result;
     }
 
-    async function putFileToDriveInChunks(accessToken, uploadUrl, file, onProgress) {
-      const mimeType = file.type || "application/octet-stream";
+    async function putFileToDriveInChunks(accessToken, uploadUrl, file, mimeType, onProgress) {
+      const resolvedMimeType = mimeType || file.type || "application/octet-stream";
       let offset = 0;
       let lastResult = {};
       while (offset < file.size) {
@@ -2323,8 +2350,10 @@
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            "Content-Type": mimeType,
-            "Content-Range": `bytes ${offset}-${end - 1}/${file.size}`,
+            "Content-Type": resolvedMimeType,
+            "X-Upload-Start": String(offset),
+            "X-Upload-End": String(end - 1),
+            "X-Upload-Total": String(file.size),
             "X-Upload-Url": uploadUrl
           },
           body: chunk,
@@ -2345,6 +2374,9 @@
         lastResult = result;
         offset = end;
         if (onProgress) onProgress(offset, file.size);
+      }
+      if (!lastResult.id && !lastResult.webViewLink) {
+        throw new Error("已傳到 Google Drive，但沒有取得檔案編號");
       }
       return lastResult;
     }
@@ -2375,21 +2407,21 @@
     }
 
     async function uploadFileToGoogleDrive(accessToken, file, onProgress) {
-      if (file.size <= 4 * 1024 * 1024) {
-        return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
-      }
-
+      const session = await createDriveUploadSession(accessToken, file);
+      const mimeType = session.mimeType || file.type || "application/octet-stream";
       try {
-        const session = await createDriveUploadSession(accessToken, file);
+        return await putFileDirectToDrive(session.uploadUrl, file, mimeType, onProgress);
+      } catch (directError) {
+        console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
         try {
-          return await putFileDirectToDrive(session.uploadUrl, file, onProgress);
-        } catch (directError) {
-          console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
-          return putFileToDriveInChunks(accessToken, session.uploadUrl, file, onProgress);
+          return await putFileToDriveInChunks(accessToken, session.uploadUrl, file, mimeType, onProgress);
+        } catch (chunkError) {
+          console.warn("Google Drive 分塊上傳失敗", chunkError);
+          if (file.size <= 4 * 1024 * 1024) {
+            return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
+          }
+          throw chunkError;
         }
-      } catch (sessionError) {
-        console.warn("Google Drive 工作階段失敗", sessionError);
-        throw sessionError;
       }
     }
 
