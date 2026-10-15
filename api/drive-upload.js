@@ -1,9 +1,10 @@
+const https = require("https");
 const SUPABASE_URL = "https://clcqnbnbbtzzuctaspfn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
 const DEFAULT_FOLDER_ID = "1CpedoUN1qgIP3g_jmgbTCo6GRIbvXu6G";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink,webContentLink";
-const DRIVE_SESSION_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true";
+const DRIVE_SESSION_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,webViewLink,webContentLink";
 const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
@@ -20,7 +21,7 @@ function applyCors(req, res) {
     res.setHeader("Vary", "Origin");
   }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Range, X-File-Name, X-Upload-Url, X-Drive-Action");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Range, X-File-Name, X-Upload-Url, X-Upload-Start, X-Upload-End, X-Upload-Total, X-Content-Range, X-Drive-Action");
   res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 }
 
@@ -28,17 +29,26 @@ function readRawBody(req, maxBytes) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let total = 0;
+    let failed = false;
     req.on("data", chunk => {
+      if (failed) return;
       total += chunk.length;
       if (total > maxBytes + 1024) {
-        reject(new Error("檔案超過上限"));
-        req.destroy();
+        failed = true;
+        const error = new Error("檔案超過上限");
+        error.statusCode = 413;
+        reject(error);
+        req.pause();
         return;
       }
       chunks.push(chunk);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks)));
-    req.on("error", reject);
+    req.on("end", () => {
+      if (!failed) resolve(Buffer.concat(chunks));
+    });
+    req.on("error", error => {
+      if (!failed) reject(error);
+    });
   });
 }
 
@@ -80,12 +90,138 @@ function contentDisposition(fileName) {
 function isAllowedUploadUrl(rawUrl) {
   try {
     const url = new URL(String(rawUrl || ""));
+    const host = url.hostname;
+    const googleHost = host === "googleapis.com"
+      || host.endsWith(".googleapis.com")
+      || host === "googleusercontent.com"
+      || host.endsWith(".googleusercontent.com");
     return url.protocol === "https:"
-      && url.hostname === "www.googleapis.com"
-      && url.pathname.startsWith("/upload/drive/");
+      && googleHost
+      && (url.pathname.startsWith("/upload/") || host.endsWith("googleusercontent.com"));
   } catch (_) {
     return false;
   }
+}
+
+function headerValue(headers, name) {
+  const value = headers?.[String(name || "").toLowerCase()];
+  if (Array.isArray(value)) return String(value[0] || "");
+  return String(value || "");
+}
+
+function isAllowedBrowserOrigin(origin, host) {
+  let url;
+  try {
+    url = new URL(String(origin || ""));
+  } catch (_) {
+    return false;
+  }
+  if (url.origin !== origin) return false;
+  if (host && url.host === host) return url.protocol === "https:" || url.protocol === "http:";
+  if (url.protocol === "https:" && /(^|\.)vercel\.app$/i.test(url.hostname)) return true;
+  return (url.protocol === "http:" || url.protocol === "https:")
+    && /^(localhost|127\.0\.0\.1)$/i.test(url.hostname);
+}
+
+function resolveUploadOrigin(req, requestedOrigin) {
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  const candidates = [requestedOrigin, req.headers.origin];
+  for (const candidate of candidates) {
+    const origin = String(candidate || "").trim();
+    if (isAllowedBrowserOrigin(origin, host)) return origin;
+  }
+  if (host && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) return `https://${host}`;
+  return "";
+}
+
+function parseGoogleBody(buffer) {
+  const text = Buffer.isBuffer(buffer) ? buffer.toString("utf8") : String(buffer || "");
+  try {
+    return JSON.parse(text || "{}");
+  } catch (_) {
+    return { raw: text };
+  }
+}
+
+function googleRawRequest(rawUrl, { method = "GET", headers = {}, body = null } = {}) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(rawUrl);
+    const payload = body == null ? null : (Buffer.isBuffer(body) ? body : Buffer.from(body));
+    const reqHeaders = { ...headers };
+    if (payload) reqHeaders["Content-Length"] = String(payload.length);
+    const req = https.request(target, { method, headers: reqHeaders }, response => {
+      const chunks = [];
+      response.on("data", chunk => chunks.push(chunk));
+      response.on("end", () => {
+        resolve({
+          status: response.statusCode || 0,
+          headers: response.headers || {},
+          body: Buffer.concat(chunks)
+        });
+      });
+    });
+    req.setTimeout(120000, () => {
+      req.destroy(new Error("Google 上傳逾時"));
+    });
+    req.on("error", reject);
+    if (payload) req.end(payload);
+    else req.end();
+  });
+}
+
+async function startResumableUpload({ accessToken, metadata, mimeType, fileSize, origin }) {
+  let url = DRIVE_SESSION_URL;
+  const body = JSON.stringify(metadata);
+  for (let hop = 0; hop < 5; hop += 1) {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": mimeType,
+      "X-Upload-Content-Length": String(fileSize)
+    };
+    if (origin) headers.Origin = origin;
+    const response = await googleRawRequest(url, { method: "POST", headers, body });
+    if ([301, 302, 303, 307].includes(response.status)) {
+      const next = headerValue(response.headers, "location");
+      if (!next) throw new Error("Google 重新導向時沒有提供上傳網址");
+      url = new URL(next, url).toString();
+      continue;
+    }
+    const location = headerValue(response.headers, "location");
+    const uploadUrl = location ? new URL(location, url).toString() : "";
+    if (!uploadUrl || !isAllowedUploadUrl(uploadUrl)) {
+      const detail = parseGoogleBody(response.body);
+      throw new Error(detail.error?.message || detail.error_description || detail.raw || `無法建立上傳工作階段（${response.status}）`);
+    }
+    return uploadUrl;
+  }
+  throw new Error("Google 重新導向次數過多");
+}
+
+async function putDriveChunk(uploadUrl, { mimeType, contentRange, chunk }) {
+  let url = uploadUrl;
+  for (let hop = 0; hop < 5; hop += 1) {
+    const response = await googleRawRequest(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": mimeType,
+        "Content-Range": contentRange
+      },
+      body: chunk
+    });
+    if (response.status === 308 && !headerValue(response.headers, "location")) {
+      return response;
+    }
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const next = headerValue(response.headers, "location");
+      const nextUrl = next ? new URL(next, url).toString() : "";
+      if (!nextUrl || nextUrl === url) return response;
+      url = nextUrl;
+      continue;
+    }
+    return response;
+  }
+  throw new Error("Google 重新導向次數過多");
 }
 
 function buildMultipart(metadata, fileBuffer, mimeType) {
@@ -212,32 +348,35 @@ async function handleSession(req, res) {
 
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID;
   const accessToken = await getAccessToken();
-  const initRes = await fetch(DRIVE_SESSION_URL, {
-    method: "POST",
-    redirect: "manual",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json; charset=UTF-8",
-      "X-Upload-Content-Type": mimeType,
-      "X-Upload-Content-Length": String(fileSize)
-    },
-    body: JSON.stringify({
+  const origin = resolveUploadOrigin(req, body.origin);
+  const uploadUrl = await startResumableUpload({
+    accessToken,
+    metadata: {
       name: fileName,
       parents: [folderId]
-    })
+    },
+    mimeType,
+    fileSize,
+    origin
   });
-
-  const uploadUrl = initRes.headers.get("location") || initRes.headers.get("Location");
-  if (!uploadUrl) {
-    throw new Error(await readGoogleError(initRes));
-  }
 
   sendJson(res, 200, { uploadUrl, mimeType, fileSize });
 }
 
+function chunkContentRange(req) {
+  const explicit = String(req.headers["x-content-range"] || req.headers["content-range"] || "").trim();
+  if (explicit) return explicit;
+  const start = String(req.headers["x-upload-start"] || "").trim();
+  const end = String(req.headers["x-upload-end"] || "").trim();
+  const total = String(req.headers["x-upload-total"] || "").trim();
+  if (!start || !end || !total) return "";
+  if (!/^\d+$/.test(start) || !/^\d+$/.test(end) || !/^\d+$/.test(total)) return "";
+  return `bytes ${start}-${end}/${total}`;
+}
+
 async function handleChunk(req, res) {
   const uploadUrl = req.headers["x-upload-url"];
-  const contentRange = req.headers["content-range"];
+  const contentRange = chunkContentRange(req);
   const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
   if (!isAllowedUploadUrl(uploadUrl)) {
     sendJson(res, 400, { error: "上傳網址不正確" });
@@ -254,24 +393,16 @@ async function handleChunk(req, res) {
     return;
   }
 
-  const googleRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": mimeType,
-      "Content-Length": String(chunk.length),
-      "Content-Range": contentRange
-    },
-    body: chunk
-  });
+  const googleRes = await putDriveChunk(uploadUrl, { mimeType, contentRange, chunk });
 
   if (googleRes.status === 308) {
     sendJson(res, 200, { ok: true, incomplete: true });
     return;
   }
 
-  const uploaded = await googleRes.json().catch(() => ({}));
-  if (!googleRes.ok) {
-    throw new Error(uploaded.error?.message || "Google Drive 分塊上傳失敗");
+  const uploaded = parseGoogleBody(googleRes.body);
+  if (googleRes.status < 200 || googleRes.status >= 300) {
+    throw new Error(uploaded.error?.message || uploaded.raw || `Google Drive 分塊上傳失敗（${googleRes.status}）`);
   }
 
   sendJson(res, 200, {
@@ -357,7 +488,9 @@ module.exports = async function handler(req, res) {
     }
     await handleLegacyUpload(req, res, fileBuffer);
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Google Drive 上傳失敗" });
+    if (!res.headersSent && !res.writableEnded) {
+      sendJson(res, Number(error.statusCode) || 500, { error: error.message || "Google Drive 上傳失敗" });
+    }
   }
 };
 
