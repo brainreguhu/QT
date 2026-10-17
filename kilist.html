@@ -1270,6 +1270,7 @@
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
     const PROFILE_TABLE = "profiles";
     const KILIST_TABLE = "kilist_records";
+    const KILIST_LINKS_TABLE = "kilist_links";
     const KILIST_COLUMNS = "id, work_zone, person_id, person_name, item, note, checked_by, checked_at, notes, is_remind, is_pinned, sort_order, created_at";
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -1334,6 +1335,74 @@
       } catch (err) {
         console.warn("儲存清單連線失敗", err);
       }
+    }
+
+    function clearLocalRecordLinks() {
+      try {
+        localStorage.removeItem(LINK_STORAGE_KEY);
+      } catch (_) {}
+    }
+
+    let linksSupported = true;
+    let savingLink = false;
+
+    function validRecordLinks(links) {
+      const ids = new Set(records.map((record) => record.id));
+      return links.filter((link) => link && ids.has(link.from) && ids.has(link.to) && link.from !== link.to);
+    }
+
+    async function uploadRecordLinks(links) {
+      if (!linksSupported) throw new Error("kilist_links");
+      if (!workZone || !links.length) return;
+      const rows = links.map((link) => ({
+        work_zone: workZone,
+        from_id: link.from,
+        to_id: link.to
+      }));
+      const { error } = await sb
+        .from(KILIST_LINKS_TABLE)
+        .upsert(rows, { onConflict: "work_zone,from_id,to_id", ignoreDuplicates: true });
+      if (error) throw new Error(error.message);
+    }
+
+    async function syncRecordLinks() {
+      if (!workZone) return;
+      const query = await sb
+        .from(KILIST_LINKS_TABLE)
+        .select("from_id, to_id")
+        .eq("work_zone", workZone);
+      if (query.error) {
+        const message = query.error.message || "";
+        if (/kilist_links|42P01|PGRST205/i.test(message)) {
+          linksSupported = false;
+          if (recordLinks.length) {
+            alert("弧線尚未同步到伺服器，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql");
+          }
+          return;
+        }
+        console.error("讀取弧線失敗", query.error);
+        return;
+      }
+      linksSupported = true;
+      const serverLinks = validRecordLinks((query.data || []).map((row) => ({
+        from: String(row.from_id || ""),
+        to: String(row.to_id || "")
+      })));
+      const localLinks = validRecordLinks(recordLinks);
+      if (!serverLinks.length && localLinks.length) {
+        recordLinks = localLinks;
+        try {
+          await uploadRecordLinks(localLinks);
+          clearLocalRecordLinks();
+        } catch (err) {
+          console.error("上傳既有弧線失敗", err);
+          alert(`上傳既有弧線失敗：${formatSupabaseError(err)}`);
+          saveRecordLinks();
+        }
+        return;
+      }
+      recordLinks = serverLinks;
+      clearLocalRecordLinks();
     }
 
     let recordOrder = [];
@@ -1437,8 +1506,22 @@
       const next = recordLinks.filter((link) => ids.has(link.from) && ids.has(link.to));
       if (linkSourceId && !ids.has(linkSourceId)) linkSourceId = "";
       if (next.length === recordLinks.length) return;
+      const removed = recordLinks.filter((link) => !ids.has(link.from) || !ids.has(link.to));
       recordLinks = next;
-      saveRecordLinks();
+      if (!linksSupported || !workZone) {
+        saveRecordLinks();
+        return;
+      }
+      removed.forEach((link) => {
+        sb.from(KILIST_LINKS_TABLE)
+          .delete()
+          .eq("work_zone", workZone)
+          .eq("from_id", link.from)
+          .eq("to_id", link.to)
+          .then(({ error }) => {
+            if (error) console.warn("刪除失效弧線失敗", error);
+          });
+      });
     }
     if (workZone) {
       pageTitleEl.textContent = `Kilist（工區 ${workZone}）`;
@@ -1823,6 +1906,9 @@
 
     function formatSupabaseError(err) {
       const msg = err?.message ? err.message : String(err || "未知錯誤");
+      if (/kilist_links/i.test(msg)) {
+        return "弧線尚未同步，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql";
+      }
       if (/kilist_records|42P01|PGRST205/i.test(msg)) {
         return "資料表尚未建立，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql";
       }
@@ -1946,6 +2032,7 @@
         const importedLocalOrder = applyImportedLocalOrder();
         mergeVendorsFromRecords(records);
         refreshVendorSelects();
+        await syncRecordLinks();
         renderRecords();
         if (importedLocalOrder && sortOrderSupported) {
           try {
@@ -2132,8 +2219,8 @@
       });
     }
 
-    function toggleRecordLink(id) {
-      if (!id) return;
+    async function toggleRecordLink(id) {
+      if (!id || savingLink) return;
       if (!linkSourceId) {
         linkSourceId = id;
         refreshLinkDots();
@@ -2146,12 +2233,49 @@
       }
       const from = linkSourceId;
       const existing = recordLinks.findIndex((link) => link.from === from && link.to === id);
-      if (existing >= 0) recordLinks.splice(existing, 1);
+      const removed = existing >= 0;
+      if (removed) recordLinks.splice(existing, 1);
       else recordLinks.push({ from, to: id });
       linkSourceId = "";
-      saveRecordLinks();
       refreshLinkDots();
       scheduleDrawLinks();
+      if (!workZone || !linksSupported) {
+        saveRecordLinks();
+        if (workZone && !linksSupported) {
+          alert("弧線尚未同步到伺服器，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql");
+        }
+        return;
+      }
+      savingLink = true;
+      try {
+        if (removed) {
+          const { error } = await sb
+            .from(KILIST_LINKS_TABLE)
+            .delete()
+            .eq("work_zone", workZone)
+            .eq("from_id", from)
+            .eq("to_id", id);
+          if (error) throw new Error(error.message);
+        } else {
+          const { error } = await sb
+            .from(KILIST_LINKS_TABLE)
+            .insert({ work_zone: workZone, from_id: from, to_id: id });
+          if (error) throw new Error(error.message);
+        }
+        clearLocalRecordLinks();
+      } catch (err) {
+        console.error("上傳弧線失敗", err);
+        if (removed) recordLinks.push({ from, to: id });
+        else {
+          const index = recordLinks.findIndex((link) => link.from === from && link.to === id);
+          if (index >= 0) recordLinks.splice(index, 1);
+        }
+        refreshLinkDots();
+        scheduleDrawLinks();
+        alert(`上傳弧線失敗：${formatSupabaseError(err)}`);
+      } finally {
+        savingLink = false;
+      }
     }
 
     const NOTE_PENCIL_SVG = `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9.7 2.3 13.7 6.3 5.1 14.9 1.1 15.3 1.5 11.3 9.7 2.3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M8.4 3.6 12.4 7.6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>`;
@@ -2941,7 +3065,8 @@
         records.splice(index, 1);
         recordLinks = recordLinks.filter((link) => link.from !== record.id && link.to !== record.id);
         if (linkSourceId === record.id) linkSourceId = "";
-        saveRecordLinks();
+        if (linksSupported) clearLocalRecordLinks();
+        else saveRecordLinks();
         renderRecords();
       } catch (err) {
         console.error("刪除紀錄失敗", err);
