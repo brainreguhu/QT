@@ -15,6 +15,7 @@
       --accent-hover: #5a9dff;
       --danger: #f87171;
       --ok: #4ade80;
+      --pin: #f59e0b;
     }
 
     * {
@@ -39,7 +40,7 @@
 
     .page {
       width: 100%;
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -92,11 +93,311 @@
       padding: 16px;
     }
 
+    .field-grid {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr) minmax(0, 4fr) max-content;
+      column-gap: 10px;
+      align-items: center;
+    }
+
     .field-row {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .field-row.filter-row {
+      margin-bottom: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 12px;
+    }
+
+    .filter-actions {
+      grid-column: 5 / -1;
       display: flex;
+      justify-content: flex-start;
       align-items: center;
       gap: 10px;
-      margin-bottom: 14px;
+      min-width: 0;
+    }
+
+    .filter-actions .checked-toggle-btn {
+      margin-left: 0;
+    }
+
+    .clear-filter-btn {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1.2;
+      height: 34px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .clear-filter-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .checked-toggle-btn {
+      flex-shrink: 0;
+      margin-left: auto;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1.2;
+      height: 34px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .checked-toggle-btn:hover {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(74, 222, 128, 0.1);
+    }
+
+    .checked-toggle-btn.is-on {
+      border-color: var(--ok);
+      color: var(--ok);
+      background: rgba(74, 222, 128, 0.12);
+    }
+
+    .vendor-edit-btn {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1.2;
+      height: 34px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .vendor-edit-btn:hover {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .vendor-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .vendor-modal.is-open {
+      display: flex;
+    }
+
+    .vendor-modal-panel {
+      width: min(420px, 100%);
+      height: 80vh;
+      max-height: calc(100vh - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .vendor-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .vendor-modal-header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .vendor-modal-close {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .vendor-modal-close:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .vendor-modal-add {
+      display: flex;
+      gap: 8px;
+    }
+
+    .vendor-modal-add input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .vendor-modal-add input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+
+    .vendor-modal-add button {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .vendor-modal-add button:hover {
+      background: rgba(61, 139, 253, 0.25);
+      color: #fff;
+    }
+
+    .vendor-modal-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+
+    .vendor-modal-empty {
+      padding: 24px 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .vendor-modal-hint {
+      margin: -4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .vendor-modal-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      user-select: none;
+    }
+
+    .vendor-modal-item.is-dragging {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.16);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    }
+
+    .vendor-drag-handle {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .vendor-drag-handle svg {
+      display: block;
+      fill: currentColor;
+    }
+
+    .vendor-drag-handle:hover,
+    .vendor-modal-item.is-dragging .vendor-drag-handle {
+      color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .vendor-drag-handle:active,
+    .vendor-modal-item.is-dragging .vendor-drag-handle {
+      cursor: grabbing;
+    }
+
+    .vendor-modal-item span {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .vendor-delete-btn {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .vendor-delete-btn:hover {
+      border-color: var(--danger);
+      background: rgba(248, 113, 113, 0.12);
     }
 
     .field-row label {
@@ -108,15 +409,27 @@
 
     .field-row select,
     .field-row input[type="text"] {
-      flex: 1 1 0;
+      width: 100%;
       min-width: 0;
-      padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 10px;
       background: var(--bg);
       color: var(--text);
-      font-size: 15px;
       font-family: inherit;
+    }
+
+    .field-row select {
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1.2;
+      height: 34px;
+    }
+
+    .field-row input[type="text"] {
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1.2;
+      height: 34px;
     }
 
     .field-row select:focus,
@@ -131,20 +444,18 @@
       cursor: not-allowed;
     }
 
-    .field-row input[type="text"] {
-      flex-grow: 4;
-    }
-
     .record-btn {
       flex-shrink: 0;
-      padding: 10px 18px;
+      padding: 8px 18px;
       border: 1px solid var(--accent);
       border-radius: 10px;
       background: rgba(61, 139, 253, 0.12);
       color: var(--accent);
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 700;
       font-family: inherit;
+      line-height: 1.2;
+      height: 34px;
       cursor: pointer;
       transition: background 0.15s ease, color 0.15s ease;
     }
@@ -155,8 +466,21 @@
     }
 
     @media (max-width: 560px) {
+      .field-grid,
       .field-row {
+        display: flex;
         flex-wrap: wrap;
+      }
+
+      .field-row select,
+      .field-row input[type="text"] {
+        flex: 1 1 140px;
+        width: auto;
+      }
+
+      .filter-actions {
+        flex: 1 1 auto;
+        justify-content: flex-start;
       }
     }
 
@@ -167,29 +491,134 @@
       font-size: 14px;
     }
 
+    .record-board {
+      position: relative;
+    }
+
+    .record-links {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 1;
+    }
+
     .record-list {
+      position: relative;
+      z-index: 2;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      margin-left: 28px;
+      margin-right: 128px;
+    }
+
+    .record-order {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      transform: translate(calc(-100% - 6px), -50%);
+    }
+
+    .order-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 14px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+    }
+
+    .order-btn:hover:not(:disabled) {
+      color: #fff;
+    }
+
+    .order-btn:disabled {
+      opacity: 0.22;
+      cursor: default;
     }
 
     .record-item {
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
+      gap: 3px;
+      padding: 4px 5px 4px 25px;
+      border: 2px solid #636363; /*資料外框顏色*/
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.03);
       font-size: 15px;
-      line-height: 1.45;
+      line-height: 1.3;
+    }
+
+    .link-dot {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      padding: 0;
+      appearance: none;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: none;
+      transform: translate(50%, -50%);
+      cursor: pointer;
+      z-index: 3;
+      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .link-dot:hover {
+      background: rgba(255, 255, 255, 0.88);
+      border-color: #fff;
+      box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.18);
+      transform: translate(50%, -50%) scale(1.2);
+    }
+
+    .link-dot.is-linked {
+      background: rgba(255, 255, 255, 0.4);
+      border-color: rgba(255, 255, 255, 0.92);
+    }
+
+    .link-dot.is-source,
+    .link-dot.is-source:hover {
+      background: #fff;
+      border-color: #fff;
+      box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.32);
+      transform: translate(50%, -50%) scale(1.15);
+    }
+
+    .record-item.is-pinned {
+      border-color: var(--pin);
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+    }
+
+    .record-item.is-remind {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35);
+    }
+
+    .record-item.is-checked {
+      border-color: var(--ok);
     }
 
     .record-main {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 6px 12px;
+      gap: 4px 5px;
     }
 
     .record-item .record-content {
@@ -240,27 +669,137 @@
       background: rgba(74, 222, 128, 0.12);
     }
 
+    .record-item .edit-btn,
+    .record-item .delete-btn,
+    .record-item .remind-btn,
+    .record-item .pin-btn {
+      flex-shrink: 0;
+      align-self: center;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      line-height: 1.2;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .record-item .edit-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+
+    .record-item .remind-btn:hover,
+    .record-item .remind-btn.is-on {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .record-item .pin-btn:hover,
+    .record-item .pin-btn.is-on {
+      border-color: var(--pin);
+      color: var(--pin);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .record-item .delete-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .record-edit-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .record-edit-row select,
+    .record-edit-row input[type="text"] {
+      min-width: 0;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.2;
+      font-family: inherit;
+      height: 34px;
+    }
+
+    .record-edit-row .edit-person,
+    .record-edit-row .edit-item {
+      flex: 1 1 0;
+    }
+
+    .record-edit-row .edit-note {
+      flex: 4 1 0;
+    }
+
+    .record-edit-row .edit-save-btn,
+    .record-edit-row .edit-cancel-btn {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .record-edit-row .edit-save-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .record-edit-row .edit-cancel-btn {
+      background: transparent;
+      color: var(--muted);
+    }
+
     .record-notes {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 0;
     }
 
     .record-note-line {
       display: flex;
-      align-items: baseline;
-      gap: 6px 12px;
-      padding: 6px 10px;
+      align-items: flex-start;
+      gap: 4px 12px;
+      padding: 8px;
       border-left: 3px solid var(--border);
       font-size: 14px;
+      line-height: 1.25;
     }
 
-    .record-note-line .note-text {
+    .record-note-line.is-editing {
+      flex-wrap: wrap;
+    }
+
+    .record-note-line .note-editor {
       flex: 1;
-      min-width: 0;
-      color: var(--muted);
-      text-align: left;
-      word-break: break-word;
+      min-width: 180px;
+    }
+
+    .record-note-line .note-edit-btn,
+    .record-note-line .note-remove-btn {
+      align-self: center;
+    }
+
+    .record-note-line + .record-note-line {
+      border-top: 1px solid var(--border);
     }
 
     .record-note-line .note-meta {
@@ -269,10 +808,49 @@
       color: var(--muted);
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+      padding-top: 1px;
+    }
+
+    .record-note-line .note-text {
+      flex: 1;
+      min-width: 0;
+      color: var(--muted);
+      text-align: left;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .notes-toggle-btn {
+      align-self: flex-start;
+      margin-left: 10px;
+      padding: 2px 0;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .notes-toggle-btn:hover {
+      text-decoration: underline;
+    }
+
+    .note-add-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      align-self: center;
+    }
+
+    .note-add-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
     }
 
     .note-add-btn {
-      align-self: center;
       width: 26px;
       height: 26px;
       padding: 0;
@@ -294,46 +872,322 @@
       transform: scale(1.08);
     }
 
-    .note-add-row {
+    .note-add-actions {
       display: flex;
-      gap: 8px;
+      flex-wrap: nowrap;
       align-items: center;
+      gap: 8px 18px;
     }
 
-    .note-add-row input {
+    .note-add-actions .open-item-draft {
       flex: 1;
       min-width: 0;
-      padding: 8px 12px;
+    }
+
+    .note-add-btn.is-open {
+      background: rgba(74, 222, 128, 0.18);
+      color: var(--ok);
+    }
+
+    .note-add-btn.is-open:hover {
+      background: var(--ok);
+      color: #06210f;
+    }
+
+    .open-items {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 2px 0 2px 2px;
+    }
+
+    .open-item,
+    .open-item-draft {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+    }
+
+    .open-item-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex-shrink: 0;
+      border: 1px solid var(--muted);
+      border-radius: 3px;
+      background: var(--muted);
+      cursor: pointer;
+      display: inline-grid;
+      place-content: center;
+    }
+
+    .open-item-check:checked {
+      border-color: var(--ok);
+      background: var(--ok);
+    }
+
+    .open-item-check:checked::after {
+      content: "";
+      width: 4px;
+      height: 8px;
+      margin-top: -2px;
+      border: solid #06210f;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .open-item-check:disabled {
+      cursor: default;
+    }
+
+    .open-item-text {
+      flex: 1;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .open-item.is-checked .open-item-text {
+      color: var(--ok);
+    }
+
+    .open-item-check-info {
+      flex-shrink: 0;
+      margin-left: 12px;
+      color: var(--ok);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .open-item-input {
+      flex: 1;
+      min-width: 0;
+      padding: 4px 8px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       background: var(--bg);
       color: var(--text);
       font-size: 14px;
       font-family: inherit;
     }
 
-    .note-add-row input:focus {
+    .open-item-input:focus {
+      outline: none;
+      border-color: var(--ok);
+    }
+
+    .open-item-edit,
+    .note-edit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .open-item-edit:hover,
+    .note-edit-btn:hover {
+      color: var(--text);
+    }
+
+    .open-item-remove,
+    .note-remove-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+      margin-right: 20pt;
+    }
+
+    .open-item-remove:hover,
+    .note-remove-btn:hover {
+      color: var(--danger);
+    }
+
+    .note-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .note-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .note-tool-size,
+    .note-tool-color {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .note-toolbar button,
+    .note-size {
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .note-toolbar button {
+      min-width: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .note-toolbar button svg {
+      display: block;
+    }
+
+    .note-color-mark {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .note-size {
+      color: var(--text);
+    }
+
+    .note-toolbar button:hover,
+    .note-size:hover,
+    .note-size:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .note-toolbar button.is-on {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 139, 253, 0.16);
+    }
+
+    .note-color {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .note-add-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .note-add-row .note-input {
+      flex: 1;
+      min-width: 0;
+      min-height: 64px;
+      max-height: 180px;
+      overflow: auto;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 14px;
+      font-family: inherit;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .note-add-row .note-input:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
     }
 
-    .note-confirm-btn {
+    .note-input[data-empty="true"]::before {
+      content: attr(data-placeholder);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .note-actions {
+      display: flex;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+
+    .note-confirm-btn,
+    .note-cancel-btn {
       flex-shrink: 0;
       padding: 8px 14px;
-      border: 1px solid var(--accent);
       border-radius: 10px;
-      background: rgba(61, 139, 253, 0.12);
-      color: var(--accent);
       font-size: 13px;
       font-weight: 700;
       font-family: inherit;
       cursor: pointer;
     }
 
+    .note-confirm-btn {
+      border: 1px solid var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+    }
+
     .note-confirm-btn:hover {
       background: rgba(61, 139, 253, 0.25);
       color: #fff;
+    }
+
+    .note-cancel-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .note-cancel-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .note-text blockquote,
+    .note-input blockquote {
+      margin: 0.15em 0 0.15em 1.5em;
+      padding: 0;
+      border: 0;
+    }
+
+    .note-text p,
+    .note-text div,
+    .note-input p,
+    .note-input div {
+      margin: 0;
     }
   </style>
 </head>
@@ -344,18 +1198,68 @@
       <h1 class="page-title" id="page-title">Kilist</h1>
     </header>
     <div class="card">
+      <div class="field-grid">
       <div class="field-row">
-        <label for="person-select">人員</label>
+        <label for="person-select">承辦</label>
         <select id="person-select" disabled>
           <option value="">載入中…</option>
         </select>
-        <select id="item-select" aria-label="項目">
-          <option value="">請選擇</option>
+        <label for="vendor-select">廠商</label>
+        <select id="vendor-select" aria-label="廠商">
+          <option value="">請選擇廠商</option>
         </select>
         <input type="text" id="note-input" placeholder="輸入內容" aria-label="輸入內容">
         <button type="button" id="record-btn" class="record-btn">紀錄</button>
       </div>
-      <div id="list" class="empty-hint">目前尚無資料</div>
+      <div class="field-row filter-row">
+        <label for="filter-person">篩選承辦</label>
+        <select id="filter-person" aria-label="篩選承辦">
+          <option value="">全部承辦</option>
+        </select>
+        <label for="filter-vendor">篩選廠商</label>
+        <select id="filter-vendor" aria-label="篩選廠商">
+          <option value="">全部廠商</option>
+        </select>
+        <div class="filter-actions">
+          <button type="button" id="clear-filter-btn" class="clear-filter-btn">清除篩選</button>
+          <button type="button" id="vendor-edit-btn" class="vendor-edit-btn">編輯清單</button>
+          <button type="button" id="checked-toggle-btn" class="checked-toggle-btn" aria-pressed="false">
+            顯示已勾核
+          </button>
+        </div>
+      </div>
+      </div>
+      <div class="record-board" id="record-board">
+        <svg id="record-links" class="record-links" aria-hidden="true">
+          <defs>
+            <marker id="record-link-arrow" viewBox="0 0 16 16" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="14.5" refY="8" orient="auto">
+              <path d="M1,3.2 L14.5,8 L1,12.8" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="miter"></path>
+            </marker>
+            <radialGradient id="record-link-grain" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="1"></stop>
+              <stop offset="35%" stop-color="#ffffff" stop-opacity="0.9"></stop>
+              <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+            </radialGradient>
+          </defs>
+          <g id="record-link-paths"></g>
+        </svg>
+        <div id="list" class="empty-hint">目前尚無資料</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="vendor-modal" class="vendor-modal" aria-hidden="true">
+    <div class="vendor-modal-panel" role="dialog" aria-modal="true" aria-labelledby="vendor-modal-title">
+      <div class="vendor-modal-header">
+        <h2 id="vendor-modal-title">編輯廠商清單</h2>
+        <button type="button" id="vendor-modal-close" class="vendor-modal-close" aria-label="關閉">×</button>
+      </div>
+      <div class="vendor-modal-add">
+        <input type="text" id="vendor-modal-input" placeholder="輸入廠商名稱" aria-label="廠商名稱">
+        <button type="button" id="vendor-modal-add-btn">新增</button>
+      </div>
+      <p id="vendor-modal-hint" class="vendor-modal-hint" hidden>拖動左側把手可調整順序</p>
+      <div id="vendor-modal-list" class="vendor-modal-list"></div>
     </div>
   </div>
 
@@ -366,7 +1270,7 @@
     const SUPABASE_ANON_KEY = "sb_publishable_1PJYZvRhU8qgCnwit6EG7Q_xjKq49oD";
     const PROFILE_TABLE = "profiles";
     const KILIST_TABLE = "kilist_records";
-    const KILIST_COLUMNS = "id, work_zone, person_id, person_name, item, note, checked_by, checked_at, notes, created_at";
+    const KILIST_COLUMNS = "id, work_zone, person_id, person_name, item, note, checked_by, checked_at, notes, is_remind, is_pinned, sort_order, created_at";
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
@@ -378,18 +1282,442 @@
 
     const pageTitleEl = document.getElementById("page-title");
     const personSelectEl = document.getElementById("person-select");
-    const itemSelectEl = document.getElementById("item-select");
+    const vendorSelectEl = document.getElementById("vendor-select");
+    const filterPersonEl = document.getElementById("filter-person");
+    const filterVendorEl = document.getElementById("filter-vendor");
+    const clearFilterBtnEl = document.getElementById("clear-filter-btn");
+    const vendorEditBtnEl = document.getElementById("vendor-edit-btn");
+    const vendorModalEl = document.getElementById("vendor-modal");
+    const vendorModalCloseEl = document.getElementById("vendor-modal-close");
+    const vendorModalInputEl = document.getElementById("vendor-modal-input");
+    const vendorModalAddBtnEl = document.getElementById("vendor-modal-add-btn");
+    const vendorModalHintEl = document.getElementById("vendor-modal-hint");
+    const vendorModalListEl = document.getElementById("vendor-modal-list");
+    const checkedToggleBtnEl = document.getElementById("checked-toggle-btn");
     const noteInputEl = document.getElementById("note-input");
     const recordBtnEl = document.getElementById("record-btn");
     const listEl = document.getElementById("list");
+    const recordBoardEl = document.getElementById("record-board");
+    const recordLinksEl = document.getElementById("record-links");
+    const recordLinkPathsEl = document.getElementById("record-link-paths");
+
+    let showCheckedRecords = false;
+
+    function syncCheckedToggleBtn() {
+      checkedToggleBtnEl.textContent = showCheckedRecords ? "隱藏已勾核" : "顯示已勾核";
+      checkedToggleBtnEl.classList.toggle("is-on", showCheckedRecords);
+      checkedToggleBtnEl.setAttribute("aria-pressed", showCheckedRecords ? "true" : "false");
+    }
+
+    const VENDOR_STORAGE_KEY = "kilist:vendors";
 
     const workZone = String(new URLSearchParams(window.location.search).get("zone") || "").trim();
+    const LINK_STORAGE_KEY = `kilist:links:${workZone || "_"}`;
+    const ORDER_STORAGE_KEY = `kilist:order:${workZone || "_"}`;
+    let recordLinks = [];
+    let linkSourceId = "";
+
+    function loadRecordLinks() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(LINK_STORAGE_KEY) || "[]");
+        recordLinks = Array.isArray(parsed)
+          ? parsed.filter((link) => link && link.from && link.to && link.from !== link.to)
+          : [];
+      } catch {
+        recordLinks = [];
+      }
+    }
+
+    function saveRecordLinks() {
+      try {
+        localStorage.setItem(LINK_STORAGE_KEY, JSON.stringify(recordLinks));
+      } catch (err) {
+        console.warn("儲存清單連線失敗", err);
+      }
+    }
+
+    let recordOrder = [];
+    let sortOrderSupported = true;
+    let movingRecord = false;
+
+    function loadRecordOrder() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(ORDER_STORAGE_KEY) || "[]");
+        recordOrder = Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string" && id) : [];
+      } catch {
+        recordOrder = [];
+      }
+    }
+
+    function clearLocalRecordOrder() {
+      recordOrder = [];
+      try {
+        localStorage.removeItem(ORDER_STORAGE_KEY);
+      } catch (_) {}
+    }
+
+    function orderTier(record) {
+      if (record?.isPinned) return 2;
+      if (isRemindHighlight(record)) return 1;
+      return 0;
+    }
+
+    function compareRecords(a, b) {
+      const tierA = orderTier(a);
+      const tierB = orderTier(b);
+      if (tierA !== tierB) return tierB - tierA;
+      const orderA = Number.isFinite(a.sortOrder) ? a.sortOrder : null;
+      const orderB = Number.isFinite(b.sortOrder) ? b.sortOrder : null;
+      if (orderA == null && orderB == null) {
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      }
+      if (orderA == null) return 1;
+      if (orderB == null) return -1;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+    }
+
+    async function uploadSortOrders(list) {
+      if (!sortOrderSupported) {
+        throw new Error("sort_order");
+      }
+      await Promise.all(list.map(async (record) => {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .update({ sort_order: record.sortOrder })
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+      }));
+    }
+
+    async function moveRecord(index, delta) {
+      if (movingRecord) return;
+      const entries = getFilteredRecordEntries();
+      const pos = entries.findIndex((entry) => entry.index === index);
+      const nextPos = pos + delta;
+      if (pos < 0 || nextPos < 0 || nextPos >= entries.length) return;
+      const current = entries[pos].r;
+      const neighbor = entries[nextPos].r;
+      if (!current || !neighbor || orderTier(current) !== orderTier(neighbor)) return;
+      const previous = records.map((record) => record.sortOrder);
+      const ordered = [...records].sort(compareRecords);
+      if (ordered.some((record) => !Number.isFinite(record.sortOrder))) {
+        ordered.forEach((record, orderIndex) => {
+          record.sortOrder = (orderIndex + 1) * 10;
+        });
+      }
+      const currentOrder = current.sortOrder;
+      current.sortOrder = neighbor.sortOrder;
+      neighbor.sortOrder = currentOrder;
+      renderRecords();
+      movingRecord = true;
+      try {
+        const changed = ordered.filter((record, orderIndex) => record.sortOrder !== previous[records.indexOf(record)]);
+        const payload = changed.length ? changed : [current, neighbor];
+        await uploadSortOrders(payload);
+        clearLocalRecordOrder();
+      } catch (err) {
+        console.error("上傳清單順序失敗", err);
+        alert(`上傳清單順序失敗：${formatSupabaseError(err)}`);
+        records.forEach((record, recordIndex) => {
+          record.sortOrder = previous[recordIndex];
+        });
+        renderRecords();
+      } finally {
+        movingRecord = false;
+      }
+    }
+
+    function recordHasLink(id) {
+      return recordLinks.some((link) => link.from === id || link.to === id);
+    }
+
+    function pruneRecordLinks() {
+      const ids = new Set(records.map((record) => record.id));
+      const next = recordLinks.filter((link) => ids.has(link.from) && ids.has(link.to));
+      if (linkSourceId && !ids.has(linkSourceId)) linkSourceId = "";
+      if (next.length === recordLinks.length) return;
+      recordLinks = next;
+      saveRecordLinks();
+    }
     if (workZone) {
       pageTitleEl.textContent = `Kilist（工區 ${workZone}）`;
       document.title = `Kilist（工區 ${workZone}）`;
     }
 
+    let zonePersons = [];
+    let vendorList = [];
+
+    function loadVendorList() {
+      try {
+        const raw = localStorage.getItem(VENDOR_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        vendorList = Array.isArray(parsed)
+          ? parsed.map((v) => String(v || "").trim()).filter(Boolean)
+          : [];
+      } catch {
+        vendorList = [];
+      }
+    }
+
+    function saveVendorList() {
+      try {
+        localStorage.setItem(VENDOR_STORAGE_KEY, JSON.stringify(vendorList));
+      } catch (err) {
+        console.warn("儲存廠商清單失敗", err);
+      }
+    }
+
+    function mergeVendorsFromRecords(rows) {
+      const known = new Set(vendorList);
+      let changed = false;
+      (rows || []).forEach((row) => {
+        const name = String(row.item || "").trim();
+        if (name && !known.has(name)) {
+          known.add(name);
+          vendorList.push(name);
+          changed = true;
+        }
+      });
+      if (changed) saveVendorList();
+    }
+
+    function fillVendorSelect(selectEl, selectedValue, options = {}) {
+      const {
+        placeholder = "請選擇廠商",
+        allowEmpty = true
+      } = options;
+      const prev = selectedValue != null ? String(selectedValue) : selectEl.value;
+      selectEl.innerHTML = "";
+      if (allowEmpty) {
+        const first = document.createElement("option");
+        first.value = "";
+        first.textContent = placeholder;
+        selectEl.appendChild(first);
+      }
+      vendorList.forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        selectEl.appendChild(option);
+      });
+      if (prev && [...selectEl.options].some((o) => o.value === prev)) {
+        selectEl.value = prev;
+      } else {
+        selectEl.value = "";
+      }
+    }
+
+    function refreshVendorSelects(preserveFilter = true) {
+      const filterPrev = preserveFilter ? filterVendorEl.value : "";
+      fillVendorSelect(vendorSelectEl, vendorSelectEl.value, {
+        placeholder: "請選擇廠商"
+      });
+      fillVendorSelect(filterVendorEl, filterPrev, {
+        placeholder: "全部廠商"
+      });
+    }
+
+    function renderVendorModalList() {
+      if (vendorModalHintEl) vendorModalHintEl.hidden = !vendorList.length;
+      if (!vendorList.length) {
+        vendorModalListEl.innerHTML = `<div class="vendor-modal-empty">目前尚無廠商，請於上方新增</div>`;
+        return;
+      }
+      vendorModalListEl.innerHTML = vendorList
+        .map(
+          (name, index) => `
+          <div class="vendor-modal-item" data-vendor-name="${escapeHtml(name)}">
+            <button type="button" class="vendor-drag-handle" draggable="true" aria-label="拖動排序「${escapeHtml(name)}」">
+              <svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true" focusable="false">
+                <circle cx="4" cy="3.2" r="1.35"></circle>
+                <circle cx="10" cy="3.2" r="1.35"></circle>
+                <circle cx="4" cy="9" r="1.35"></circle>
+                <circle cx="10" cy="9" r="1.35"></circle>
+                <circle cx="4" cy="14.8" r="1.35"></circle>
+                <circle cx="10" cy="14.8" r="1.35"></circle>
+              </svg>
+            </button>
+            <span>${escapeHtml(name)}</span>
+            <button type="button" class="vendor-delete-btn" data-vendor-index="${index}">刪除</button>
+          </div>`
+        )
+        .join("");
+    }
+
+    let vendorDrag = null;
+
+    function commitVendorOrderFromDom() {
+      const names = [...vendorModalListEl.querySelectorAll(".vendor-modal-item")]
+        .map((item) => item.dataset.vendorName || "");
+      if (!names.length || names.length !== vendorList.length || names.some((name) => !name)) return;
+      if (names.every((name, index) => name === vendorList[index])) return;
+      vendorList = names;
+      saveVendorList();
+      refreshVendorSelects();
+      vendorModalListEl.querySelectorAll(".vendor-delete-btn").forEach((btn, index) => {
+        btn.dataset.vendorIndex = String(index);
+      });
+    }
+
+    function moveVendorDragItem(clientY) {
+      if (!vendorDrag) return;
+      const item = vendorDrag.item;
+      const listRect = vendorModalListEl.getBoundingClientRect();
+      if (clientY < listRect.top + 32) vendorModalListEl.scrollTop -= 16;
+      else if (clientY > listRect.bottom - 32) vendorModalListEl.scrollTop += 16;
+
+      const items = [...vendorModalListEl.querySelectorAll(".vendor-modal-item")];
+      const dragIndex = items.indexOf(item);
+      if (dragIndex < 0 || !items.length) return;
+      const firstRect = items[0].getBoundingClientRect();
+      const lastRect = items[items.length - 1].getBoundingClientRect();
+      let targetIndex = dragIndex;
+      if (clientY <= firstRect.top) {
+        targetIndex = 0;
+      } else if (clientY >= lastRect.bottom) {
+        targetIndex = items.length - 1;
+      } else {
+        for (let i = 0; i < items.length; i += 1) {
+          if (i === dragIndex) continue;
+          const rect = items[i].getBoundingClientRect();
+          const mid = rect.top + rect.height / 2;
+          if (i < dragIndex && clientY < mid) {
+            targetIndex = i;
+            break;
+          }
+          if (i > dragIndex && clientY > mid) targetIndex = i;
+        }
+      }
+      if (targetIndex === dragIndex) return;
+      const target = items[targetIndex];
+      if (dragIndex < targetIndex) target.after(item);
+      else target.before(item);
+    }
+
+    function finishVendorDrag(event) {
+      if (!vendorDrag || (event && event.pointerId !== vendorDrag.pointerId)) return;
+      vendorDrag.item.classList.remove("is-dragging");
+      vendorDrag = null;
+      commitVendorOrderFromDom();
+    }
+
+    function openVendorModal() {
+      renderVendorModalList();
+      vendorModalEl.classList.add("is-open");
+      vendorModalEl.setAttribute("aria-hidden", "false");
+      vendorModalInputEl.value = "";
+      vendorModalInputEl.focus();
+    }
+
+    function closeVendorModal() {
+      if (vendorDrag) finishVendorDrag({ pointerId: vendorDrag.pointerId });
+      vendorModalEl.classList.remove("is-open");
+      vendorModalEl.setAttribute("aria-hidden", "true");
+    }
+
+    function addVendorFromModal() {
+      const name = vendorModalInputEl.value.trim();
+      if (!name) {
+        vendorModalInputEl.focus();
+        return;
+      }
+      if (vendorList.includes(name)) {
+        alert("此廠商已在清單中。");
+        vendorModalInputEl.focus();
+        return;
+      }
+      vendorList.push(name);
+      saveVendorList();
+      refreshVendorSelects();
+      renderVendorModalList();
+      vendorModalInputEl.value = "";
+      vendorModalInputEl.focus();
+    }
+
+    function removeVendorAt(index) {
+      const name = vendorList[index];
+      if (!name) return;
+      if (!window.confirm(`確定刪除廠商「${name}」？`)) return;
+      vendorList.splice(index, 1);
+      saveVendorList();
+      refreshVendorSelects();
+      renderVendorModalList();
+      renderRecords();
+    }
+
+    vendorEditBtnEl.addEventListener("click", openVendorModal);
+    vendorModalCloseEl.addEventListener("click", closeVendorModal);
+    vendorModalEl.addEventListener("click", (e) => {
+      if (e.target === vendorModalEl) closeVendorModal();
+    });
+    vendorModalAddBtnEl.addEventListener("click", addVendorFromModal);
+    vendorModalInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addVendorFromModal();
+      }
+    });
+    vendorModalListEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".vendor-delete-btn");
+      if (!btn) return;
+      removeVendorAt(Number(btn.dataset.vendorIndex));
+    });
+    vendorModalListEl.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse") return;
+      const handle = e.target.closest(".vendor-drag-handle");
+      if (!handle || !vendorModalListEl.contains(handle)) return;
+      const item = handle.closest(".vendor-modal-item");
+      if (!item) return;
+      e.preventDefault();
+      try {
+        handle.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      item.classList.add("is-dragging");
+      vendorDrag = { pointerId: e.pointerId, item };
+    });
+    vendorModalListEl.addEventListener("pointermove", (e) => {
+      if (!vendorDrag || e.pointerId !== vendorDrag.pointerId) return;
+      e.preventDefault();
+      moveVendorDragItem(e.clientY);
+    });
+    vendorModalListEl.addEventListener("pointerup", finishVendorDrag);
+    vendorModalListEl.addEventListener("pointercancel", finishVendorDrag);
+    vendorModalListEl.addEventListener("dragstart", (e) => {
+      const handle = e.target.closest(".vendor-drag-handle");
+      if (!handle || !vendorModalListEl.contains(handle)) return;
+      const item = handle.closest(".vendor-modal-item");
+      if (!item) return;
+      item.classList.add("is-dragging");
+      vendorDrag = { pointerId: "html5", item };
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", item.dataset.vendorName || "");
+        e.dataTransfer.setDragImage(item, 24, 20);
+      }
+    });
+    vendorModalEl.addEventListener("dragover", (e) => {
+      if (!vendorDrag || vendorDrag.pointerId !== "html5") return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      moveVendorDragItem(e.clientY);
+    });
+    vendorModalEl.addEventListener("drop", (e) => {
+      if (!vendorDrag || vendorDrag.pointerId !== "html5") return;
+      e.preventDefault();
+    });
+    vendorModalListEl.addEventListener("dragend", () => {
+      if (!vendorDrag || vendorDrag.pointerId !== "html5") return;
+      finishVendorDrag({ pointerId: "html5" });
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && vendorModalEl.classList.contains("is-open")) {
+        closeVendorModal();
+      }
+    });
+
     function setPersonOptions(items, placeholder) {
+      zonePersons = Array.isArray(items) ? items.slice() : [];
       personSelectEl.innerHTML = "";
       const first = document.createElement("option");
       first.value = "";
@@ -401,6 +1729,25 @@
         option.textContent = person.username;
         personSelectEl.appendChild(option);
       });
+      refreshFilterPersonOptions();
+    }
+
+    function refreshFilterPersonOptions() {
+      const prev = filterPersonEl.value;
+      filterPersonEl.innerHTML = "";
+      const first = document.createElement("option");
+      first.value = "";
+      first.textContent = "全部承辦";
+      filterPersonEl.appendChild(first);
+      zonePersons.forEach((person) => {
+        const option = document.createElement("option");
+        option.value = person.id;
+        option.textContent = person.username;
+        filterPersonEl.appendChild(option);
+      });
+      if (prev && [...filterPersonEl.options].some((o) => o.value === prev)) {
+        filterPersonEl.value = prev;
+      }
     }
 
     async function loadZonePersons() {
@@ -423,19 +1770,36 @@
           .sort((a, b) => a.username.localeCompare(b.username, "zh-Hant"));
 
         if (!members.length) {
-          setPersonOptions([], `工區 ${workZone} 尚無人員`);
+          setPersonOptions([], `工區 ${workZone} 尚無承辦`);
           return;
         }
-        setPersonOptions(members, "請選擇人員");
+        setPersonOptions(members, "請選擇承辦");
         personSelectEl.disabled = false;
       } catch (err) {
-        console.error("讀取人員清單失敗", err);
-        setPersonOptions([], "人員清單載入失敗");
+        console.error("讀取承辦清單失敗", err);
+        setPersonOptions([], "承辦清單載入失敗");
       }
     }
 
     let currentUsername = "";
     let currentUserId = "";
+    let currentPermissionLevel = null;
+
+    function canDeleteRecords() {
+      return currentPermissionLevel === 0 || currentPermissionLevel === 1;
+    }
+
+    function canPinRecords() {
+      return currentPermissionLevel === 0 || currentPermissionLevel === 1;
+    }
+
+    function isAssigneeViewer(record) {
+      return Boolean(currentUsername && record?.person && currentUsername === record.person);
+    }
+
+    function isRemindHighlight(record) {
+      return Boolean(record?.isRemind && isAssigneeViewer(record) && !record?.isPinned);
+    }
 
     async function loadCurrentUsername() {
       try {
@@ -444,10 +1808,12 @@
         currentUserId = user.id;
         const { data: profile } = await sb
           .from(PROFILE_TABLE)
-          .select("username")
+          .select("username, permission_level")
           .eq("id", user.id)
           .maybeSingle();
         currentUsername = String(profile?.username ?? "").trim();
+        const level = Number(String(profile?.permission_level ?? "").trim());
+        currentPermissionLevel = Number.isFinite(level) ? level : null;
       } catch (err) {
         console.error("讀取登入使用者失敗", err);
       }
@@ -460,12 +1826,16 @@
       if (/kilist_records|42P01|PGRST205/i.test(msg)) {
         return "資料表尚未建立，請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql";
       }
+      if (/is_remind|is_pinned|sort_order|PGRST204/i.test(msg)) {
+        return "請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql（補齊 is_remind、is_pinned、sort_order 欄位）";
+      }
       return msg;
     }
 
     function normalizeRow(row) {
       return {
         id: row.id,
+        personId: row.person_id ? String(row.person_id) : "",
         person: String(row.person_name ?? "").trim(),
         item: String(row.item ?? "").trim(),
         note: String(row.note ?? "").trim(),
@@ -473,8 +1843,80 @@
         checkedBy: String(row.checked_by ?? "").trim(),
         checkedAt: row.checked_at || "",
         notes: Array.isArray(row.notes) ? row.notes : [],
-        isAddingNote: false
+        isRemind: Boolean(row.is_remind),
+        isPinned: Boolean(row.is_pinned),
+        sortOrder: row.sort_order == null || row.sort_order === "" ? null : Number(row.sort_order),
+        isAddingNote: false,
+        isAddingOpen: false,
+        editingNoteIndex: -1,
+        isEditing: false,
+        notesExpanded: false
       };
+    }
+
+    function buildPersonOptionsHtml(selectedId, selectedName) {
+      const options = [`<option value="">請選擇承辦</option>`];
+      let matched = false;
+      zonePersons.forEach((person) => {
+        const selected = person.id === selectedId ? " selected" : "";
+        if (selected) matched = true;
+        options.push(`<option value="${escapeHtml(person.id)}"${selected}>${escapeHtml(person.username)}</option>`);
+      });
+      if (!matched && selectedName) {
+        options.push(`<option value="" selected>${escapeHtml(selectedName)}</option>`);
+      }
+      return options.join("");
+    }
+
+    function buildVendorOptionsHtml(selectedName) {
+      const selected = String(selectedName || "").trim();
+      const options = [`<option value="">請選擇廠商</option>`];
+      let matched = false;
+      vendorList.forEach((name) => {
+        const isSelected = name === selected ? " selected" : "";
+        if (isSelected) matched = true;
+        options.push(`<option value="${escapeHtml(name)}"${isSelected}>${escapeHtml(name)}</option>`);
+      });
+      if (!matched && selected) {
+        options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)}</option>`);
+      }
+      return options.join("");
+    }
+
+    function supplementalNotes(notes) {
+      return (notes || []).filter((note) => note?.kind !== "open");
+    }
+
+    function openItemsOf(notes) {
+      return (notes || []).filter((note) => note?.kind === "open");
+    }
+    function notesNewestFirst(notes) {
+      return [...(notes || [])].sort((a, b) => {
+        const ta = new Date(a?.at || 0).getTime();
+        const tb = new Date(b?.at || 0).getTime();
+        return tb - ta;
+      });
+    }
+
+    function getFilteredRecordEntries() {
+      const personFilter = filterPersonEl.value;
+      const vendorFilter = filterVendorEl.value;
+      const personName = personFilter
+        ? String(filterPersonEl.selectedOptions[0]?.textContent || "").trim()
+        : "";
+      return records
+        .map((r, index) => ({ r, index }))
+        .filter(({ r }) => {
+          if (!showCheckedRecords && r.checkedBy) return false;
+          if (personFilter) {
+            const matchId = r.personId && r.personId === personFilter;
+            const matchName = personName && r.person === personName;
+            if (!matchId && !matchName) return false;
+          }
+          if (vendorFilter && r.item !== vendorFilter) return false;
+          return true;
+        })
+        .sort((a, b) => compareRecords(a.r, b.r));
     }
 
     async function loadRecords() {
@@ -483,20 +1925,66 @@
         return;
       }
       try {
-        const { data, error } = await sb
+        let columns = KILIST_COLUMNS;
+        let query = await sb
           .from(KILIST_TABLE)
-          .select(KILIST_COLUMNS)
+          .select(columns)
           .eq("work_zone", workZone)
-          .order("created_at", { ascending: false });
-        if (error) throw new Error(error.message);
+          .order("created_at", { ascending: true });
+        if (query.error && /sort_order/i.test(query.error.message || "")) {
+          sortOrderSupported = false;
+          columns = KILIST_COLUMNS.replace(", sort_order", "");
+          query = await sb
+            .from(KILIST_TABLE)
+            .select(columns)
+            .eq("work_zone", workZone)
+            .order("created_at", { ascending: true });
+        }
+        if (query.error) throw new Error(query.error.message);
         records.length = 0;
-        (data || []).forEach((row) => records.push(normalizeRow(row)));
+        (query.data || []).forEach((row) => records.push(normalizeRow(row)));
+        const importedLocalOrder = applyImportedLocalOrder();
+        mergeVendorsFromRecords(records);
+        refreshVendorSelects();
         renderRecords();
+        if (importedLocalOrder && sortOrderSupported) {
+          try {
+            await uploadSortOrders(records);
+            clearLocalRecordOrder();
+          } catch (err) {
+            console.error("上傳既有清單順序失敗", err);
+            alert(`上傳既有清單順序失敗：${formatSupabaseError(err)}`);
+          }
+        }
       } catch (err) {
         console.error("讀取紀錄失敗", err);
         listEl.className = "empty-hint";
         listEl.textContent = `紀錄載入失敗：${formatSupabaseError(err)}`;
       }
+    }
+
+    function applyImportedLocalOrder() {
+      if (!recordOrder.length || records.some((record) => Number.isFinite(record.sortOrder))) {
+        if (records.some((record) => Number.isFinite(record.sortOrder))) clearLocalRecordOrder();
+        return false;
+      }
+      const byId = new Map(records.map((record) => [record.id, record]));
+      const sequence = [];
+      const seen = new Set();
+      recordOrder.forEach((id) => {
+        const record = byId.get(id);
+        if (!record || seen.has(record)) return;
+        sequence.push(record);
+        seen.add(record);
+      });
+      records
+        .filter((record) => !seen.has(record))
+        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+        .forEach((record) => sequence.push(record));
+      sequence.forEach((record, index) => {
+        record.sortOrder = (index + 1) * 10;
+      });
+      return true;
     }
 
     function escapeHtml(value) {
@@ -522,68 +2010,578 @@
       return Number.isNaN(date.getTime()) ? "" : formatTime(date);
     }
 
+    let linkDrawFrame = 0;
+    let linkParticleFrame = 0;
+
+    function scheduleDrawLinks() {
+      window.cancelAnimationFrame(linkDrawFrame);
+      linkDrawFrame = window.requestAnimationFrame(drawRecordLinks);
+    }
+
+    function linkPoint(dot, boardRect) {
+      const rect = dot.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2 - boardRect.left,
+        y: rect.top + rect.height / 2 - boardRect.top
+      };
+    }
+
+    function shortenToward(from, to, distance) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy) || 1;
+      return {
+        x: to.x - (dx / length) * distance,
+        y: to.y - (dy / length) * distance
+      };
+    }
+
+    function circleArc(start, through, end) {
+      const ax = start.x;
+      const ay = start.y;
+      const bx = through.x;
+      const by = through.y;
+      const cx = end.x;
+      const cy = end.y;
+      const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+      if (!Number.isFinite(d) || Math.abs(d) < 0.01) {
+        return `L ${cx.toFixed(1)} ${cy.toFixed(1)}`;
+      }
+      const a2 = ax * ax + ay * ay;
+      const b2 = bx * bx + by * by;
+      const c2 = cx * cx + cy * cy;
+      const ux = (a2 * (by - cy) + b2 * (cy - ay) + c2 * (ay - by)) / d;
+      const uy = (a2 * (cx - bx) + b2 * (ax - cx) + c2 * (bx - ax)) / d;
+      const radius = Math.hypot(ax - ux, ay - uy);
+      const cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+      const sweep = cross > 0 ? 1 : 0;
+      return `A ${radius.toFixed(1)} ${radius.toFixed(1)} 0 0 ${sweep} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
+    }
+
+    function drawRecordLinks() {
+      if (!recordLinkPathsEl || !recordBoardEl) return;
+      if (!listEl.classList.contains("record-list")) {
+        recordLinkPathsEl.innerHTML = "";
+        window.cancelAnimationFrame(linkParticleFrame);
+        return;
+      }
+      const boardRect = recordBoardEl.getBoundingClientRect();
+      const points = new Map();
+      listEl.querySelectorAll(".link-dot").forEach((dot) => {
+        if (dot.dataset.id) points.set(dot.dataset.id, linkPoint(dot, boardRect));
+      });
+      const drawable = [];
+      recordLinks.forEach((link) => {
+        const start = points.get(link.from);
+        const end = points.get(link.to);
+        if (!start || !end) return;
+        const dy = Math.abs(end.y - start.y);
+        drawable.push({ start, end, dy });
+      });
+      const nearestDy = drawable.reduce((min, link) => link.dy > 0 ? Math.min(min, link.dy) : min, Infinity);
+      const baseRight = Number.isFinite(nearestDy) ? nearestDy * 0.1 : 0;
+      recordLinkPathsEl.innerHTML = drawable.map((link) => {
+        const origin = { x: link.start.x, y: link.start.y };
+        const target = { x: link.end.x, y: link.end.y };
+        const scale = nearestDy > 0 && link.dy > 0 ? link.dy / nearestDy : 1;
+        const right = Math.min(baseRight * scale * 1.5, 345);
+        const through = {
+          x: (origin.x + target.x) / 2 + right,
+          y: (origin.y + target.y) / 2
+        };
+        const tip = shortenToward(through, target, 7);
+        const path = `M ${origin.x.toFixed(1)} ${origin.y.toFixed(1)} ${circleArc(origin, through, tip)}`;
+        return `<path class="record-link-line" d="${path}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.6" marker-end="url(#record-link-arrow)"></path><circle class="record-link-particle" r="2.6" fill="url(#record-link-grain)"></circle><circle class="record-link-particle" r="2.6" fill="url(#record-link-grain)"></circle>`;
+      }).join("");
+      window.cancelAnimationFrame(linkParticleFrame);
+      const particles = [...recordLinkPathsEl.querySelectorAll(".record-link-particle")];
+      const motions = [...recordLinkPathsEl.querySelectorAll(".record-link-line")].map((line, index) => {
+        const pair = particles.slice(index * 2, index * 2 + 2);
+        const length = line.getTotalLength();
+        return pair.length === 2 && length ? { line, particles: pair, length, duration: Math.max(1200, length * 4.5) * 4 } : null;
+      }).filter(Boolean);
+      if (!motions.length) return;
+      const started = performance.now();
+      const moveParticles = (now) => {
+        motions.forEach((item) => {
+          item.particles.forEach((particle, index) => {
+            if (!particle.isConnected) return;
+            const progress = ((now - started) / item.duration + index * 0.5) % 1;
+            const point = item.line.getPointAtLength(item.length * progress);
+            particle.setAttribute("cx", point.x.toFixed(1));
+            particle.setAttribute("cy", point.y.toFixed(1));
+          });
+        });
+        if (motions.some((item) => item.particles.some((particle) => particle.isConnected))) {
+          linkParticleFrame = window.requestAnimationFrame(moveParticles);
+        }
+      };
+      linkParticleFrame = window.requestAnimationFrame(moveParticles);
+    }
+
+    function refreshLinkDots() {
+      listEl.querySelectorAll(".link-dot").forEach((dot) => {
+        const id = dot.dataset.id || "";
+        const isSource = id === linkSourceId;
+        dot.classList.toggle("is-source", isSource);
+        dot.classList.toggle("is-linked", recordHasLink(id));
+        dot.setAttribute("aria-pressed", isSource ? "true" : "false");
+        if (isSource) dot.title = "再點一次可取消選取";
+        else if (linkSourceId) dot.title = "點此完成連線";
+        else dot.title = "點此開始連線";
+      });
+    }
+
+    function toggleRecordLink(id) {
+      if (!id) return;
+      if (!linkSourceId) {
+        linkSourceId = id;
+        refreshLinkDots();
+        return;
+      }
+      if (linkSourceId === id) {
+        linkSourceId = "";
+        refreshLinkDots();
+        return;
+      }
+      const from = linkSourceId;
+      const existing = recordLinks.findIndex((link) => link.from === from && link.to === id);
+      if (existing >= 0) recordLinks.splice(existing, 1);
+      else recordLinks.push({ from, to: id });
+      linkSourceId = "";
+      saveRecordLinks();
+      refreshLinkDots();
+      scheduleDrawLinks();
+    }
+
+    const NOTE_PENCIL_SVG = `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9.7 2.3 13.7 6.3 5.1 14.9 1.1 15.3 1.5 11.3 9.7 2.3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M8.4 3.6 12.4 7.6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>`;
+
+    function buildNoteEditorHtml(index, noteIndex = -1) {
+      const editing = noteIndex >= 0;
+      const inputClass = editing ? "note-input note-edit-input" : "note-input";
+      const confirmClass = editing ? "note-confirm-btn note-edit-confirm" : "note-confirm-btn";
+      const cancelClass = editing ? "note-cancel-btn note-edit-cancel" : "note-cancel-btn";
+      const noteAttr = editing ? ` data-note-index="${noteIndex}"` : "";
+      return `<div class="note-editor">
+        <div class="note-toolbar" role="toolbar" aria-label="文字格式">
+          <label class="note-tool-size" title="文字大小">Aa
+            <select class="note-size" aria-label="文字大小">
+              <option value="200%">+100%</option>
+              <option value="175%">+75%</option>
+              <option value="150%">+50%</option>
+              <option value="125%">+25%</option>
+              <option value="100%" selected>+0%</option>
+            </select>
+          </label>
+          <button type="button" data-cmd="bold" aria-label="粗體" title="粗體" aria-pressed="false"><b>B</b></button>
+          <button type="button" data-cmd="italic" aria-label="斜體" title="斜體" aria-pressed="false"><i>I</i></button>
+          <button type="button" data-cmd="underline" aria-label="底線" title="底線" aria-pressed="false"><u>U</u></button>
+          <label class="note-tool-color" title="顏色">
+            <span class="note-color-mark" aria-hidden="true">A</span>
+            <input type="color" class="note-color" value="#8b9cb3" aria-label="顏色">
+          </label>
+          <button type="button" data-cmd="outdent" aria-label="減少縮排" title="減少縮排">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path d="M6 3h8M6 8h8M6 13h8M4 5.2 1.6 8 4 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </button>
+          <button type="button" data-cmd="indent" aria-label="增加縮排" title="增加縮排">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path d="M2 3h8M2 8h8M2 13h8M12 5.2 14.4 8 12 10.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="note-add-row">
+          <div class="${inputClass}" contenteditable="true" role="textbox" aria-multiline="true" data-index="${index}"${noteAttr} data-empty="true" data-placeholder="輸入補充說明（可換行，Ctrl+Enter 送出）" aria-label="補充說明"></div>
+          <div class="note-actions">
+            <button type="button" class="${confirmClass}" data-index="${index}"${noteAttr}>確定</button>
+            <button type="button" class="${cancelClass}" data-index="${index}"${noteAttr}>取消</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
     function renderRecords() {
       if (!records.length) {
         listEl.className = "empty-hint";
         listEl.textContent = "目前尚無資料";
+        scheduleDrawLinks();
         return;
       }
+      const entries = getFilteredRecordEntries();
+      if (!entries.length) {
+        listEl.className = "empty-hint";
+        listEl.textContent = "沒有符合篩選條件的資料";
+        scheduleDrawLinks();
+        return;
+      }
+      pruneRecordLinks();
       listEl.className = "record-list";
-      listEl.innerHTML = records
-        .map((r, index) => {
+      listEl.innerHTML = entries
+        .map(({ r, index }) => {
           const content = [r.person, r.item, r.note].filter(Boolean).join(" | ");
           const checkInfo = r.checkedBy
             ? `<span class="record-check-info">✓ ${escapeHtml(r.checkedBy)} ${escapeHtml(formatTs(r.checkedAt))}</span>`
             : "";
-          const notesHtml = r.notes.length
-            ? `<div class="record-notes">${r.notes
-                .map(
-                  (note) => `
-                  <div class="record-note-line">
-                    <span class="note-text">${escapeHtml(note.text)}</span>
+          const displayNotes = notesNewestFirst(supplementalNotes(r.notes));
+          const NOTES_PREVIEW = 3;
+          const hasMoreNotes = displayNotes.length > NOTES_PREVIEW;
+          const visibleNotes = r.notesExpanded || !hasMoreNotes
+            ? displayNotes
+            : displayNotes.slice(0, NOTES_PREVIEW);
+          const hiddenCount = displayNotes.length - NOTES_PREVIEW;
+          const notesToggleHtml = hasMoreNotes
+            ? `<button type="button" class="notes-toggle-btn" data-index="${index}">
+                ${r.notesExpanded ? "收合" : `展開其餘 ${hiddenCount} 筆`}
+              </button>`
+            : "";
+          const notesHtml = displayNotes.length
+            ? `<div class="record-notes">${visibleNotes
+                .map((note) => {
+                  const sourceIndex = r.notes.indexOf(note);
+                  const editingNote = r.editingNoteIndex === sourceIndex;
+                  return `
+                  <div class="record-note-line${editingNote ? " is-editing" : ""}">
                     <span class="note-meta">${escapeHtml(note.by || "")} ${escapeHtml(formatTs(note.at))}</span>
-                  </div>`
-                )
-                .join("")}</div>`
+                    ${editingNote
+                      ? buildNoteEditorHtml(index, sourceIndex)
+                      : `<span class="note-text">${renderNoteText(note.text)}</span>
+                         <button type="button" class="note-edit-btn" data-index="${index}" data-note-index="${sourceIndex}" aria-label="編輯補充說明" title="編輯補充說明">${NOTE_PENCIL_SVG}</button>`}
+                    <button type="button" class="note-remove-btn" data-index="${index}" data-note-index="${sourceIndex}" aria-label="刪除補充說明">×</button>
+                  </div>`;
+                })
+                .join("")}${notesToggleHtml}</div>`
             : "";
           const noteEditor = r.isAddingNote
-            ? `<div class="note-add-row">
-                <input type="text" class="note-input" data-index="${index}" placeholder="輸入文字說明" aria-label="文字說明">
-                <button type="button" class="note-confirm-btn" data-index="${index}">確定</button>
+            ? buildNoteEditorHtml(index)
+            : `<div class="note-add-actions">
+                <div class="note-add-wrap">
+                  <button type="button" class="note-add-btn" data-index="${index}" aria-label="新增補充說明">＋</button>
+                  <span class="note-add-label">補充說明</span>
+                </div>
+                ${r.isAddingOpen
+                  ? `<div class="open-item-draft">
+                      <input type="checkbox" class="open-item-check" disabled aria-hidden="true">
+                      <input type="text" class="open-item-input" data-index="${index}" placeholder="輸入開項說明" aria-label="開項說明">
+                      <button type="button" class="note-confirm-btn open-item-confirm" data-index="${index}">確定</button>
+                      <button type="button" class="note-cancel-btn open-item-cancel" data-index="${index}">取消</button>
+                    </div>`
+                  : `<div class="note-add-wrap">
+                      <button type="button" class="note-add-btn is-open open-add-btn" data-index="${index}" aria-label="新增開項">＋</button>
+                      <span class="note-add-label">新增開項</span>
+                    </div>`}
+              </div>`;
+
+          const openItems = openItemsOf(r.notes);
+          const openItemsHtml = openItems.length
+            ? `<div class="open-items">${openItems.map((item) => {
+                const editingItem = r.editingOpenId === item.id;
+                const openId = escapeHtml(item.id || "");
+                return `
+                <div class="open-item${item.checked ? " is-checked" : ""}">
+                  <input type="checkbox" class="open-item-check" data-index="${index}" data-open-id="${openId}" ${item.checked ? "checked" : ""} ${editingItem ? "disabled" : ""} aria-label="勾核開項">
+                  ${editingItem
+                    ? `<input type="text" class="open-item-input open-item-edit-input" data-index="${index}" data-open-id="${openId}" value="${escapeHtml(item.text || "")}" aria-label="編輯開項說明">
+                       <button type="button" class="note-confirm-btn open-item-edit-confirm" data-index="${index}" data-open-id="${openId}">確定</button>
+                       <button type="button" class="note-cancel-btn open-item-edit-cancel" data-index="${index}" data-open-id="${openId}">取消</button>`
+                    : `<span class="open-item-text">${escapeHtml(item.text || "")}</span>
+                       ${item.checked ? `<span class="open-item-check-info">${escapeHtml(item.checkedBy || "")} ${escapeHtml(formatTs(item.checkedAt))}</span>` : ""}
+                       <button type="button" class="open-item-edit" data-index="${index}" data-open-id="${openId}" aria-label="編輯開項" title="編輯開項">
+                         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9.7 2.3 13.7 6.3 5.1 14.9 1.1 15.3 1.5 11.3 9.7 2.3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M8.4 3.6 12.4 7.6" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>
+                       </button>`}
+                  <button type="button" class="open-item-remove" data-index="${index}" data-open-id="${openId}" aria-label="刪除開項">×</button>
+                </div>`;
+              }).join("")}</div>`
+            : "";
+
+          const mainContent = r.isEditing
+            ? `<div class="record-edit-row">
+                <select class="edit-person" data-index="${index}" aria-label="承辦">${buildPersonOptionsHtml(r.personId, r.person)}</select>
+                <select class="edit-item" data-index="${index}" aria-label="廠商">${buildVendorOptionsHtml(r.item)}</select>
+                <input type="text" class="edit-note" data-index="${index}" value="${escapeHtml(r.note)}" placeholder="內容" aria-label="內容">
+                <button type="button" class="edit-save-btn" data-index="${index}">儲存</button>
+                <button type="button" class="edit-cancel-btn" data-index="${index}">取消</button>
               </div>`
-            : `<button type="button" class="note-add-btn" data-index="${index}" aria-label="新增文字說明">＋</button>`;
-          return `
-          <div class="record-item">
-            <div class="record-main">
-              <span class="record-content">${escapeHtml(content)}</span>
+            : `<span class="record-content">${escapeHtml(content)}</span>
               <span class="record-time">${escapeHtml(formatTs(r.createdAt))}</span>
               ${checkInfo}
+              <button type="button" class="edit-btn" data-index="${index}">編輯</button>
               <button type="button" class="check-btn ${r.checkedBy ? "is-checked" : ""}" data-index="${index}">
                 ${r.checkedBy ? "已勾核" : "勾核"}
               </button>
+              <button type="button" class="remind-btn ${r.isRemind ? "is-on" : ""}" data-index="${index}">
+                ${r.isRemind ? "取消提醒" : "提醒"}
+              </button>
+              ${canPinRecords()
+                ? `<button type="button" class="pin-btn ${r.isPinned ? "is-on" : ""}" data-index="${index}">
+                    ${r.isPinned ? "取消置頂" : "置頂"}
+                  </button>`
+                : ""}
+              ${canDeleteRecords() ? `<button type="button" class="delete-btn" data-index="${index}">刪除</button>` : ""}`;
+
+          const itemClass = [
+            "record-item",
+            r.isPinned ? "is-pinned" : "",
+            isRemindHighlight(r) ? "is-remind" : "",
+            r.checkedBy ? "is-checked" : ""
+          ].filter(Boolean).join(" ");
+
+          const pos = entries.findIndex((entry) => entry.index === index);
+          const canUp = pos > 0 && orderTier(entries[pos - 1].r) === orderTier(r);
+          const canDown = pos >= 0 && pos < entries.length - 1 && orderTier(entries[pos + 1].r) === orderTier(r);
+          const linkTitle = linkSourceId === r.id
+            ? "再點一次可取消選取"
+            : linkSourceId
+              ? "點此完成連線"
+              : "點此開始連線";
+          return `
+          <div class="${itemClass}">
+            <div class="record-order">
+              <button type="button" class="order-btn order-up" data-index="${index}" aria-label="上移" title="上移" ${canUp ? "" : "disabled"}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.2 10.2 8 5.2 12.8 10.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </button>
+              <button type="button" class="order-btn order-down" data-index="${index}" aria-label="下移" title="下移" ${canDown ? "" : "disabled"}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.2 5.8 8 10.8 12.8 5.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </button>
             </div>
+            <button type="button" class="${linkDotClass(r.id)}" data-id="${escapeHtml(r.id)}" aria-label="連線" aria-pressed="${linkSourceId === r.id ? "true" : "false"}" title="${escapeHtml(linkTitle)}"></button>
+            <div class="record-main">
+              ${mainContent}
+            </div>
+            ${openItemsHtml}
             ${notesHtml}
-            ${noteEditor}
+            ${r.isEditing ? "" : noteEditor}
           </div>`;
         })
         .join("");
+      scheduleDrawLinks();
+    }
+
+    function linkDotClass(id) {
+      const classes = ["link-dot"];
+      if (id === linkSourceId) classes.push("is-source");
+      if (recordHasLink(id)) classes.push("is-linked");
+      return classes.join(" ");
+    }
+
+    const NOTE_FONT_SIZES = new Set(["100%", "125%", "150%", "175%", "200%"]);
+    const noteSelectionMap = new WeakMap();
+
+    function normalizeNoteColor(value) {
+      const raw = String(value || "").trim();
+      if (/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+      const rgb = raw.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+      if (!rgb) return "";
+      const nums = rgb.slice(1, 4).map(Number);
+      if (nums.some((n) => n > 255)) return "";
+      return `rgb(${nums.join(", ")})`;
+    }
+
+    function sanitizeNoteHtml(html) {
+      const template = document.createElement("template");
+      template.innerHTML = String(html || "");
+      const allowed = new Set(["B", "STRONG", "I", "EM", "U", "SPAN", "DIV", "P", "BR", "BLOCKQUOTE", "FONT"]);
+      const dropped = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "LINK", "META"]);
+      const clean = (node) => {
+        [...node.childNodes].forEach((child) => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            child.textContent = child.textContent.replace(/\u200b/g, "");
+            return;
+          }
+          if (child.nodeType !== Node.ELEMENT_NODE) {
+            child.remove();
+            return;
+          }
+          if (dropped.has(child.tagName)) {
+            child.remove();
+            return;
+          }
+          clean(child);
+          if (!allowed.has(child.tagName)) {
+            const parent = child.parentNode;
+            while (child.firstChild) parent.insertBefore(child.firstChild, child);
+            child.remove();
+            return;
+          }
+          const style = {};
+          const fontSize = child.style?.fontSize || "";
+          if (NOTE_FONT_SIZES.has(fontSize)) style.fontSize = fontSize;
+          const color = normalizeNoteColor(child.style?.color || child.getAttribute("color") || "");
+          if (color) style.color = color;
+          const weight = child.style?.fontWeight || "";
+          if (weight === "bold" || weight === "700") style.fontWeight = "700";
+          if (child.style?.fontStyle === "italic") style.fontStyle = "italic";
+          const decoration = `${child.style?.textDecoration || ""} ${child.style?.textDecorationLine || ""}`;
+          if (decoration.includes("underline")) style.textDecoration = "underline";
+          const margin = child.style?.marginLeft || "";
+          if (/^\d+(?:\.\d+)?px$/.test(margin)) {
+            const amount = Number.parseFloat(margin);
+            if (amount > 0 && amount <= 240) style.marginLeft = `${amount}px`;
+          }
+          [...child.attributes].forEach((attr) => child.removeAttribute(attr.name));
+          Object.entries(style).forEach(([key, value]) => {
+            child.style[key] = value;
+          });
+        });
+      };
+      clean(template.content);
+      return template.innerHTML.replace(/\u200b/g, "").trim();
+    }
+
+    function notePlainText(html) {
+      const holder = document.createElement("div");
+      holder.innerHTML = String(html || "");
+      return (holder.textContent || "").replace(/\u200b/g, "").trim();
+    }
+
+    function renderNoteText(text) {
+      const raw = String(text || "");
+      if (!/<\/?(b|strong|i|em|u|span|div|p|br|blockquote|font)\b/i.test(raw)) return escapeHtml(raw);
+      return sanitizeNoteHtml(raw);
+    }
+
+    let noteSelectionLock = false;
+
+    function rememberNoteSelection(editor) {
+      if (noteSelectionLock) return;
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount || !editor) return;
+      const range = selection.getRangeAt(0);
+      if (range.commonAncestorContainer !== editor && !editor.contains(range.commonAncestorContainer)) return;
+      noteSelectionMap.set(editor, range.cloneRange());
+    }
+
+    function focusNoteEditor(editor) {
+      if (!editor) return;
+      const range = noteSelectionMap.get(editor);
+      noteSelectionLock = true;
+      editor.focus();
+      if (range) {
+        try {
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (_) {
+          noteSelectionMap.delete(editor);
+        }
+      }
+      noteSelectionLock = false;
+    }
+
+    function syncNoteToolbar(editor) {
+      const toolbar = editor?.closest(".note-editor")?.querySelector(".note-toolbar");
+      if (!toolbar) return;
+      ["bold", "italic", "underline"].forEach((command) => {
+        const button = toolbar.querySelector(`[data-cmd="${command}"]`);
+        let active = false;
+        try {
+          active = document.queryCommandState(command);
+        } catch (_) {}
+        button?.classList.toggle("is-on", active);
+        button?.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    function applyNoteFontSize(editor, size) {
+      if (!editor || !NOTE_FONT_SIZES.has(size)) return;
+      focusNoteEditor(editor);
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      if (range.commonAncestorContainer !== editor && !editor.contains(range.commonAncestorContainer)) return;
+      const span = document.createElement("span");
+      span.style.fontSize = size;
+      if (range.collapsed) {
+        span.appendChild(document.createTextNode("\u200b"));
+        range.insertNode(span);
+        const caret = document.createRange();
+        caret.setStart(span.firstChild, 1);
+        caret.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(caret);
+      } else {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const next = document.createRange();
+        next.selectNodeContents(span);
+        next.collapse(false);
+        selection.addRange(next);
+      }
+      editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
+      rememberNoteSelection(editor);
+    }
+
+    function applyNoteColor(editor, color) {
+      const normalized = normalizeNoteColor(color);
+      if (!editor || !normalized) return;
+      focusNoteEditor(editor);
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      if (range.commonAncestorContainer !== editor && !editor.contains(range.commonAncestorContainer)) return;
+      const span = document.createElement("span");
+      span.style.color = normalized;
+      if (range.collapsed) {
+        span.appendChild(document.createTextNode("\u200b"));
+        range.insertNode(span);
+        const caret = document.createRange();
+        caret.setStart(span.firstChild, 1);
+        caret.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(caret);
+      } else {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const next = document.createRange();
+        next.selectNodeContents(span);
+        next.collapse(false);
+        selection.addRange(next);
+      }
+      editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
+      rememberNoteSelection(editor);
+    }
+
+    function applyNoteCommand(editor, command, value) {
+      if (!editor) return;
+      if (command === "color") {
+        applyNoteColor(editor, value);
+        return;
+      }
+      focusNoteEditor(editor);
+      if (command === "bold" || command === "italic" || command === "underline" || command === "indent" || command === "outdent") {
+        document.execCommand("styleWithCSS", false, false);
+        document.execCommand(command, false, null);
+      }
+      editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
+      rememberNoteSelection(editor);
+      syncNoteToolbar(editor);
+    }
+
+    function cancelNote(index) {
+      const record = records[index];
+      if (!record) return;
+      record.isAddingNote = false;
+      renderRecords();
     }
 
     async function confirmNote(index) {
       const record = records[index];
       if (!record) return;
-      const input = listEl.querySelector(`.note-input[data-index="${index}"]`);
-      const text = (input?.value || "").trim();
+      const input = listEl.querySelector(`.note-input[data-index="${index}"]:not(.note-edit-input)`);
+      const html = sanitizeNoteHtml(input?.innerHTML || "");
+      const text = notePlainText(html);
       if (text) {
         if (!currentUsername) {
           alert("無法取得人員，請先至 login.html 登入。");
           return;
         }
-        const nextNotes = [...record.notes, {
-          text,
+        const nextNotes = [{
+          text: html,
           by: currentUsername,
           at: new Date().toISOString()
-        }];
+        }, ...record.notes];
         try {
           const { error } = await sb
             .from(KILIST_TABLE)
@@ -598,6 +2596,262 @@
         }
       }
       record.isAddingNote = false;
+      record.editingNoteIndex = -1;
+      renderRecords();
+    }
+
+    function startEditNote(index, noteIndex) {
+      const record = records[index];
+      const note = record?.notes?.[noteIndex];
+      if (!record || !note || note.kind === "open") return;
+      records.forEach((r) => {
+        r.editingNoteIndex = -1;
+        r.isAddingNote = false;
+        r.isAddingOpen = false;
+        r.editingOpenId = "";
+      });
+      record.editingNoteIndex = noteIndex;
+      record.notesExpanded = true;
+      renderRecords();
+      const input = listEl.querySelector(`.note-edit-input[data-index="${index}"]`);
+      if (!input) return;
+      input.innerHTML = renderNoteText(note.text);
+      input.dataset.empty = notePlainText(input.innerHTML) ? "false" : "true";
+      input.focus();
+    }
+
+    function cancelEditNote(index) {
+      const record = records[index];
+      if (!record) return;
+      record.editingNoteIndex = -1;
+      renderRecords();
+    }
+
+    async function saveNoteEdit(index, noteIndex) {
+      const record = records[index];
+      const note = record?.notes?.[noteIndex];
+      if (!record || !note || note.kind === "open") return;
+      const input = listEl.querySelector(`.note-edit-input[data-index="${index}"]`);
+      const html = sanitizeNoteHtml(input?.innerHTML || "");
+      const text = notePlainText(html);
+      if (!text) {
+        input?.focus();
+        return;
+      }
+      const nextNotes = record.notes.map((item, itemIndex) => (
+        itemIndex === noteIndex ? { ...item, text: html } : item
+      ));
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("編輯補充說明失敗", err);
+        alert(`編輯補充說明失敗：${formatSupabaseError(err)}`);
+        return;
+      }
+      record.editingNoteIndex = -1;
+      renderRecords();
+    }
+
+    async function removeNote(index, noteIndex) {
+      const record = records[index];
+      const note = record?.notes?.[noteIndex];
+      if (!record || !note || note.kind === "open") return;
+      const nextNotes = record.notes.filter((_, itemIndex) => itemIndex !== noteIndex);
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("刪除補充說明失敗", err);
+        alert(`刪除補充說明失敗：${formatSupabaseError(err)}`);
+        return;
+      }
+      record.editingNoteIndex = -1;
+      renderRecords();
+    }
+
+    async function saveNotes(record, nextNotes) {
+      const { error } = await sb
+        .from(KILIST_TABLE)
+        .update({ notes: nextNotes })
+        .eq("id", record.id);
+      if (error) throw new Error(error.message);
+      record.notes = nextNotes;
+    }
+
+    function cancelOpenItem(index) {
+      const record = records[index];
+      if (!record) return;
+      record.isAddingOpen = false;
+      record.editingOpenId = "";
+      renderRecords();
+    }
+
+    async function confirmOpenItem(index) {
+      const record = records[index];
+      if (!record) return;
+      const input = listEl.querySelector(`.open-item-input[data-index="${index}"]:not(.open-item-edit-input)`);
+      const text = String(input?.value || "").trim();
+      if (!text) {
+        input?.focus();
+        return;
+      }
+      if (!currentUsername) {
+        alert("無法取得人員，請先至 login.html 登入。");
+        return;
+      }
+      const nextNotes = [...record.notes, {
+        kind: "open",
+        id: crypto.randomUUID(),
+        text,
+        checked: false,
+        by: currentUsername,
+        at: new Date().toISOString()
+      }];
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("儲存補充開項失敗", err);
+        alert(`儲存補充開項失敗：${formatSupabaseError(err)}`);
+        return;
+      }
+      record.isAddingOpen = false;
+      record.editingOpenId = "";
+      renderRecords();
+    }
+
+    function startEditOpenItem(index, openId) {
+      const record = records[index];
+      if (!record || !openId) return;
+      records.forEach((r) => {
+        r.editingOpenId = "";
+        r.isAddingOpen = false;
+      });
+      record.editingOpenId = openId;
+      renderRecords();
+      const input = listEl.querySelector(`.open-item-edit-input[data-open-id="${CSS.escape(openId)}"]`);
+      input?.focus();
+      input?.select();
+    }
+
+    function cancelEditOpenItem(index) {
+      const record = records[index];
+      if (!record) return;
+      record.editingOpenId = "";
+      renderRecords();
+    }
+
+    async function saveOpenItemEdit(index, openId) {
+      const record = records[index];
+      if (!record || !openId) return;
+      const input = listEl.querySelector(`.open-item-edit-input[data-open-id="${CSS.escape(openId)}"]`);
+      const text = String(input?.value || "").trim();
+      if (!text) {
+        input?.focus();
+        return;
+      }
+      const nextNotes = record.notes.map((note) => (
+        note?.kind === "open" && note.id === openId ? { ...note, text } : note
+      ));
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("編輯補充開項失敗", err);
+        alert(`編輯補充開項失敗：${formatSupabaseError(err)}`);
+        return;
+      }
+      record.editingOpenId = "";
+      renderRecords();
+    }
+
+    async function toggleOpenItem(index, openId, checked) {
+      const record = records[index];
+      if (!record || !openId) return;
+      if (checked && !currentUsername) {
+        alert("無法取得勾核人員，請先至 login.html 登入。");
+        renderRecords();
+        return;
+      }
+      const nextNotes = record.notes.map((note) => {
+        if (!(note?.kind === "open" && note.id === openId)) return note;
+        if (!checked) return { ...note, checked: false, checkedBy: "", checkedAt: "" };
+        return {
+          ...note,
+          checked: true,
+          checkedBy: currentUsername,
+          checkedAt: new Date().toISOString()
+        };
+      });
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("更新補充開項失敗", err);
+        alert(`更新補充開項失敗：${formatSupabaseError(err)}`);
+      }
+      renderRecords();
+    }
+
+    async function removeOpenItem(index, openId) {
+      const record = records[index];
+      if (!record || !openId) return;
+      const nextNotes = record.notes.filter((note) => !(note?.kind === "open" && note.id === openId));
+      try {
+        await saveNotes(record, nextNotes);
+      } catch (err) {
+        console.error("刪除補充開項失敗", err);
+        alert(`刪除補充開項失敗：${formatSupabaseError(err)}`);
+        return;
+      }
+      renderRecords();
+    }
+
+    async function saveEdit(index) {
+      const record = records[index];
+      if (!record) return;
+      const personSelect = listEl.querySelector(`.edit-person[data-index="${index}"]`);
+      const itemSelect = listEl.querySelector(`.edit-item[data-index="${index}"]`);
+      const noteInput = listEl.querySelector(`.edit-note[data-index="${index}"]`);
+      const personId = personSelect?.value || "";
+      const personName = personId
+        ? (personSelect.selectedOptions[0]?.textContent || "").trim()
+        : (personSelect?.selectedOptions[0]?.textContent || record.person || "").trim();
+      if (!personName || personName === "請選擇承辦") {
+        alert("請選擇承辦。");
+        personSelect?.focus();
+        return;
+      }
+      const item = (itemSelect?.value || "").trim();
+      const note = (noteInput?.value || "").trim();
+      try {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .update({
+            person_id: personId || null,
+            person_name: personName,
+            item,
+            note
+          })
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+        record.personId = personId;
+        record.person = personName;
+        record.item = item;
+        record.note = note;
+        record.isEditing = false;
+        if (item && !vendorList.includes(item)) {
+          vendorList.push(item);
+          saveVendorList();
+          refreshVendorSelects();
+        }
+        renderRecords();
+      } catch (err) {
+        console.error("儲存編輯失敗", err);
+        alert(`儲存編輯失敗：${formatSupabaseError(err)}`);
+      }
+    }
+
+    function cancelEdit(index) {
+      const record = records[index];
+      if (!record) return;
+      record.isEditing = false;
       renderRecords();
     }
 
@@ -629,30 +2883,315 @@
       }
     }
 
+    async function toggleRemind(index) {
+      const record = records[index];
+      if (!record) return;
+      const next = !record.isRemind;
+      try {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .update({ is_remind: next })
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+        record.isRemind = next;
+        renderRecords();
+      } catch (err) {
+        console.error("提醒更新失敗", err);
+        alert(`提醒更新失敗：${formatSupabaseError(err)}`);
+      }
+    }
+
+    async function togglePin(index) {
+      const record = records[index];
+      if (!record) return;
+      if (!canPinRecords()) {
+        alert("僅權限等級 0 或 1 的使用者可操作置頂。");
+        return;
+      }
+      const next = !record.isPinned;
+      try {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .update({ is_pinned: next })
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+        record.isPinned = next;
+        renderRecords();
+      } catch (err) {
+        console.error("置頂更新失敗", err);
+        alert(`置頂更新失敗：${formatSupabaseError(err)}`);
+      }
+    }
+
+    async function deleteRecord(index) {
+      const record = records[index];
+      if (!record) return;
+      if (!canDeleteRecords()) {
+        alert("僅權限等級 0 或 1 的使用者可刪除紀錄。");
+        return;
+      }
+      const label = [record.person, record.item, record.note].filter(Boolean).join(" | ");
+      if (!confirm(`確定要刪除「${label}」嗎？此動作無法復原。`)) return;
+      try {
+        const { error } = await sb
+          .from(KILIST_TABLE)
+          .delete()
+          .eq("id", record.id);
+        if (error) throw new Error(error.message);
+        records.splice(index, 1);
+        recordLinks = recordLinks.filter((link) => link.from !== record.id && link.to !== record.id);
+        if (linkSourceId === record.id) linkSourceId = "";
+        saveRecordLinks();
+        renderRecords();
+      } catch (err) {
+        console.error("刪除紀錄失敗", err);
+        alert(`刪除紀錄失敗：${formatSupabaseError(err)}`);
+      }
+    }
+
     listEl.addEventListener("click", (e) => {
+      const linkDot = e.target.closest(".link-dot");
+      if (linkDot) {
+        e.preventDefault();
+        toggleRecordLink(linkDot.dataset.id || "");
+        return;
+      }
+      const orderBtn = e.target.closest(".order-btn");
+      if (orderBtn) {
+        if (orderBtn.disabled) return;
+        moveRecord(Number(orderBtn.dataset.index), orderBtn.classList.contains("order-up") ? -1 : 1);
+        return;
+      }
       const checkBtn = e.target.closest(".check-btn");
       if (checkBtn) {
         toggleCheck(Number(checkBtn.dataset.index));
+        return;
+      }
+      const remindBtn = e.target.closest(".remind-btn");
+      if (remindBtn) {
+        toggleRemind(Number(remindBtn.dataset.index));
+        return;
+      }
+      const pinBtn = e.target.closest(".pin-btn");
+      if (pinBtn) {
+        togglePin(Number(pinBtn.dataset.index));
+        return;
+      }
+      const editBtn = e.target.closest(".edit-btn");
+      if (editBtn) {
+        const idx = Number(editBtn.dataset.index);
+        const record = records[idx];
+        if (!record) return;
+        records.forEach((r) => {
+          r.isEditing = false;
+          r.isAddingNote = false;
+          r.isAddingOpen = false;
+          r.editingNoteIndex = -1;
+          r.editingOpenId = "";
+        });
+        record.isEditing = true;
+        renderRecords();
+        listEl.querySelector(`.edit-item[data-index="${idx}"]`)?.focus();
+        return;
+      }
+      const saveBtn = e.target.closest(".edit-save-btn");
+      if (saveBtn) {
+        saveEdit(Number(saveBtn.dataset.index));
+        return;
+      }
+      const cancelBtn = e.target.closest(".edit-cancel-btn");
+      if (cancelBtn) {
+        cancelEdit(Number(cancelBtn.dataset.index));
+        return;
+      }
+      const deleteBtn = e.target.closest(".delete-btn");
+      if (deleteBtn) {
+        deleteRecord(Number(deleteBtn.dataset.index));
+        return;
+      }
+      const notesToggleBtn = e.target.closest(".notes-toggle-btn");
+      if (notesToggleBtn) {
+        const record = records[Number(notesToggleBtn.dataset.index)];
+        if (!record) return;
+        record.notesExpanded = !record.notesExpanded;
+        renderRecords();
+        return;
+      }
+      const openAddBtn = e.target.closest(".open-add-btn");
+      if (openAddBtn) {
+        const record = records[Number(openAddBtn.dataset.index)];
+        if (!record) return;
+        if (record.isAddingOpen) {
+          listEl.querySelector(`.open-item-input[data-index="${openAddBtn.dataset.index}"]`)?.focus();
+          return;
+        }
+        records.forEach((r) => {
+          r.isAddingOpen = false;
+          r.isAddingNote = false;
+          r.isEditing = false;
+          r.editingNoteIndex = -1;
+          r.editingOpenId = "";
+        });
+        record.isAddingOpen = true;
+        renderRecords();
+        listEl.querySelector(`.open-item-input[data-index="${openAddBtn.dataset.index}"]`)?.focus();
+        return;
+      }
+      const openConfirmBtn = e.target.closest(".open-item-confirm");
+      if (openConfirmBtn) {
+        confirmOpenItem(Number(openConfirmBtn.dataset.index));
+        return;
+      }
+      const openCancelBtn = e.target.closest(".open-item-cancel");
+      if (openCancelBtn) {
+        cancelOpenItem(Number(openCancelBtn.dataset.index));
+        return;
+      }
+      const openEditBtn = e.target.closest(".open-item-edit");
+      if (openEditBtn) {
+        startEditOpenItem(Number(openEditBtn.dataset.index), openEditBtn.dataset.openId || "");
+        return;
+      }
+      const openEditConfirmBtn = e.target.closest(".open-item-edit-confirm");
+      if (openEditConfirmBtn) {
+        saveOpenItemEdit(Number(openEditConfirmBtn.dataset.index), openEditConfirmBtn.dataset.openId || "");
+        return;
+      }
+      const openEditCancelBtn = e.target.closest(".open-item-edit-cancel");
+      if (openEditCancelBtn) {
+        cancelEditOpenItem(Number(openEditCancelBtn.dataset.index));
+        return;
+      }
+      const openRemoveBtn = e.target.closest(".open-item-remove");
+      if (openRemoveBtn) {
+        removeOpenItem(Number(openRemoveBtn.dataset.index), openRemoveBtn.dataset.openId || "");
+        return;
+      }
+      const noteEditBtn = e.target.closest(".note-edit-btn");
+      if (noteEditBtn) {
+        startEditNote(Number(noteEditBtn.dataset.index), Number(noteEditBtn.dataset.noteIndex));
+        return;
+      }
+      const noteEditConfirmBtn = e.target.closest(".note-edit-confirm");
+      if (noteEditConfirmBtn) {
+        saveNoteEdit(Number(noteEditConfirmBtn.dataset.index), Number(noteEditConfirmBtn.dataset.noteIndex));
+        return;
+      }
+      const noteEditCancelBtn = e.target.closest(".note-edit-cancel");
+      if (noteEditCancelBtn) {
+        cancelEditNote(Number(noteEditCancelBtn.dataset.index));
+        return;
+      }
+      const noteRemoveBtn = e.target.closest(".note-remove-btn");
+      if (noteRemoveBtn) {
+        removeNote(Number(noteRemoveBtn.dataset.index), Number(noteRemoveBtn.dataset.noteIndex));
         return;
       }
       const addBtn = e.target.closest(".note-add-btn");
       if (addBtn) {
         const record = records[Number(addBtn.dataset.index)];
         if (!record) return;
-        records.forEach((r) => { r.isAddingNote = false; });
+        records.forEach((r) => {
+          r.isAddingNote = false;
+          r.isAddingOpen = false;
+          r.isEditing = false;
+          r.editingNoteIndex = -1;
+          r.editingOpenId = "";
+        });
         record.isAddingNote = true;
         renderRecords();
-        listEl.querySelector(`.note-input[data-index="${addBtn.dataset.index}"]`)?.focus();
+        listEl.querySelector(`.note-input[data-index="${addBtn.dataset.index}"]:not(.note-edit-input)`)?.focus();
         return;
       }
       const confirmBtn = e.target.closest(".note-confirm-btn");
       if (confirmBtn) {
         confirmNote(Number(confirmBtn.dataset.index));
+        return;
+      }
+      const noteCancelBtn = e.target.closest(".note-cancel-btn");
+      if (noteCancelBtn) {
+        cancelNote(Number(noteCancelBtn.dataset.index));
+        return;
+      }
+      const formatBtn = e.target.closest(".note-toolbar [data-cmd]");
+      if (formatBtn) {
+        const editor = formatBtn.closest(".note-editor")?.querySelector(".note-input");
+        applyNoteCommand(editor, formatBtn.dataset.cmd);
       }
     });
 
+    listEl.addEventListener("mousedown", (e) => {
+      const editor = e.target.closest(".note-editor")?.querySelector(".note-input");
+      if (editor && e.target.closest(".note-toolbar")) rememberNoteSelection(editor);
+      if (e.target.closest(".note-toolbar button")) e.preventDefault();
+    });
+
+    listEl.addEventListener("change", (e) => {
+      const sizeSelect = e.target.closest(".note-size");
+      if (!sizeSelect) return;
+      const editor = sizeSelect.closest(".note-editor")?.querySelector(".note-input");
+      applyNoteFontSize(editor, sizeSelect.value);
+    });
+
+    listEl.addEventListener("input", (e) => {
+      const colorInput = e.target.closest(".note-color");
+      if (colorInput) {
+        const editor = colorInput.closest(".note-editor")?.querySelector(".note-input");
+        applyNoteCommand(editor, "color", colorInput.value);
+        return;
+      }
+      const editor = e.target.closest(".note-input");
+      if (!editor) return;
+      editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
+    });
+
+    document.addEventListener("selectionchange", () => {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      const anchor = selection.anchorNode;
+      const element = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+      const editor = element?.closest?.(".note-input");
+      if (!editor || !listEl.contains(editor)) return;
+      rememberNoteSelection(editor);
+      syncNoteToolbar(editor);
+    });
+
+    listEl.addEventListener("change", (e) => {
+      const check = e.target.closest(".open-item-check");
+      if (!check || check.disabled) return;
+      toggleOpenItem(Number(check.dataset.index), check.dataset.openId || "", check.checked);
+    });
+
     listEl.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
+      const openEditInput = e.target.closest(".open-item-edit-input");
+      if (openEditInput) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveOpenItemEdit(Number(openEditInput.dataset.index), openEditInput.dataset.openId || "");
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          cancelEditOpenItem(Number(openEditInput.dataset.index));
+        }
+        return;
+      }
+      const openInput = e.target.closest(".open-item-input");
+      if (openInput) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          confirmOpenItem(Number(openInput.dataset.index));
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          cancelOpenItem(Number(openInput.dataset.index));
+        }
+        return;
+      }
+      if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey)) return;
+      const editInput = e.target.closest(".note-edit-input");
+      if (editInput) {
+        e.preventDefault();
+        saveNoteEdit(Number(editInput.dataset.index), Number(editInput.dataset.noteIndex));
+        return;
+      }
       const input = e.target.closest(".note-input");
       if (!input) return;
       e.preventDefault();
@@ -666,7 +3205,7 @@
       const personOption = personSelectEl.selectedOptions[0];
       const person = personSelectEl.value ? personOption.textContent : "";
       if (!person) {
-        alert("請先選擇人員。");
+        alert("請先選擇承辦。");
         personSelectEl.focus();
         return;
       }
@@ -674,28 +3213,33 @@
         alert("請先至 login.html 登入後再新增紀錄。");
         return;
       }
-      const itemOption = itemSelectEl.selectedOptions[0];
-      const item = itemSelectEl.value ? itemOption.textContent : "";
+      const item = vendorSelectEl.value || "";
       const note = noteInputEl.value.trim();
+      const maxSortOrder = records.reduce((max, record) => (
+        Number.isFinite(record.sortOrder) ? Math.max(max, record.sortOrder) : max
+      ), null);
+      const payload = {
+        work_zone: workZone,
+        person_id: personSelectEl.value || null,
+        person_name: person,
+        item,
+        note,
+        created_by: currentUserId
+      };
+      if (sortOrderSupported && maxSortOrder != null) payload.sort_order = maxSortOrder + 10;
 
       addingRecord = true;
       recordBtnEl.disabled = true;
       try {
         const { data, error } = await sb
           .from(KILIST_TABLE)
-          .insert({
-            work_zone: workZone,
-            person_id: personSelectEl.value || null,
-            person_name: person,
-            item,
-            note,
-            created_by: currentUserId
-          })
-          .select(KILIST_COLUMNS)
+          .insert(payload)
+          .select(sortOrderSupported ? KILIST_COLUMNS : KILIST_COLUMNS.replace(", sort_order", ""))
           .single();
         if (error) throw new Error(error.message);
-        records.unshift(normalizeRow(data));
+        records.push(normalizeRow(data));
         renderRecords();
+        listEl.querySelector(`.link-dot[data-id="${CSS.escape(data.id)}"]`)?.closest(".record-item")?.scrollIntoView({ block: "nearest" });
         noteInputEl.value = "";
         noteInputEl.focus();
       } catch (err) {
@@ -715,9 +3259,33 @@
       }
     });
 
+    filterPersonEl.addEventListener("change", renderRecords);
+    filterVendorEl.addEventListener("change", renderRecords);
+    clearFilterBtnEl.addEventListener("click", () => {
+      filterPersonEl.value = "";
+      filterVendorEl.value = "";
+      renderRecords();
+    });
+    checkedToggleBtnEl.addEventListener("click", () => {
+      showCheckedRecords = !showCheckedRecords;
+      syncCheckedToggleBtn();
+      renderRecords();
+    });
+    syncCheckedToggleBtn();
+
+    loadRecordLinks();
+    loadRecordOrder();
+    if (recordBoardEl && typeof ResizeObserver !== "undefined") {
+      const linkObserver = new ResizeObserver(() => scheduleDrawLinks());
+      linkObserver.observe(recordBoardEl);
+    }
+    window.addEventListener("resize", scheduleDrawLinks);
+
     async function bootstrap() {
       listEl.className = "empty-hint";
       listEl.textContent = "載入中…";
+      loadVendorList();
+      refreshVendorSelects();
       await loadCurrentUsername();
       await Promise.all([loadZonePersons(), loadRecords()]);
     }
