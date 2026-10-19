@@ -1852,12 +1852,9 @@
           }))
           .sort((a, b) => a.username.localeCompare(b.username, "zh-Hant"));
 
-        if (!members.length) {
-          setPersonOptions([], `工區 ${workZone} 尚無承辦`);
-          return;
-        }
-        setPersonOptions(members, "請選擇承辦");
+        setPersonOptions(members, members.length ? "請選擇承辦" : `工區 ${workZone} 尚無承辦`);
         personSelectEl.disabled = false;
+        filterPersonEl.disabled = false;
       } catch (err) {
         console.error("讀取承辦清單失敗", err);
         setPersonOptions([], "承辦清單載入失敗");
