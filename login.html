@@ -176,6 +176,17 @@
       height: 18px;
       display: block;
     }
+    .link-btn {
+      align-self: center;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      padding: 2px 0 0;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .link-btn:hover { color: var(--accent-hover); text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -184,7 +195,7 @@
       <h1>QT</h1>
       <p class="hint">註冊後需後台批准，並設定權限才能登入使用。</p>
 
-      <div class="tabs">
+      <div class="tabs" id="auth-tabs">
         <button class="tab-btn active" id="tab-login" type="button">登入</button>
         <button class="tab-btn" id="tab-register" type="button">註冊</button>
       </div>
@@ -198,16 +209,22 @@
           <label for="account">帳號（建議使用 Email）</label>
           <input id="account" type="email" autocomplete="email" placeholder="you@example.com" required />
         </div>
-        <div>
-          <label for="password">密碼</label>
+        <div id="password-wrap">
+          <label for="password" id="password-label">密碼</label>
           <input id="password" type="password" autocomplete="current-password" minlength="6" required />
         </div>
-        <div class="remember-wrap">
+        <div id="confirm-wrap" class="hidden">
+          <label for="confirm-password">確認新密碼</label>
+          <input id="confirm-password" type="password" autocomplete="new-password" minlength="6" />
+        </div>
+        <div class="remember-wrap" id="remember-wrap">
           <input id="remember-me" type="checkbox" checked />
           <label for="remember-me">記住我</label>
         </div>
         <div class="actions">
           <button class="submit-btn" id="submit-btn" type="submit">登入</button>
+          <button class="link-btn" id="forgot-btn" type="button">忘記密碼</button>
+          <button class="link-btn hidden" id="back-login-btn" type="button">返回登入</button>
           <p id="status" role="status" aria-live="polite"></p>
         </div>
       </form>
@@ -234,12 +251,21 @@
 
     const tabLogin = document.getElementById("tab-login");
     const tabRegister = document.getElementById("tab-register");
+    const authTabs = document.getElementById("auth-tabs");
     const form = document.getElementById("auth-form");
     const usernameWrap = document.getElementById("username-wrap");
     const usernameInput = document.getElementById("username");
     const accountInput = document.getElementById("account");
+    const accountLabel = document.querySelector('label[for="account"]');
+    const passwordWrap = document.getElementById("password-wrap");
+    const passwordLabel = document.getElementById("password-label");
     const passwordInput = document.getElementById("password");
+    const confirmWrap = document.getElementById("confirm-wrap");
+    const confirmPasswordInput = document.getElementById("confirm-password");
+    const rememberWrap = document.getElementById("remember-wrap");
     const rememberMeInput = document.getElementById("remember-me");
+    const forgotBtn = document.getElementById("forgot-btn");
+    const backLoginBtn = document.getElementById("back-login-btn");
     const submitBtn = document.getElementById("submit-btn");
     const statusEl = document.getElementById("status");
     const profileBox = document.getElementById("profile-box");
@@ -292,12 +318,38 @@
     function switchMode(nextMode) {
       mode = nextMode;
       const isRegister = mode === "register";
-      tabLogin.classList.toggle("active", !isRegister);
+      const isForgot = mode === "forgot";
+      const isNewPassword = mode === "new-password";
+      authTabs.classList.toggle("hidden", isNewPassword);
+      tabLogin.classList.toggle("active", mode === "login" || isForgot);
       tabRegister.classList.toggle("active", isRegister);
       usernameWrap.classList.toggle("hidden", !isRegister);
-      submitBtn.textContent = isRegister ? "註冊" : "登入";
-      passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+      passwordWrap.classList.toggle("hidden", isForgot);
+      confirmWrap.classList.toggle("hidden", !isNewPassword);
+      rememberWrap.classList.toggle("hidden", mode !== "login");
+      forgotBtn.classList.toggle("hidden", mode !== "login");
+      backLoginBtn.classList.toggle("hidden", !isForgot && !isNewPassword);
+      accountInput.required = !isNewPassword;
+      accountInput.parentElement.classList.toggle("hidden", isNewPassword);
+      passwordInput.required = !isForgot;
+      confirmPasswordInput.required = isNewPassword;
+      passwordLabel.textContent = isNewPassword ? "新密碼" : "密碼";
+      passwordInput.autocomplete = isRegister || isNewPassword ? "new-password" : "current-password";
+      submitBtn.textContent = isRegister ? "註冊" : isForgot ? "寄出重設信" : isNewPassword ? "更新密碼" : "登入";
+      if (accountLabel) {
+        accountLabel.textContent = isForgot ? "註冊時的 Email" : "帳號（建議使用 Email）";
+      }
       setStatus("");
+    }
+
+    function recoveryRedirectUrl() {
+      return `${window.location.origin}${window.location.pathname}?type=recovery`;
+    }
+
+    function isRecoveryVisit() {
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      return query.get("type") === "recovery" || hash.get("type") === "recovery";
     }
 
     function showProfile(profile) {
@@ -361,6 +413,15 @@
 
     tabLogin.addEventListener("click", () => switchMode("login"));
     tabRegister.addEventListener("click", () => switchMode("register"));
+    forgotBtn.addEventListener("click", () => {
+      switchMode("forgot");
+      setStatus("輸入註冊時的 Email，系統會寄出重設密碼連結。", "");
+    });
+    backLoginBtn.addEventListener("click", async () => {
+      window.history.replaceState({}, "", window.location.pathname);
+      if (mode === "new-password") await supabase.auth.signOut();
+      switchMode("login");
+    });
     rememberMeInput.addEventListener("change", () => {
       localStorage.setItem(REMEMBER_KEY, rememberMeInput.checked ? "1" : "0");
       if (!rememberMeInput.checked) {
@@ -391,8 +452,13 @@
       const password = passwordInput.value;
       const username = usernameInput.value.trim();
 
-      if (!account || !password) {
-        setStatus("請輸入帳號與密碼。", "error");
+      if (mode !== "new-password" && !account) {
+        setStatus("請輸入帳號。", "error");
+        return;
+      }
+
+      if (mode !== "forgot" && !password) {
+        setStatus(mode === "new-password" ? "請輸入新密碼。" : "請輸入帳號與密碼。", "error");
         return;
       }
 
@@ -402,6 +468,43 @@
       }
 
       submitBtn.disabled = true;
+
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(account, {
+          redirectTo: recoveryRedirectUrl()
+        });
+        submitBtn.disabled = false;
+        if (error) {
+          setStatus(`寄送失敗：${error.message}`, "error");
+          return;
+        }
+        setStatus("如果此 Email 已註冊，將收到重設密碼信。請到信箱開啟連結。", "success");
+        return;
+      }
+
+      if (mode === "new-password") {
+        if (password.length < 6) {
+          submitBtn.disabled = false;
+          setStatus("新密碼至少 6 個字元。", "error");
+          return;
+        }
+        if (password !== confirmPasswordInput.value) {
+          submitBtn.disabled = false;
+          setStatus("兩次密碼不一致。", "error");
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        submitBtn.disabled = false;
+        if (error) {
+          setStatus(`更新失敗：${error.message}`, "error");
+          return;
+        }
+        window.history.replaceState({}, "", window.location.pathname);
+        setStatus("密碼已更新。", "success");
+        const ok = await loadProfileAndValidate();
+        if (ok) window.location.href = getPostLoginRedirect();
+        return;
+      }
 
       if (mode === "register") {
         const { error } = await supabase.auth.signUp({
@@ -460,9 +563,21 @@
       const savedAccount = localStorage.getItem(REMEMBER_ACCOUNT_KEY) || "";
       accountInput.value = savedAccount;
     }
-    loadProfileAndValidate().then((ok) => {
-      if (ok) {
-        window.location.href = getPostLoginRedirect();
+    if (isRecoveryVisit()) {
+      switchMode("new-password");
+      setStatus("請設定新密碼。若連結已失效，請回到登入頁重新申請。", "");
+    } else {
+      loadProfileAndValidate().then((ok) => {
+        if (ok) {
+          window.location.href = getPostLoginRedirect();
+        }
+      });
+    }
+
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        switchMode("new-password");
+        setStatus("請設定新密碼。", "");
       }
     });
   </script>
