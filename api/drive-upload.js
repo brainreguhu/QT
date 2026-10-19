@@ -143,6 +143,26 @@ function parseGoogleBody(buffer) {
   }
 }
 
+function googleErrorText(detail, status) {
+  const err = detail?.error;
+  if (err && typeof err === "object") {
+    const parts = [];
+    if (err.message) parts.push(String(err.message));
+    if (Array.isArray(err.errors)) {
+      err.errors.forEach((item) => {
+        const bit = [item?.reason, item?.message].filter(Boolean).join(" ");
+        if (bit && !parts.includes(bit)) parts.push(bit);
+      });
+    }
+    if (parts.length) return parts.join("：");
+  }
+  if (typeof err === "string" && err) return err;
+  if (detail?.error_description) return String(detail.error_description);
+  const raw = String(detail?.raw || "").trim();
+  if (raw) return raw.slice(0, 300);
+  return `Google 回應 ${status}`;
+}
+
 function googleRawRequest(rawUrl, { method = "GET", headers = {}, body = null } = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(rawUrl);
@@ -191,7 +211,7 @@ async function startResumableUpload({ accessToken, metadata, mimeType, fileSize,
     const uploadUrl = location ? new URL(location, url).toString() : "";
     if (!uploadUrl || !isAllowedUploadUrl(uploadUrl)) {
       const detail = parseGoogleBody(response.body);
-      throw new Error(detail.error?.message || detail.error_description || detail.raw || `無法建立上傳工作階段（${response.status}）`);
+      throw new Error(googleErrorText(detail, response.status));
     }
     return uploadUrl;
   }
@@ -346,21 +366,36 @@ async function handleSession(req, res) {
     return;
   }
 
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID;
+  const folderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID).trim();
   const accessToken = await getAccessToken();
   const origin = resolveUploadOrigin(req, body.origin);
-  const uploadUrl = await startResumableUpload({
-    accessToken,
-    metadata: {
-      name: fileName,
-      parents: [folderId]
-    },
-    mimeType,
-    fileSize,
-    origin
-  });
+  const metadata = {
+    name: fileName,
+    parents: [folderId]
+  };
+  let direct = Boolean(origin);
+  let uploadUrl = "";
+  try {
+    uploadUrl = await startResumableUpload({
+      accessToken,
+      metadata,
+      mimeType,
+      fileSize,
+      origin: direct ? origin : ""
+    });
+  } catch (error) {
+    if (!direct || String(error?.message || "").trim() !== "Bad Request") throw error;
+    direct = false;
+    uploadUrl = await startResumableUpload({
+      accessToken,
+      metadata,
+      mimeType,
+      fileSize,
+      origin: ""
+    });
+  }
 
-  sendJson(res, 200, { uploadUrl, mimeType, fileSize });
+  sendJson(res, 200, { uploadUrl, mimeType, fileSize, direct });
 }
 
 function chunkContentRange(req) {
@@ -402,7 +437,7 @@ async function handleChunk(req, res) {
 
   const uploaded = parseGoogleBody(googleRes.body);
   if (googleRes.status < 200 || googleRes.status >= 300) {
-    throw new Error(uploaded.error?.message || uploaded.raw || `Google Drive 分塊上傳失敗（${googleRes.status}）`);
+    throw new Error(googleErrorText(uploaded, googleRes.status));
   }
 
   sendJson(res, 200, {
@@ -415,7 +450,7 @@ async function handleChunk(req, res) {
 async function handleLegacyUpload(req, res, fileBuffer) {
   const fileName = safeFileName(req.headers["x-file-name"]);
   const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID;
+  const folderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID).trim();
   const accessToken = await getAccessToken();
   const { body, contentType } = buildMultipart(
     {
@@ -436,7 +471,7 @@ async function handleLegacyUpload(req, res, fileBuffer) {
   });
   const uploaded = await uploadRes.json();
   if (!uploadRes.ok) {
-    throw new Error(uploaded.error?.message || "Google Drive 上傳失敗");
+    throw new Error(googleErrorText(uploaded, uploadRes.status));
   }
 
   sendJson(res, 200, {
