@@ -1366,11 +1366,12 @@
     }
 
     async function syncRecordLinks() {
-      if (!workZone) return;
-      const query = await sb
-        .from(KILIST_LINKS_TABLE)
-        .select("from_id, to_id")
-        .eq("work_zone", workZone);
+      if (!workZone && !viewerAllZones) return;
+      let linkQuery = sb.from(KILIST_LINKS_TABLE).select("from_id, to_id");
+      if (!(viewerAllZones && (!workZone || workZone === "0"))) {
+        linkQuery = linkQuery.eq("work_zone", workZone);
+      }
+      const query = await linkQuery;
       if (query.error) {
         const message = query.error.message || "";
         if (/kilist_links|42P01|PGRST205/i.test(message)) {
@@ -1523,7 +1524,7 @@
           });
       });
     }
-    if (workZone) {
+    if (workZone && workZone !== "0") {
       pageTitleEl.textContent = `Kilist（工區 ${workZone}）`;
       document.title = `Kilist（工區 ${workZone}）`;
     }
@@ -1844,28 +1845,30 @@
     }
 
     async function loadZonePersons() {
-      if (!workZone) {
+      const personZone = viewerAllZones && (!workZone || workZone === "0") ? "0" : workZone;
+      if (!personZone) {
         setPersonOptions([], "未指定工區");
         return;
       }
       try {
-        const rpc = await sb.rpc("kilist_zone_persons", { p_zone: workZone });
+        const rpc = await sb.rpc("kilist_zone_persons", { p_zone: personZone });
         if (rpc.error) throw rpc.error;
 
         const members = membersFromProfiles(rpc.data);
-        setPersonOptions(members, members.length ? "請選擇承辦" : `工區 ${workZone} 尚無承辦`);
+        const emptyLabel = personZone === "0" ? "尚無承辦" : `工區 ${personZone} 尚無承辦`;
+        setPersonOptions(members, members.length ? "請選擇承辦" : emptyLabel);
         personSelectEl.disabled = false;
         filterPersonEl.disabled = false;
       } catch (err) {
         console.error("讀取同工區承辦失敗", err);
         try {
-          const { data, error } = await sb
-            .from(PROFILE_TABLE)
-            .select("id, username, 工區")
-            .eq("工區", workZone);
+          let profileQuery = sb.from(PROFILE_TABLE).select("id, username, 工區");
+          if (personZone !== "0") profileQuery = profileQuery.eq("工區", personZone);
+          const { data, error } = await profileQuery;
           if (error) throw error;
           const members = membersFromProfiles(data);
-          setPersonOptions(members, members.length ? "請選擇承辦" : `工區 ${workZone} 尚無承辦`);
+          const emptyLabel = personZone === "0" ? "尚無承辦" : `工區 ${personZone} 尚無承辦`;
+          setPersonOptions(members, members.length ? "請選擇承辦" : emptyLabel);
           personSelectEl.disabled = false;
           filterPersonEl.disabled = false;
           const msg = err?.message ? String(err.message) : "";
@@ -1882,6 +1885,7 @@
     let currentUsername = "";
     let currentUserId = "";
     let currentPermissionLevel = null;
+    let viewerAllZones = false;
 
     function canDeleteRecords() {
       return currentPermissionLevel === 0 || currentPermissionLevel === 1;
@@ -1906,10 +1910,15 @@
         currentUserId = user.id;
         const { data: profile } = await sb
           .from(PROFILE_TABLE)
-          .select("username, permission_level")
+          .select("username, permission_level, 工區")
           .eq("id", user.id)
           .maybeSingle();
         currentUsername = String(profile?.username ?? "").trim();
+        viewerAllZones = String(profile?.["工區"] ?? "").trim() === "0";
+        if (viewerAllZones && (!workZone || workZone === "0")) {
+          pageTitleEl.textContent = "Kilist（所有工區）";
+          document.title = "Kilist（所有工區）";
+        }
         const level = Number(String(profile?.permission_level ?? "").trim());
         currentPermissionLevel = Number.isFinite(level) ? level : null;
       } catch (err) {
@@ -2020,26 +2029,27 @@
         .sort((a, b) => compareRecords(a.r, b.r));
     }
 
+    function scopeKilistZone(query) {
+      if (viewerAllZones && (!workZone || workZone === "0")) return query;
+      return query.eq("work_zone", workZone);
+    }
+
     async function loadRecords() {
-      if (!workZone) {
+      if (!workZone && !viewerAllZones) {
         renderRecords();
         return;
       }
       try {
         let columns = KILIST_COLUMNS;
-        let query = await sb
-          .from(KILIST_TABLE)
-          .select(columns)
-          .eq("work_zone", workZone)
-          .order("created_at", { ascending: true });
+        let query = await scopeKilistZone(
+          sb.from(KILIST_TABLE).select(columns)
+        ).order("created_at", { ascending: true });
         if (query.error && /sort_order/i.test(query.error.message || "")) {
           sortOrderSupported = false;
           columns = KILIST_COLUMNS.replace(", sort_order", "");
-          query = await sb
-            .from(KILIST_TABLE)
-            .select(columns)
-            .eq("work_zone", workZone)
-            .order("created_at", { ascending: true });
+          query = await scopeKilistZone(
+            sb.from(KILIST_TABLE).select(columns)
+          ).order("created_at", { ascending: true });
         }
         if (query.error) throw new Error(query.error.message);
         records.length = 0;
