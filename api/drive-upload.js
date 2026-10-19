@@ -368,34 +368,20 @@ async function handleSession(req, res) {
 
   const folderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID).trim();
   const accessToken = await getAccessToken();
-  const origin = resolveUploadOrigin(req, body.origin);
   const metadata = {
     name: fileName,
-    parents: [folderId]
+    parents: folderId ? [folderId] : undefined
   };
-  let direct = Boolean(origin);
-  let uploadUrl = "";
-  try {
-    uploadUrl = await startResumableUpload({
-      accessToken,
-      metadata,
-      mimeType,
-      fileSize,
-      origin: direct ? origin : ""
-    });
-  } catch (error) {
-    if (!direct || String(error?.message || "").trim() !== "Bad Request") throw error;
-    direct = false;
-    uploadUrl = await startResumableUpload({
-      accessToken,
-      metadata,
-      mimeType,
-      fileSize,
-      origin: ""
-    });
-  }
+  // 不帶 Origin。瀏覽器來源若未列入 Google 授權，Google 會以 Bad Request 拒絕工作階段。
+  const uploadUrl = await startResumableUpload({
+    accessToken,
+    metadata,
+    mimeType,
+    fileSize,
+    origin: ""
+  });
 
-  sendJson(res, 200, { uploadUrl, mimeType, fileSize, direct });
+  sendJson(res, 200, { uploadUrl, mimeType, fileSize, direct: false });
 }
 
 function chunkContentRange(req) {
