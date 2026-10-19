@@ -2558,9 +2558,17 @@
       return (holder.textContent || "").replace(/\u200b/g, "").trim();
     }
 
+    function decodeHtmlEntities(value) {
+      const holder = document.createElement("textarea");
+      holder.innerHTML = String(value || "");
+      return holder.value;
+    }
+
     function renderNoteText(text) {
       const raw = String(text || "");
-      if (!/<\/?(b|strong|i|em|u|span|div|p|br|blockquote|font)\b/i.test(raw)) return escapeHtml(raw);
+      if (!/<\/?(b|strong|i|em|u|span|div|p|br|blockquote|font)\b/i.test(raw)) {
+        return escapeHtml(decodeHtmlEntities(raw));
+      }
       return sanitizeNoteHtml(raw);
     }
 
