@@ -2245,17 +2245,6 @@
       return host ? `網路錯誤，上傳中斷（${host}）` : "網路錯誤，上傳中斷";
     }
 
-    function isBrowserDriveUploadUrl(rawUrl) {
-      try {
-        const url = new URL(String(rawUrl || ""));
-        const host = url.hostname;
-        return url.protocol === "https:"
-          && (host === "googleapis.com" || host.endsWith(".googleapis.com") || host === "googleusercontent.com" || host.endsWith(".googleusercontent.com"));
-      } catch (_) {
-        return false;
-      }
-    }
-
     function syncUploadTargetRequirements() {
       if (fileInput) fileInput.required = true;
       if (zoneInput) zoneInput.required = true;
@@ -2301,39 +2290,12 @@
         body: JSON.stringify({
           fileName: file.name,
           mimeType: file.type || "application/octet-stream",
-          fileSize: file.size,
-          origin: window.location.origin
+          fileSize: file.size
         })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.uploadUrl) {
         throw new Error(result.error || `無法建立 Google Drive 上傳工作階段（${response.status}）`);
-      }
-      return result;
-    }
-
-    async function putFileDirectToDrive(uploadUrl, file, mimeType, onProgress) {
-      if (!isBrowserDriveUploadUrl(uploadUrl)) {
-        throw new Error("上傳網址不正確");
-      }
-      const response = await uploadWithProgress({
-        url: uploadUrl,
-        method: "PUT",
-        headers: {
-          "Content-Type": mimeType || file.type || "application/octet-stream"
-        },
-        body: file,
-        onProgress
-      });
-      const result = (() => {
-        try {
-          return JSON.parse(response.responseText || "{}");
-        } catch (_) {
-          return {};
-        }
-      })();
-      if (!response.ok) {
-        throw new Error(result.error?.message || `直接上傳 Google Drive 失敗（${response.status}）`);
       }
       return result;
     }
@@ -2410,18 +2372,19 @@
       const session = await createDriveUploadSession(accessToken, file);
       const mimeType = session.mimeType || file.type || "application/octet-stream";
       try {
-        return await putFileDirectToDrive(session.uploadUrl, file, mimeType, onProgress);
-      } catch (directError) {
-        console.warn("Google Drive 直傳失敗，改用分塊上傳", directError);
-        try {
-          return await putFileToDriveInChunks(accessToken, session.uploadUrl, file, mimeType, onProgress);
-        } catch (chunkError) {
-          console.warn("Google Drive 分塊上傳失敗", chunkError);
-          if (file.size <= 4 * 1024 * 1024) {
-            return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
-          }
-          throw chunkError;
+        return await putFileToDriveInChunks(
+          accessToken,
+          session.uploadUrl,
+          file,
+          mimeType,
+          onProgress
+        );
+      } catch (chunkError) {
+        console.warn("Google Drive 分塊上傳失敗", chunkError);
+        if (file.size <= 4 * 1024 * 1024) {
+          return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
         }
+        throw chunkError;
       }
     }
 
