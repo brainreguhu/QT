@@ -2369,23 +2369,19 @@
     }
 
     async function uploadFileToGoogleDrive(accessToken, file, onProgress) {
+      const smallFile = file.size <= 4 * 1024 * 1024;
+      if (smallFile) {
+        return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
+      }
       const session = await createDriveUploadSession(accessToken, file);
       const mimeType = session.mimeType || file.type || "application/octet-stream";
-      try {
-        return await putFileToDriveInChunks(
-          accessToken,
-          session.uploadUrl,
-          file,
-          mimeType,
-          onProgress
-        );
-      } catch (chunkError) {
-        console.warn("Google Drive 分塊上傳失敗", chunkError);
-        if (file.size <= 4 * 1024 * 1024) {
-          return uploadFileViaLegacyDriveApi(accessToken, file, onProgress);
-        }
-        throw chunkError;
-      }
+      return putFileToDriveInChunks(
+        accessToken,
+        session.uploadUrl,
+        file,
+        mimeType,
+        onProgress
+      );
     }
 
     async function uploadFileToSupabaseStorage(file, filePath, onProgress) {
