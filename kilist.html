@@ -2598,9 +2598,10 @@
     }
 
     let noteSelectionLock = false;
+    let noteSelectionFrozen = false;
 
     function rememberNoteSelection(editor) {
-      if (noteSelectionLock) return;
+      if (noteSelectionLock || noteSelectionFrozen) return;
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount || !editor) return;
       const range = selection.getRangeAt(0);
@@ -2669,35 +2670,74 @@
       rememberNoteSelection(editor);
     }
 
+    function savedNoteRange(editor) {
+      const saved = editor ? noteSelectionMap.get(editor) : null;
+      if (!saved) return null;
+      try {
+        const range = saved.cloneRange();
+        if (range.commonAncestorContainer !== editor && !editor.contains(range.commonAncestorContainer)) return null;
+        return range;
+      } catch (_) {
+        noteSelectionMap.delete(editor);
+        return null;
+      }
+    }
+
+    function rangeCoversElement(range, element) {
+      const probe = document.createRange();
+      probe.selectNodeContents(element);
+      return range.compareBoundaryPoints(Range.START_TO_START, probe) === 0
+        && range.compareBoundaryPoints(Range.END_TO_END, probe) === 0;
+    }
+
+    function holdNoteSelection(editor) {
+      if (!editor) return;
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        const inside = range.commonAncestorContainer === editor || editor.contains(range.commonAncestorContainer);
+        if (inside && !range.collapsed) noteSelectionMap.set(editor, range.cloneRange());
+      }
+      noteSelectionFrozen = true;
+    }
+
+    function restoreNoteSelection(editor) {
+      const range = savedNoteRange(editor);
+      if (!editor || !range) return;
+      noteSelectionLock = true;
+      editor.focus();
+      try {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        noteSelectionMap.set(editor, range.cloneRange());
+      } catch (_) {
+        noteSelectionMap.delete(editor);
+      }
+      noteSelectionLock = false;
+    }
+
     function applyNoteColor(editor, color) {
       const normalized = normalizeNoteColor(color);
       if (!editor || !normalized) return;
-      focusNoteEditor(editor);
-      const selection = window.getSelection();
-      if (!selection || !selection.rangeCount) return;
-      const range = selection.getRangeAt(0);
-      if (range.commonAncestorContainer !== editor && !editor.contains(range.commonAncestorContainer)) return;
-      const span = document.createElement("span");
-      span.style.color = normalized;
-      if (range.collapsed) {
-        span.appendChild(document.createTextNode("\u200b"));
-        range.insertNode(span);
-        const caret = document.createRange();
-        caret.setStart(span.firstChild, 1);
-        caret.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(caret);
+      const range = savedNoteRange(editor);
+      if (!range || range.collapsed) return;
+      const ancestor = range.commonAncestorContainer.nodeType === 1
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+      if (ancestor?.dataset?.noteColor === "1" && rangeCoversElement(range, ancestor)) {
+        ancestor.style.color = normalized;
       } else {
+        const span = document.createElement("span");
+        span.dataset.noteColor = "1";
+        span.style.color = normalized;
         span.appendChild(range.extractContents());
         range.insertNode(span);
-        selection.removeAllRanges();
         const next = document.createRange();
         next.selectNodeContents(span);
-        next.collapse(false);
-        selection.addRange(next);
+        noteSelectionMap.set(editor, next.cloneRange());
       }
       editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
-      rememberNoteSelection(editor);
     }
 
     function applyNoteCommand(editor, command, value) {
@@ -3271,6 +3311,11 @@
         cancelNote(Number(noteCancelBtn.dataset.index));
         return;
       }
+      const colorControl = e.target.closest(".note-tool-color");
+      if (colorControl) {
+        openNoteColorPicker(colorControl.querySelector(".note-color"));
+        return;
+      }
       const formatBtn = e.target.closest(".note-toolbar [data-cmd]");
       if (formatBtn) {
         const editor = formatBtn.closest(".note-editor")?.querySelector(".note-input");
@@ -3278,13 +3323,41 @@
       }
     });
 
+    function openNoteColorPicker(input) {
+      if (!input) return;
+      input.focus({ preventScroll: true });
+      try {
+        if (typeof input.showPicker === "function") input.showPicker();
+      } catch (_) {}
+    }
+
+    listEl.addEventListener("pointerdown", (e) => {
+      const colorControl = e.target.closest(".note-tool-color");
+      if (!colorControl || !listEl.contains(colorControl)) return;
+      holdNoteSelection(colorControl.closest(".note-editor")?.querySelector(".note-input"));
+    }, true);
+
     listEl.addEventListener("mousedown", (e) => {
       const editor = e.target.closest(".note-editor")?.querySelector(".note-input");
+      if (e.target.closest(".note-tool-color")) {
+        const picker = e.target.closest(".note-tool-color")?.querySelector(".note-color");
+        if (picker && typeof picker.showPicker === "function") e.preventDefault();
+        holdNoteSelection(editor);
+        return;
+      }
       if (editor && e.target.closest(".note-toolbar")) rememberNoteSelection(editor);
       if (e.target.closest(".note-toolbar button")) e.preventDefault();
     });
 
     listEl.addEventListener("change", (e) => {
+      const colorInput = e.target.closest(".note-color");
+      if (colorInput) {
+        const editor = colorInput.closest(".note-editor")?.querySelector(".note-input");
+        applyNoteColor(editor, colorInput.value);
+        noteSelectionFrozen = false;
+        restoreNoteSelection(editor);
+        return;
+      }
       const sizeSelect = e.target.closest(".note-size");
       if (!sizeSelect) return;
       const editor = sizeSelect.closest(".note-editor")?.querySelector(".note-input");
@@ -3295,12 +3368,19 @@
       const colorInput = e.target.closest(".note-color");
       if (colorInput) {
         const editor = colorInput.closest(".note-editor")?.querySelector(".note-input");
-        applyNoteCommand(editor, "color", colorInput.value);
+        applyNoteColor(editor, colorInput.value);
         return;
       }
       const editor = e.target.closest(".note-input");
       if (!editor) return;
       editor.dataset.empty = notePlainText(editor.innerHTML) ? "false" : "true";
+    });
+
+    listEl.addEventListener("focusout", (e) => {
+      if (!e.target.closest?.(".note-color")) return;
+      window.setTimeout(() => {
+        noteSelectionFrozen = false;
+      }, 0);
     });
 
     document.addEventListener("selectionchange", () => {
