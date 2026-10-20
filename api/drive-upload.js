@@ -154,12 +154,12 @@ function googleErrorText(detail, status) {
         if (bit && !parts.includes(bit)) parts.push(bit);
       });
     }
-    if (parts.length) return parts.join("：");
+    if (parts.length) return `${parts.join("：")}（HTTP ${status}）`;
   }
-  if (typeof err === "string" && err) return err;
-  if (detail?.error_description) return String(detail.error_description);
+  if (typeof err === "string" && err) return `${err}（HTTP ${status}）`;
+  if (detail?.error_description) return `${detail.error_description}（HTTP ${status}）`;
   const raw = String(detail?.raw || "").trim();
-  if (raw) return raw.slice(0, 300);
+  if (raw) return `${raw.slice(0, 300)}（HTTP ${status}）`;
   return `Google 回應 ${status}`;
 }
 
@@ -433,20 +433,8 @@ async function handleChunk(req, res) {
   });
 }
 
-async function handleLegacyUpload(req, res, fileBuffer) {
-  const fileName = safeFileName(req.headers["x-file-name"]);
-  const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0];
-  const folderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID).trim();
-  const accessToken = await getAccessToken();
-  const { body, contentType } = buildMultipart(
-    {
-      name: fileName,
-      parents: [folderId]
-    },
-    fileBuffer,
-    mimeType
-  );
-
+async function postMultipartToDrive(accessToken, metadata, fileBuffer, mimeType) {
+  const { body, contentType } = buildMultipart(metadata, fileBuffer, mimeType);
   const uploadRes = await fetch(DRIVE_UPLOAD_URL, {
     method: "POST",
     headers: {
@@ -455,15 +443,41 @@ async function handleLegacyUpload(req, res, fileBuffer) {
     },
     body
   });
-  const uploaded = await uploadRes.json();
+  const raw = await uploadRes.text();
+  let uploaded = {};
+  try {
+    uploaded = raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    uploaded = { raw };
+  }
   if (!uploadRes.ok) {
-    throw new Error(googleErrorText(uploaded, uploadRes.status));
+    const error = new Error(googleErrorText(uploaded, uploadRes.status));
+    error.statusCode = uploadRes.status;
+    throw error;
+  }
+  return uploaded;
+}
+
+async function handleLegacyUpload(req, res, fileBuffer) {
+  const fileName = safeFileName(req.headers["x-file-name"]);
+  const mimeType = String(req.headers["content-type"] || "application/octet-stream").split(";")[0] || "application/octet-stream";
+  const folderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_FOLDER_ID).trim();
+  const accessToken = await getAccessToken();
+  const metadata = { name: fileName };
+  if (folderId) metadata.parents = [folderId];
+  let uploaded;
+  try {
+    uploaded = await postMultipartToDrive(accessToken, metadata, fileBuffer, mimeType);
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (!folderId || !/notFound|file not found|parent|bad request/i.test(message)) throw error;
+    uploaded = await postMultipartToDrive(accessToken, { name: fileName }, fileBuffer, mimeType);
   }
 
   sendJson(res, 200, {
     id: uploaded.id,
     name: uploaded.name,
-    webViewLink: uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`
+    webViewLink: uploaded.webViewLink || (uploaded.id ? `https://drive.google.com/file/d/${uploaded.id}/view` : "")
   });
 }
 
