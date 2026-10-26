@@ -1447,17 +1447,59 @@
       return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
     }
 
+    async function casSortOrder(id, nextOrder, expectedOrder) {
+      let query = sb.from(KILIST_TABLE).update({ sort_order: nextOrder }).eq("id", id);
+      if (!Number.isFinite(expectedOrder)) query = query.is("sort_order", null);
+      else query = query.eq("sort_order", expectedOrder);
+      const { data, error } = await query.select("id");
+      if (error) throw new Error(error.message);
+      return Array.isArray(data) && data.length > 0;
+    }
+
+    async function reloadSortOrder(record) {
+      const { data, error } = await sb.from(KILIST_TABLE).select("sort_order").eq("id", record.id).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) return false;
+      record.sortOrder = data.sort_order == null || data.sort_order === "" ? null : Number(data.sort_order);
+      return true;
+    }
+
     async function uploadSortOrders(list) {
       if (!sortOrderSupported) {
         throw new Error("sort_order");
       }
-      await Promise.all(list.map(async (record) => {
-        const { error } = await sb
-          .from(KILIST_TABLE)
-          .update({ sort_order: record.sortOrder })
-          .eq("id", record.id);
-        if (error) throw new Error(error.message);
-      }));
+      for (const record of list) {
+        if (!Number.isFinite(record.sortOrder)) continue;
+        const saved = await casSortOrder(record.id, record.sortOrder, null);
+        if (!saved) await reloadSortOrder(record);
+      }
+    }
+
+    async function ensureSortOrders() {
+      if (!sortOrderSupported) return;
+      if (records.every((record) => Number.isFinite(record.sortOrder))) return;
+      const ordered = [...records].sort(compareRecords);
+      let next = ordered.reduce((max, record) => (
+        Number.isFinite(record.sortOrder) ? Math.max(max, record.sortOrder) : max
+      ), 0);
+      for (const record of ordered) {
+        if (Number.isFinite(record.sortOrder)) continue;
+        next += 10;
+        const saved = await casSortOrder(record.id, next, null);
+        if (saved) record.sortOrder = next;
+        else await reloadSortOrder(record);
+      }
+    }
+
+    async function commitSortSwap(currentId, currentOrder, neighborId, neighborOrder) {
+      const firstOk = await casSortOrder(currentId, neighborOrder, currentOrder);
+      if (!firstOk) return false;
+      const secondOk = await casSortOrder(neighborId, currentOrder, neighborOrder);
+      if (!secondOk) {
+        await casSortOrder(currentId, currentOrder, neighborOrder);
+        return false;
+      }
+      return true;
     }
 
     async function moveRecord(index, delta) {
@@ -1469,32 +1511,40 @@
       const current = entries[pos].r;
       const neighbor = entries[nextPos].r;
       if (!current || !neighbor || orderTier(current) !== orderTier(neighbor)) return;
-      const previous = records.map((record) => record.sortOrder);
-      const ordered = [...records].sort(compareRecords);
-      if (ordered.some((record) => !Number.isFinite(record.sortOrder))) {
-        ordered.forEach((record, orderIndex) => {
-          record.sortOrder = (orderIndex + 1) * 10;
-        });
+      if (!sortOrderSupported) {
+        alert(formatSupabaseError(new Error("sort_order")));
+        return;
       }
-      const currentOrder = current.sortOrder;
-      current.sortOrder = neighbor.sortOrder;
-      neighbor.sortOrder = currentOrder;
-      renderRecords();
       movingRecord = true;
       try {
-        const changed = ordered.filter((record, orderIndex) => record.sortOrder !== previous[records.indexOf(record)]);
-        const payload = changed.length ? changed : [current, neighbor];
-        await uploadSortOrders(payload);
+        await ensureSortOrders();
+        const currentOrder = current.sortOrder;
+        const neighborOrder = neighbor.sortOrder;
+        if (!Number.isFinite(currentOrder) || !Number.isFinite(neighborOrder) || currentOrder === neighborOrder) {
+          renderRecords();
+          return;
+        }
+        current.sortOrder = neighborOrder;
+        neighbor.sortOrder = currentOrder;
+        renderRecords();
+        const ok = await commitSortSwap(current.id, currentOrder, neighbor.id, neighborOrder);
+        if (!ok) {
+          await reloadSortOrder(current);
+          await reloadSortOrder(neighbor);
+          renderRecords();
+          alert("順序剛被其他人調整，已改為最新順序。");
+          return;
+        }
         clearLocalRecordOrder();
       } catch (err) {
         console.error("上傳清單順序失敗", err);
         alert(`上傳清單順序失敗：${formatSupabaseError(err)}`);
-        records.forEach((record, recordIndex) => {
-          record.sortOrder = previous[recordIndex];
-        });
+        await reloadSortOrder(current).catch(() => {});
+        await reloadSortOrder(neighbor).catch(() => {});
         renderRecords();
       } finally {
         movingRecord = false;
+        if (remoteRefreshIds.size) scheduleRemoteRefresh(0);
       }
     }
 
@@ -1927,6 +1977,15 @@
     }
 
     const records = [];
+    const recordSaveChain = new Map();
+    const remoteRefreshIds = new Set();
+    let notesRpcSupported = true;
+    let notesRpcWarned = false;
+    let loadGeneration = 0;
+    let remoteRefreshTimer = 0;
+    let remoteRefreshRunning = false;
+    let kilistChannel = null;
+    let pageReady = false;
 
     function formatSupabaseError(err) {
       const msg = err?.message ? err.message : String(err || "未知錯誤");
@@ -1960,6 +2019,7 @@
         isAddingOpen: false,
         editingNoteIndex: -1,
         isEditing: false,
+        editingOpenId: "",
         notesExpanded: false
       };
     }
@@ -2039,25 +2099,31 @@
         renderRecords();
         return;
       }
+      const generation = ++loadGeneration;
       try {
         let columns = KILIST_COLUMNS;
         let query = await scopeKilistZone(
           sb.from(KILIST_TABLE).select(columns)
         ).order("created_at", { ascending: true });
+        if (generation !== loadGeneration) return;
         if (query.error && /sort_order/i.test(query.error.message || "")) {
           sortOrderSupported = false;
           columns = KILIST_COLUMNS.replace(", sort_order", "");
           query = await scopeKilistZone(
             sb.from(KILIST_TABLE).select(columns)
           ).order("created_at", { ascending: true });
+          if (generation !== loadGeneration) return;
         }
         if (query.error) throw new Error(query.error.message);
+        if (generation !== loadGeneration) return;
+        if (movingRecord || addingRecord || savingLink || records.some(isRecordBusy)) return;
         records.length = 0;
         (query.data || []).forEach((row) => records.push(normalizeRow(row)));
         const importedLocalOrder = applyImportedLocalOrder();
         mergeVendorsFromRecords(records);
         refreshVendorSelects();
         await syncRecordLinks();
+        if (generation !== loadGeneration) return;
         renderRecords();
         if (importedLocalOrder && sortOrderSupported) {
           try {
@@ -2760,40 +2826,272 @@
       const record = records[index];
       if (!record) return;
       record.isAddingNote = false;
+      queueRemoteRefresh(record.id);
       renderRecords();
+    }
+
+    function beginRecordSave(record) {
+      if (!record || record._saving) return false;
+      record._saving = true;
+      return true;
+    }
+
+    function enqueueRecordSave(id, task) {
+      const prev = recordSaveChain.get(id) || Promise.resolve();
+      const run = prev.catch(() => {}).then(task);
+      const tracked = run.finally(() => {
+        if (recordSaveChain.get(id) === tracked) recordSaveChain.delete(id);
+      });
+      recordSaveChain.set(id, tracked);
+      return run;
+    }
+
+    async function finishRecordSave(record, task) {
+      try {
+        await enqueueRecordSave(record.id, task);
+      } finally {
+        record._saving = false;
+      }
+    }
+
+    function cloneNotes(notes) {
+      return JSON.parse(JSON.stringify(Array.isArray(notes) ? notes : []));
+    }
+
+    function noteIdentity(note) {
+      if (note?.id) return `id:${note.id}`;
+      return `legacy:${note?.kind || "text"}|${note?.at || ""}|${note?.by || ""}|${note?.text || ""}`;
+    }
+
+    function noteConflict(message) {
+      const err = new Error(message);
+      err.code = "NOTE_CONFLICT";
+      return err;
+    }
+
+    function replaceNote(notes, key, mapper) {
+      const index = notes.findIndex((note) => noteIdentity(note) === key);
+      if (index < 0) {
+        const err = new Error("這則內容已變更或已被刪除，請再確認。");
+        err.code = "NOTE_MISSING";
+        throw err;
+      }
+      const nextNote = mapper(notes[index]);
+      if (nextNote === notes[index]) return notes;
+      const next = notes.slice();
+      next[index] = nextNote;
+      return next;
+    }
+
+    function removeNoteByKey(notes, key) {
+      const next = notes.filter((note) => noteIdentity(note) !== key);
+      return next.length === notes.length ? notes : next;
+    }
+
+    async function commitNotes(record, mutate) {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const { data, error } = await sb.from(KILIST_TABLE).select("notes").eq("id", record.id).maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!data) {
+          const index = records.indexOf(record);
+          if (index >= 0) records.splice(index, 1);
+          throw new Error("這筆資料已不存在");
+        }
+        const serverNotes = cloneNotes(data.notes);
+        const nextNotes = mutate(serverNotes);
+        if (nextNotes === serverNotes) {
+          record.notes = serverNotes;
+          return;
+        }
+        if (notesRpcSupported) {
+          const rpc = await sb.rpc("kilist_update_notes", {
+            p_id: record.id,
+            p_expected: serverNotes,
+            p_next: nextNotes
+          });
+          if (rpc.error) {
+            const msg = rpc.error.message || "";
+            if (/kilist_update_notes|PGRST202|schema cache|Could not find the function/i.test(msg)) {
+              notesRpcSupported = false;
+              if (!notesRpcWarned) {
+                notesRpcWarned = true;
+                alert("多人同時編輯補充說明的保護尚未啟用。請至 Supabase Dashboard → SQL Editor 執行 SQL/kilist_records.sql 後重新整理。");
+              }
+            } else {
+              throw new Error(msg);
+            }
+          } else if (rpc.data === true || rpc.data === "true") {
+            record.notes = nextNotes;
+            return;
+          } else if (notesRpcSupported) {
+            continue;
+          }
+        }
+        const updated = await sb.from(KILIST_TABLE).update({ notes: nextNotes }).eq("id", record.id).select("notes");
+        if (updated.error) throw new Error(updated.error.message);
+        record.notes = Array.isArray(updated.data?.[0]?.notes) ? updated.data[0].notes : nextNotes;
+        return;
+      }
+      throw new Error("這筆資料剛被其他人更新，請再試一次");
+    }
+
+    async function recoverRecord(record, err) {
+      const message = String(err?.message || "");
+      const shouldRefresh = err?.code === "NOTE_CONFLICT"
+        || err?.code === "NOTE_MISSING"
+        || err?.code === "STALE_RECORD"
+        || /已不存在|剛被其他人/.test(message);
+      if (!shouldRefresh || !record) return;
+      try {
+        await refreshRecordFromServer(record);
+      } catch (refreshErr) {
+        console.warn("重新讀取資料失敗", refreshErr);
+      }
+    }
+
+    function staleRecordError() {
+      const err = new Error("這筆資料剛被其他人更新，已改為最新內容。");
+      err.code = "STALE_RECORD";
+      return err;
+    }
+
+    async function patchRecord(record, payload, expect) {
+      let query = sb.from(KILIST_TABLE).update(payload).eq("id", record.id);
+      if (expect) {
+        Object.entries(expect).forEach(([key, value]) => {
+          if (value == null) query = query.is(key, null);
+          else query = query.eq(key, value);
+        });
+      }
+      const { data, error } = await query.select("id");
+      if (error) throw new Error(error.message);
+      if (!Array.isArray(data) || !data.length) throw staleRecordError();
+    }
+
+    async function persistRecordEdits(record, values) {
+      const nextPersonId = values.personId || "";
+      const nextPerson = values.personName;
+      const nextItem = values.item;
+      const nextNote = values.note;
+      const personChanged = nextPersonId !== (record.personId || "") || nextPerson !== record.person;
+      const itemChanged = nextItem !== record.item;
+      const noteChanged = nextNote !== record.note;
+      if (!personChanged && !itemChanged && !noteChanged) {
+        record.isEditing = false;
+        renderRecords();
+        return;
+      }
+      const { data: fresh, error } = await sb
+        .from(KILIST_TABLE)
+        .select("person_id, person_name, item, note")
+        .eq("id", record.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!fresh) {
+        const index = records.indexOf(record);
+        if (index >= 0) records.splice(index, 1);
+        record.isEditing = false;
+        renderRecords();
+        throw new Error("這筆資料已不存在");
+      }
+      const serverPersonId = fresh.person_id ? String(fresh.person_id) : "";
+      const serverPerson = String(fresh.person_name ?? "").trim();
+      const serverItem = String(fresh.item ?? "").trim();
+      const serverNote = String(fresh.note ?? "").trim();
+      const dirty = {};
+      const expect = {};
+      const blocked = [];
+      if (personChanged) {
+        if (serverPersonId !== (record.personId || "") || serverPerson !== record.person) {
+          blocked.push("承辦");
+          record.personId = serverPersonId;
+          record.person = serverPerson;
+        } else {
+          dirty.person_id = nextPersonId || null;
+          dirty.person_name = nextPerson;
+          expect.person_id = fresh.person_id;
+          expect.person_name = fresh.person_name ?? "";
+        }
+      }
+      if (itemChanged) {
+        if (serverItem !== record.item) {
+          blocked.push("廠商");
+          record.item = serverItem;
+        } else {
+          dirty.item = nextItem;
+          expect.item = fresh.item ?? "";
+        }
+      }
+      if (noteChanged) {
+        if (serverNote !== record.note) {
+          blocked.push("內容");
+          record.note = serverNote;
+        } else {
+          dirty.note = nextNote;
+          expect.note = fresh.note ?? "";
+        }
+      }
+      if (Object.keys(dirty).length) {
+        try {
+          await patchRecord(record, dirty, expect);
+        } catch (err) {
+          if (err?.code !== "STALE_RECORD") throw err;
+          await refreshRecordFromServer(record);
+          record.isEditing = false;
+          renderRecords();
+          alert("這筆資料剛被其他人更新，已改為最新內容。");
+          return;
+        }
+        if (Object.prototype.hasOwnProperty.call(dirty, "person_name")) {
+          record.personId = nextPersonId;
+          record.person = nextPerson;
+        }
+        if (Object.prototype.hasOwnProperty.call(dirty, "item")) {
+          record.item = nextItem;
+          if (nextItem && !vendorList.includes(nextItem)) {
+            vendorList.push(nextItem);
+            saveVendorList();
+            refreshVendorSelects();
+          }
+        }
+        if (Object.prototype.hasOwnProperty.call(dirty, "note")) record.note = nextNote;
+      }
+      record.isEditing = false;
+      renderRecords();
+      if (blocked.length) alert(`這筆的${blocked.join("、")}剛被其他人更新，已保留對方的內容。`);
     }
 
     async function confirmNote(index) {
       const record = records[index];
-      if (!record) return;
+      if (!record || record._saving) return;
       const input = listEl.querySelector(`.note-input[data-index="${index}"]:not(.note-edit-input)`);
       const html = sanitizeNoteHtml(input?.innerHTML || "");
       const text = notePlainText(html);
-      if (text) {
-        if (!currentUsername) {
-          alert("無法取得人員，請先至 login.html 登入。");
-          return;
-        }
-        const nextNotes = [{
-          text: html,
-          by: currentUsername,
-          at: new Date().toISOString()
-        }, ...record.notes];
-        try {
-          const { error } = await sb
-            .from(KILIST_TABLE)
-            .update({ notes: nextNotes })
-            .eq("id", record.id);
-          if (error) throw new Error(error.message);
-          record.notes = nextNotes;
-        } catch (err) {
-          console.error("儲存文字說明失敗", err);
-          alert(`儲存文字說明失敗：${formatSupabaseError(err)}`);
-          return;
-        }
+      if (!text) {
+        record.isAddingNote = false;
+        renderRecords();
+        return;
       }
-      record.isAddingNote = false;
-      record.editingNoteIndex = -1;
+      if (!currentUsername) {
+        alert("無法取得人員，請先至 login.html 登入。");
+        return;
+      }
+      if (!beginRecordSave(record)) return;
+      const entry = {
+        id: crypto.randomUUID(),
+        text: html,
+        by: currentUsername,
+        at: new Date().toISOString()
+      };
+      try {
+        await finishRecordSave(record, () => commitNotes(record, (notes) => [entry, ...notes]));
+        record.isAddingNote = false;
+        record.editingNoteIndex = -1;
+      } catch (err) {
+        console.error("儲存文字說明失敗", err);
+        await recoverRecord(record, err);
+        alert(`儲存文字說明失敗：${formatSupabaseError(err)}`);
+      }
       renderRecords();
     }
 
@@ -2821,13 +3119,14 @@
       const record = records[index];
       if (!record) return;
       record.editingNoteIndex = -1;
+      queueRemoteRefresh(record.id);
       renderRecords();
     }
 
     async function saveNoteEdit(index, noteIndex) {
       const record = records[index];
       const note = record?.notes?.[noteIndex];
-      if (!record || !note || note.kind === "open") return;
+      if (!record || !note || note.kind === "open" || record._saving) return;
       const input = listEl.querySelector(`.note-edit-input[data-index="${index}"]`);
       const html = sanitizeNoteHtml(input?.innerHTML || "");
       const text = notePlainText(html);
@@ -2835,43 +3134,39 @@
         input?.focus();
         return;
       }
-      const nextNotes = record.notes.map((item, itemIndex) => (
-        itemIndex === noteIndex ? { ...item, text: html } : item
-      ));
+      if (!beginRecordSave(record)) return;
+      const key = noteIdentity(note);
+      const originalText = note.text || "";
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => replaceNote(notes, key, (item) => {
+          if ((item.text || "") !== originalText) throw noteConflict("這則補充說明剛被其他人更新，已改為最新內容。");
+          return { ...item, id: item.id || crypto.randomUUID(), text: html };
+        })));
+        record.editingNoteIndex = -1;
       } catch (err) {
         console.error("編輯補充說明失敗", err);
+        await recoverRecord(record, err);
+        record.editingNoteIndex = -1;
         alert(`編輯補充說明失敗：${formatSupabaseError(err)}`);
-        return;
       }
-      record.editingNoteIndex = -1;
       renderRecords();
     }
 
     async function removeNote(index, noteIndex) {
       const record = records[index];
       const note = record?.notes?.[noteIndex];
-      if (!record || !note || note.kind === "open") return;
-      const nextNotes = record.notes.filter((_, itemIndex) => itemIndex !== noteIndex);
+      if (!record || !note || note.kind === "open" || record._saving) return;
+      if (!beginRecordSave(record)) return;
+      const key = noteIdentity(note);
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => removeNoteByKey(notes, key)));
+        record.editingNoteIndex = -1;
       } catch (err) {
         console.error("刪除補充說明失敗", err);
+        await recoverRecord(record, err);
         alert(`刪除補充說明失敗：${formatSupabaseError(err)}`);
-        return;
       }
-      record.editingNoteIndex = -1;
       renderRecords();
-    }
-
-    async function saveNotes(record, nextNotes) {
-      const { error } = await sb
-        .from(KILIST_TABLE)
-        .update({ notes: nextNotes })
-        .eq("id", record.id);
-      if (error) throw new Error(error.message);
-      record.notes = nextNotes;
     }
 
     function cancelOpenItem(index) {
@@ -2879,6 +3174,7 @@
       if (!record) return;
       record.isAddingOpen = false;
       record.editingOpenId = "";
+      queueRemoteRefresh(record.id);
       renderRecords();
     }
 
@@ -2895,23 +3191,24 @@
         alert("無法取得人員，請先至 login.html 登入。");
         return;
       }
-      const nextNotes = [...record.notes, {
+      if (!beginRecordSave(record)) return;
+      const entry = {
         kind: "open",
         id: crypto.randomUUID(),
         text,
         checked: false,
         by: currentUsername,
         at: new Date().toISOString()
-      }];
+      };
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => [...notes, entry]));
+        record.isAddingOpen = false;
+        record.editingOpenId = "";
       } catch (err) {
         console.error("儲存補充開項失敗", err);
+        await recoverRecord(record, err);
         alert(`儲存補充開項失敗：${formatSupabaseError(err)}`);
-        return;
       }
-      record.isAddingOpen = false;
-      record.editingOpenId = "";
       renderRecords();
     }
 
@@ -2933,29 +3230,34 @@
       const record = records[index];
       if (!record) return;
       record.editingOpenId = "";
+      queueRemoteRefresh(record.id);
       renderRecords();
     }
 
     async function saveOpenItemEdit(index, openId) {
       const record = records[index];
-      if (!record || !openId) return;
+      if (!record || !openId || record._saving) return;
       const input = listEl.querySelector(`.open-item-edit-input[data-open-id="${CSS.escape(openId)}"]`);
       const text = String(input?.value || "").trim();
       if (!text) {
         input?.focus();
         return;
       }
-      const nextNotes = record.notes.map((note) => (
-        note?.kind === "open" && note.id === openId ? { ...note, text } : note
-      ));
+      const current = record.notes.find((note) => note?.kind === "open" && note.id === openId);
+      const originalText = current?.text || "";
+      if (!beginRecordSave(record)) return;
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => replaceNote(notes, `id:${openId}`, (note) => {
+          if ((note.text || "") !== originalText) throw noteConflict("這則開項剛被其他人更新，已改為最新內容。");
+          return { ...note, text };
+        })));
+        record.editingOpenId = "";
       } catch (err) {
         console.error("編輯補充開項失敗", err);
+        await recoverRecord(record, err);
+        record.editingOpenId = "";
         alert(`編輯補充開項失敗：${formatSupabaseError(err)}`);
-        return;
       }
-      record.editingOpenId = "";
       renderRecords();
     }
 
@@ -2967,20 +3269,23 @@
         renderRecords();
         return;
       }
-      const nextNotes = record.notes.map((note) => {
-        if (!(note?.kind === "open" && note.id === openId)) return note;
-        if (!checked) return { ...note, checked: false, checkedBy: "", checkedAt: "" };
-        return {
-          ...note,
-          checked: true,
-          checkedBy: currentUsername,
-          checkedAt: new Date().toISOString()
-        };
-      });
+      if (!beginRecordSave(record)) {
+        renderRecords();
+        return;
+      }
+      const checkedAt = new Date().toISOString();
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => replaceNote(notes, `id:${openId}`, (note) => {
+          if (checked) {
+            if (note.checked) return note;
+            return { ...note, checked: true, checkedBy: currentUsername, checkedAt };
+          }
+          if (!note.checked) return note;
+          return { ...note, checked: false, checkedBy: "", checkedAt: "" };
+        })));
       } catch (err) {
         console.error("更新補充開項失敗", err);
+        await recoverRecord(record, err);
         alert(`更新補充開項失敗：${formatSupabaseError(err)}`);
       }
       renderRecords();
@@ -2988,21 +3293,21 @@
 
     async function removeOpenItem(index, openId) {
       const record = records[index];
-      if (!record || !openId) return;
-      const nextNotes = record.notes.filter((note) => !(note?.kind === "open" && note.id === openId));
+      if (!record || !openId || record._saving) return;
+      if (!beginRecordSave(record)) return;
       try {
-        await saveNotes(record, nextNotes);
+        await finishRecordSave(record, () => commitNotes(record, (notes) => removeNoteByKey(notes, `id:${openId}`)));
       } catch (err) {
         console.error("刪除補充開項失敗", err);
+        await recoverRecord(record, err);
         alert(`刪除補充開項失敗：${formatSupabaseError(err)}`);
-        return;
       }
       renderRecords();
     }
 
     async function saveEdit(index) {
       const record = records[index];
-      if (!record) return;
+      if (!record || record._saving) return;
       const personSelect = listEl.querySelector(`.edit-person[data-index="${index}"]`);
       const itemSelect = listEl.querySelector(`.edit-item[data-index="${index}"]`);
       const noteInput = listEl.querySelector(`.edit-note[data-index="${index}"]`);
@@ -3015,33 +3320,20 @@
         personSelect?.focus();
         return;
       }
-      const item = (itemSelect?.value || "").trim();
-      const note = (noteInput?.value || "").trim();
+      const values = {
+        personId,
+        personName,
+        item: (itemSelect?.value || "").trim(),
+        note: (noteInput?.value || "").trim()
+      };
+      if (!beginRecordSave(record)) return;
       try {
-        const { error } = await sb
-          .from(KILIST_TABLE)
-          .update({
-            person_id: personId || null,
-            person_name: personName,
-            item,
-            note
-          })
-          .eq("id", record.id);
-        if (error) throw new Error(error.message);
-        record.personId = personId;
-        record.person = personName;
-        record.item = item;
-        record.note = note;
-        record.isEditing = false;
-        if (item && !vendorList.includes(item)) {
-          vendorList.push(item);
-          saveVendorList();
-          refreshVendorSelects();
-        }
-        renderRecords();
+        await finishRecordSave(record, () => persistRecordEdits(record, values));
       } catch (err) {
         console.error("儲存編輯失敗", err);
+        await recoverRecord(record, err);
         alert(`儲存編輯失敗：${formatSupabaseError(err)}`);
+        renderRecords();
       }
     }
 
@@ -3049,75 +3341,93 @@
       const record = records[index];
       if (!record) return;
       record.isEditing = false;
+      queueRemoteRefresh(record.id);
       renderRecords();
     }
 
     async function toggleCheck(index) {
       const record = records[index];
-      if (!record) return;
-      let payload;
-      if (record.checkedBy) {
-        payload = { checked_by: "", checked_at: null };
-      } else {
-        if (!currentUsername) {
-          alert("無法取得勾核人員，請先至 login.html 登入。");
-          return;
-        }
-        payload = { checked_by: currentUsername, checked_at: new Date().toISOString() };
+      if (!record || record._saving) return;
+      const turningOff = Boolean(record.checkedBy);
+      if (!turningOff && !currentUsername) {
+        alert("無法取得勾核人員，請先至 login.html 登入。");
+        return;
       }
+      const payload = turningOff
+        ? { checked_by: "", checked_at: null }
+        : { checked_by: currentUsername, checked_at: new Date().toISOString() };
+      const expectedCheckedBy = record.checkedBy || "";
+      if (!beginRecordSave(record)) return;
       try {
-        const { error } = await sb
-          .from(KILIST_TABLE)
-          .update(payload)
-          .eq("id", record.id);
-        if (error) throw new Error(error.message);
-        record.checkedBy = payload.checked_by;
-        record.checkedAt = payload.checked_at || "";
-        renderRecords();
+        await finishRecordSave(record, async () => {
+          try {
+            await patchRecord(record, payload, { checked_by: expectedCheckedBy });
+          } catch (err) {
+            if (err?.code !== "STALE_RECORD") throw err;
+            await refreshRecordFromServer(record);
+            alert("勾核狀態剛被其他人更新，已改為最新內容。");
+            return;
+          }
+          record.checkedBy = payload.checked_by;
+          record.checkedAt = payload.checked_at || "";
+        });
       } catch (err) {
         console.error("勾核更新失敗", err);
         alert(`勾核更新失敗：${formatSupabaseError(err)}`);
       }
+      renderRecords();
     }
 
     async function toggleRemind(index) {
       const record = records[index];
-      if (!record) return;
-      const next = !record.isRemind;
+      if (!record || record._saving) return;
+      const previous = Boolean(record.isRemind);
+      if (!beginRecordSave(record)) return;
       try {
-        const { error } = await sb
-          .from(KILIST_TABLE)
-          .update({ is_remind: next })
-          .eq("id", record.id);
-        if (error) throw new Error(error.message);
-        record.isRemind = next;
-        renderRecords();
+        await finishRecordSave(record, async () => {
+          try {
+            await patchRecord(record, { is_remind: !previous }, { is_remind: previous });
+          } catch (err) {
+            if (err?.code !== "STALE_RECORD") throw err;
+            await refreshRecordFromServer(record);
+            alert("提醒狀態剛被其他人更新，已改為最新內容。");
+            return;
+          }
+          record.isRemind = !previous;
+        });
       } catch (err) {
         console.error("提醒更新失敗", err);
         alert(`提醒更新失敗：${formatSupabaseError(err)}`);
       }
+      renderRecords();
     }
 
     async function togglePin(index) {
       const record = records[index];
-      if (!record) return;
+      if (!record || record._saving) return;
       if (!canPinRecords()) {
         alert("僅權限等級 0 或 1 的使用者可操作置頂。");
         return;
       }
-      const next = !record.isPinned;
+      const previous = Boolean(record.isPinned);
+      if (!beginRecordSave(record)) return;
       try {
-        const { error } = await sb
-          .from(KILIST_TABLE)
-          .update({ is_pinned: next })
-          .eq("id", record.id);
-        if (error) throw new Error(error.message);
-        record.isPinned = next;
-        renderRecords();
+        await finishRecordSave(record, async () => {
+          try {
+            await patchRecord(record, { is_pinned: !previous }, { is_pinned: previous });
+          } catch (err) {
+            if (err?.code !== "STALE_RECORD") throw err;
+            await refreshRecordFromServer(record);
+            alert("置頂狀態剛被其他人更新，已改為最新內容。");
+            return;
+          }
+          record.isPinned = !previous;
+        });
       } catch (err) {
         console.error("置頂更新失敗", err);
         alert(`置頂更新失敗：${formatSupabaseError(err)}`);
       }
+      renderRecords();
     }
 
     async function deleteRecord(index) {
@@ -3475,7 +3785,7 @@
           .select(sortOrderSupported ? KILIST_COLUMNS : KILIST_COLUMNS.replace(", sort_order", ""))
           .single();
         if (error) throw new Error(error.message);
-        records.push(normalizeRow(data));
+        mergeServerRow(data);
         renderRecords();
         listEl.querySelector(`.link-dot[data-id="${CSS.escape(data.id)}"]`)?.closest(".record-item")?.scrollIntoView({ block: "nearest" });
         noteInputEl.value = "";
@@ -3519,6 +3829,146 @@
     }
     window.addEventListener("resize", scheduleDrawLinks);
 
+    function isRecordBusy(record) {
+      return Boolean(
+        record?._saving
+        || record?.isEditing
+        || record?.isAddingNote
+        || record?.isAddingOpen
+        || Number(record?.editingNoteIndex) >= 0
+        || record?.editingOpenId
+      );
+    }
+
+    function rowInScope(row) {
+      if (!row?.work_zone) return true;
+      if (viewerAllZones && (!workZone || workZone === "0")) return true;
+      return String(row.work_zone) === workZone;
+    }
+
+    function recordColumns() {
+      return sortOrderSupported ? KILIST_COLUMNS : KILIST_COLUMNS.replace(", sort_order", "");
+    }
+
+    function mergeServerRow(row) {
+      if (!row?.id || !rowInScope(row)) return;
+      const index = records.findIndex((record) => record.id === row.id);
+      if (index < 0) {
+        records.push(normalizeRow(row));
+        return;
+      }
+      if (isRecordBusy(records[index])) return;
+      const notesExpanded = Boolean(records[index].notesExpanded);
+      Object.assign(records[index], normalizeRow(row), { notesExpanded });
+    }
+
+    async function refreshRecordFromServer(record) {
+      const { data, error } = await sb.from(KILIST_TABLE).select(recordColumns()).eq("id", record.id).maybeSingle();
+      if (error) throw new Error(error.message);
+      const index = records.indexOf(record);
+      if (!data) {
+        if (index >= 0) records.splice(index, 1);
+        return null;
+      }
+      if (index < 0) return null;
+      const notesExpanded = Boolean(record.notesExpanded);
+      Object.assign(record, normalizeRow(data), { notesExpanded });
+      return record;
+    }
+
+    function scheduleRemoteRefresh(delay = 200) {
+      clearTimeout(remoteRefreshTimer);
+      remoteRefreshTimer = setTimeout(() => {
+        flushRemoteRefresh();
+      }, delay);
+    }
+
+    function queueRemoteRefresh(id) {
+      if (!id) return;
+      remoteRefreshIds.add(id);
+      scheduleRemoteRefresh();
+    }
+
+    async function flushRemoteRefresh() {
+      if (remoteRefreshRunning) return;
+      if (movingRecord || addingRecord || savingLink || records.some(isRecordBusy)) {
+        if (remoteRefreshIds.size) scheduleRemoteRefresh(400);
+        return;
+      }
+      const ids = [...remoteRefreshIds];
+      remoteRefreshIds.clear();
+      if (!ids.length) return;
+      remoteRefreshRunning = true;
+      try {
+        if (ids.length > 20) {
+          await loadRecords();
+          return;
+        }
+        await Promise.all(ids.map(async (id) => {
+          const { data, error } = await sb.from(KILIST_TABLE).select(recordColumns()).eq("id", id).maybeSingle();
+          if (error) {
+            console.warn("同步單筆資料失敗", error);
+            return;
+          }
+          if (!data) {
+            const index = records.findIndex((record) => record.id === id);
+            if (index >= 0 && !isRecordBusy(records[index])) records.splice(index, 1);
+            return;
+          }
+          mergeServerRow(data);
+        }));
+        if (!movingRecord && !records.some(isRecordBusy)) renderRecords();
+      } catch (err) {
+        console.warn("同步清單失敗", err);
+      } finally {
+        remoteRefreshRunning = false;
+        if (remoteRefreshIds.size) scheduleRemoteRefresh(200);
+      }
+    }
+
+    function handleRemoteLink(payload) {
+      const row = payload.eventType === "DELETE" ? payload.old : payload.new;
+      if (row?.work_zone && !rowInScope(row)) return;
+      if (payload.eventType === "INSERT" && row?.from_id && row?.to_id) {
+        const from = String(row.from_id);
+        const to = String(row.to_id);
+        if (!recordLinks.some((link) => link.from === from && link.to === to)) {
+          recordLinks.push({ from, to });
+        }
+      } else if (payload.eventType === "DELETE" && row?.from_id && row?.to_id) {
+        const from = String(row.from_id);
+        const to = String(row.to_id);
+        recordLinks = recordLinks.filter((link) => !(link.from === from && link.to === to));
+      } else if (!savingLink) {
+        syncRecordLinks().then(() => {
+          if (records.some(isRecordBusy)) return;
+          refreshLinkDots();
+          scheduleDrawLinks();
+        }).catch((err) => console.warn("同步弧線失敗", err));
+        return;
+      }
+      if (records.some(isRecordBusy)) return;
+      refreshLinkDots();
+      scheduleDrawLinks();
+    }
+
+    function subscribeKilist() {
+      if (kilistChannel || (!workZone && !viewerAllZones)) return;
+      const topic = { event: "*", schema: "public" };
+      const filter = viewerAllZones && (!workZone || workZone === "0")
+        ? {}
+        : { filter: `work_zone=eq.${workZone}` };
+      kilistChannel = sb.channel(`kilist-live-${workZone || "all"}`);
+      kilistChannel.on("postgres_changes", { ...topic, table: KILIST_TABLE, ...filter }, (payload) => {
+        const id = payload.eventType === "DELETE" ? payload.old?.id : payload.new?.id;
+        queueRemoteRefresh(id);
+      });
+      kilistChannel.on("postgres_changes", { ...topic, table: KILIST_LINKS_TABLE, ...filter }, handleRemoteLink);
+      kilistChannel.subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") console.warn("即時同步未連線", status);
+      });
+    }
+
     async function bootstrap() {
       listEl.className = "empty-hint";
       listEl.textContent = "載入中…";
@@ -3526,7 +3976,15 @@
       refreshVendorSelects();
       await loadCurrentUsername();
       await Promise.all([loadZonePersons(), loadRecords()]);
+      subscribeKilist();
+      pageReady = true;
     }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!pageReady || document.visibilityState !== "visible") return;
+      if (addingRecord || movingRecord || savingLink || records.some(isRecordBusy)) return;
+      loadRecords();
+    });
 
     bootstrap();
   </script>
