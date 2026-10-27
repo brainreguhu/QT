@@ -1224,7 +1224,7 @@
           <button type="button" id="clear-filter-btn" class="clear-filter-btn">清除篩選</button>
           <button type="button" id="vendor-edit-btn" class="vendor-edit-btn">編輯清單</button>
           <button type="button" id="checked-toggle-btn" class="checked-toggle-btn" aria-pressed="false">
-            顯示已勾核
+            顯示已完成
           </button>
         </div>
       </div>
@@ -1305,7 +1305,7 @@
     let showCheckedRecords = false;
 
     function syncCheckedToggleBtn() {
-      checkedToggleBtnEl.textContent = showCheckedRecords ? "隱藏已勾核" : "顯示已勾核";
+      checkedToggleBtnEl.textContent = showCheckedRecords ? "隱藏已完成" : "顯示已完成";
       checkedToggleBtnEl.classList.toggle("is-on", showCheckedRecords);
       checkedToggleBtnEl.setAttribute("aria-pressed", showCheckedRecords ? "true" : "false");
     }
@@ -2522,7 +2522,7 @@
               ${checkInfo}
               <button type="button" class="edit-btn" data-index="${index}">編輯</button>
               <button type="button" class="check-btn ${r.checkedBy ? "is-checked" : ""}" data-index="${index}">
-                ${r.checkedBy ? "已勾核" : "勾核"}
+                ${r.checkedBy ? "已完成" : "完成"}
               </button>
               <button type="button" class="remind-btn ${r.isRemind ? "is-on" : ""}" data-index="${index}">
                 ${r.isRemind ? "取消提醒" : "提醒"}
