@@ -1222,7 +1222,8 @@
         </select>
         <div class="filter-actions">
           <button type="button" id="clear-filter-btn" class="clear-filter-btn">清除篩選</button>
-          <button type="button" id="vendor-edit-btn" class="vendor-edit-btn">編輯清單</button>
+          <button type="button" id="vendor-edit-btn" class="vendor-edit-btn">廠商清單</button>
+          <button type="button" id="sort-toggle-btn" class="checked-toggle-btn" aria-pressed="false">依新增時間</button>
           <button type="button" id="checked-toggle-btn" class="checked-toggle-btn" aria-pressed="false">
             顯示已完成
           </button>
@@ -1294,6 +1295,7 @@
     const vendorModalAddBtnEl = document.getElementById("vendor-modal-add-btn");
     const vendorModalHintEl = document.getElementById("vendor-modal-hint");
     const vendorModalListEl = document.getElementById("vendor-modal-list");
+    const sortToggleBtnEl = document.getElementById("sort-toggle-btn");
     const checkedToggleBtnEl = document.getElementById("checked-toggle-btn");
     const noteInputEl = document.getElementById("note-input");
     const recordBtnEl = document.getElementById("record-btn");
@@ -1303,6 +1305,13 @@
     const recordLinkPathsEl = document.getElementById("record-link-paths");
 
     let showCheckedRecords = false;
+    let sortByCreatedAt = false;
+
+    function syncSortToggleBtn() {
+      sortToggleBtnEl.textContent = sortByCreatedAt ? "依手動順序" : "依新增時間";
+      sortToggleBtnEl.classList.toggle("is-on", sortByCreatedAt);
+      sortToggleBtnEl.setAttribute("aria-pressed", sortByCreatedAt ? "true" : "false");
+    }
 
     function syncCheckedToggleBtn() {
       checkedToggleBtnEl.textContent = showCheckedRecords ? "隱藏已完成" : "顯示已完成";
@@ -1436,6 +1445,9 @@
       const tierA = orderTier(a);
       const tierB = orderTier(b);
       if (tierA !== tierB) return tierB - tierA;
+      if (sortByCreatedAt) {
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      }
       const orderA = Number.isFinite(a.sortOrder) ? a.sortOrder : null;
       const orderB = Number.isFinite(b.sortOrder) ? b.sortOrder : null;
       if (orderA == null && orderB == null) {
@@ -1503,7 +1515,7 @@
     }
 
     async function moveRecord(index, delta) {
-      if (movingRecord) return;
+      if (movingRecord || sortByCreatedAt) return;
       const entries = getFilteredRecordEntries();
       const pos = entries.findIndex((entry) => entry.index === index);
       const nextPos = pos + delta;
@@ -2542,8 +2554,9 @@
           ].filter(Boolean).join(" ");
 
           const pos = entries.findIndex((entry) => entry.index === index);
-          const canUp = pos > 0 && orderTier(entries[pos - 1].r) === orderTier(r);
-          const canDown = pos >= 0 && pos < entries.length - 1 && orderTier(entries[pos + 1].r) === orderTier(r);
+          const canUp = !sortByCreatedAt && pos > 0 && orderTier(entries[pos - 1].r) === orderTier(r);
+          const canDown = !sortByCreatedAt && pos >= 0 && pos < entries.length - 1 && orderTier(entries[pos + 1].r) === orderTier(r);
+          const orderTitle = sortByCreatedAt ? "依新增時間排序時無法調整順序" : "";
           const linkTitle = linkSourceId === r.id
             ? "再點一次可取消選取"
             : linkSourceId
@@ -2552,10 +2565,10 @@
           return `
           <div class="${itemClass}">
             <div class="record-order">
-              <button type="button" class="order-btn order-up" data-index="${index}" aria-label="上移" title="上移" ${canUp ? "" : "disabled"}>
+              <button type="button" class="order-btn order-up" data-index="${index}" aria-label="上移" title="${orderTitle || "上移"}" ${canUp ? "" : "disabled"}>
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.2 10.2 8 5.2 12.8 10.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </button>
-              <button type="button" class="order-btn order-down" data-index="${index}" aria-label="下移" title="下移" ${canDown ? "" : "disabled"}>
+              <button type="button" class="order-btn order-down" data-index="${index}" aria-label="下移" title="${orderTitle || "下移"}" ${canDown ? "" : "disabled"}>
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.2 5.8 8 10.8 12.8 5.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </button>
             </div>
@@ -3814,11 +3827,17 @@
       filterVendorEl.value = "";
       renderRecords();
     });
+    sortToggleBtnEl.addEventListener("click", () => {
+      sortByCreatedAt = !sortByCreatedAt;
+      syncSortToggleBtn();
+      renderRecords();
+    });
     checkedToggleBtnEl.addEventListener("click", () => {
       showCheckedRecords = !showCheckedRecords;
       syncCheckedToggleBtn();
       renderRecords();
     });
+    syncSortToggleBtn();
     syncCheckedToggleBtn();
 
     loadRecordLinks();
